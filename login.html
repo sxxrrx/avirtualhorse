@@ -1,31 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Login</title>
-  <script>
-    function loginUser() {
-      const loginName = document.getElementById("loginName").value.trim();
-      const password = document.getElementById("password").value;
-
-      const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-      const user = allUsers[loginName];
-
-      if (!user || user.password !== password) {
-        return alert("Invalid login name or password.");
-      }
-
-      localStorage.setItem("activeUser", JSON.stringify(user));
-      window.location.href = "game.html";
+  <script src="script.js" defer></script>
+  <style>
+    body {
+      text-align: center;
+      background-color: #d2f8d2;
+      font-family: Arial, sans-serif;
+      padding-top: 50px;
     }
-  </script>
+
+    .container {
+      display: inline-block;
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #3b5323;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #567d46;
+    }
+
+    .link {
+      margin-top: 15px;
+      display: block;
+    }
+  </style>
 </head>
-<body style="text-align: center; background-color: #d2f8d2;">
-  <h2>Log Into Your Account</h2>
+<body>
   <div class="container">
-    <input type="text" id="loginName" placeholder="Login Name"><br><br>
-    <input type="password" id="password" placeholder="Password"><br><br>
+    <h2>Login to Virtual Ranch</h2>
+    <input type="text" id="loginName" placeholder="Login Name"><br>
+    <input type="password" id="password" placeholder="Password"><br>
     <button onclick="loginUser()">Log In</button>
+
+    <a href="forgot-login.html" class="link">Forgot Login Name?</a>
+    <a href="signup.html" class="link">Don't have an account? Sign up here</a>
   </div>
 </body>
 </html>
+
