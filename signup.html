@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Up</title>
+  <script src="script.js" defer></script>
+</head>
+<body style="text-align: center; background-color: #d2f8d2;">
+  <h2>Create Your Account</h2>
+  <div class="container">
+    <input type="text" id="loginName" placeholder="Login Name"><br><br>
+    <input type="text" id="username" placeholder="Username"><br><br>
+    <input type="email" id="email" placeholder="Email"><br><br>
+    <input type="password" id="password" placeholder="Password"><br><br>
+    <input type="password" id="confirmPassword" placeholder="Confirm Password"><br><br>
+
+    <h3>Your First Horse</h3>
+    <input type="text" id="horseName" placeholder="Horse Name"><br><br>
+    <select id="breed">
+      <option value="">Select Breed</option>
+      <option value="Friesian">Friesian</option>
+      <option value="Thoroughbred">Thoroughbred</option>
+      <option value="Arabian">Arabian</option>
+    </select><br><br>
+    <select id="coatColor">
+      <option value="">Select Coat Color</option>
+    </select><br><br>
+    <select id="sex">
+      <option value="">Select Sex</option>
+      <option value="Mare">Mare</option>
+      <option value="Stallion">Stallion</option>
+    </select><br><br>
+
+    <button onclick="submitForm()">Sign Up</button>
+  </div>
+</body>
+</html>
