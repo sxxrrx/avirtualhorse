@@ -499,3 +499,43 @@ function prepareBreeding() {
 
   localStorage.setItem("activeUser", JSON.stringify(user));
 }
+function checkForFoals() {
+  const user = JSON.parse(localStorage.getItem("activeUser"));
+  let foalsBorn = 0;
+
+  const now = Date.now();
+  const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+
+  user.horses.forEach(mare => {
+    if (mare.gender === "Mare" && mare.pregnantSince && now - mare.pregnantSince >= THREE_DAYS) {
+      const sire = user.horses.find(h => h.id === mare.sireId);
+      if (!sire) return;
+
+      const foal = {
+        id: generateHorseId(),
+        name: "Unnamed Foal",
+        breed: mare.breed, // or blend later
+        coatColor: mare.coatColor, // simplified for now
+        gender: Math.random() < 0.5 ? "Mare" : "Stallion",
+        level: 1,
+        exp: 0,
+        age: { years: 0, months: 0 },
+        parents: {
+          dam: mare.name,
+          sire: sire.name
+        }
+        // We’ll add genetics later here!
+      };
+
+      user.horses.push(foal);
+      mare.pregnantSince = null;
+      mare.sireId = null;
+      foalsBorn++;
+    }
+  });
+
+  if (foalsBorn > 0) {
+    alert(`🎉 ${foalsBorn} new foal(s) have been born and added to your stable!`);
+    localStorage.setItem("activeUser", JSON.stringify(user));
+  }
+}
