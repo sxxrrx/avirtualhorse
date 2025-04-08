@@ -393,3 +393,29 @@ function submitForm() {
   localStorage.setItem("activeUser", JSON.stringify(user));
   window.location.href = "game.html";
 }
+const breedColors = {
+  Friesian: ["Black"],
+  Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
+  Arabian: ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+  const breedSelect = document.getElementById("breed");
+  const coatColorSelect = document.getElementById("coatColor");
+
+  if (breedSelect && coatColorSelect) {
+    breedSelect.addEventListener("change", function () {
+      const selectedBreed = this.value;
+      coatColorSelect.innerHTML = '<option value="">Select Coat Color</option>';
+
+      if (breedColors[selectedBreed]) {
+        breedColors[selectedBreed].forEach(color => {
+          const option = document.createElement("option");
+          option.value = color;
+          option.textContent = color;
+          coatColorSelect.appendChild(option);
+        });
+      }
+    });
+  }
+});
