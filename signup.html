@@ -16,37 +16,18 @@
 
     <h3>Your First Horse</h3>
     <input type="text" id="horseName" placeholder="Horse Name"><br><br>
+
     <select id="breed">
       <option value="">Select Breed</option>
       <option value="Friesian">Friesian</option>
       <option value="Thoroughbred">Thoroughbred</option>
       <option value="Arabian">Arabian</option>
     </select><br><br>
+
     <select id="coatColor">
       <option value="">Select Coat Color</option>
-<script>
-  const breedColors = {
-    Friesian: ["Black"],
-    Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
-    Arabian: ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
-  };
-
-  document.getElementById("breed").addEventListener("change", function () {
-    const breed = this.value;
-    const coatColorSelect = document.getElementById("coatColor");
-    coatColorSelect.innerHTML = '<option value="">Select Coat Color</option>';
-    if (breedColors[breed]) {
-      breedColors[breed].forEach(color => {
-        const option = document.createElement("option");
-        option.value = color;
-        option.textContent = color;
-        coatColorSelect.appendChild(option);
-      });
-    }
-  });
-</script>
-
     </select><br><br>
+
     <select id="sex">
       <option value="">Select Sex</option>
       <option value="Mare">Mare</option>
@@ -55,5 +36,28 @@
 
     <button onclick="submitForm()">Sign Up</button>
   </div>
+
+  <!-- Script to populate coat colors based on breed -->
+  <script>
+    const breedColors = {
+      Friesian: ["Black"],
+      Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
+      Arabian: ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
+    };
+
+    document.getElementById("breed").addEventListener("change", function () {
+      const breed = this.value;
+      const coatColorSelect = document.getElementById("coatColor");
+      coatColorSelect.innerHTML = '<option value="">Select Coat Color</option>';
+      if (breedColors[breed]) {
+        breedColors[breed].forEach(color => {
+          const option = document.createElement("option");
+          option.value = color;
+          option.textContent = color;
+          coatColorSelect.appendChild(option);
+        });
+      }
+    });
+  </script>
 </body>
 </html>
