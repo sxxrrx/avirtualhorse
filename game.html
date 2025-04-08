@@ -221,6 +221,14 @@
       if (!user) return window.location.href = "login.html";
 
       checkForFoals();
+      showProfile(user);
+      renderStables(user);
+      renderSalesHorses(user);
+      setupJobs(user);
+      showRider(user);
+      showTack(user);
+      showTab("stables");
+    };
 
       if (!user.horses || user.horses.length === 0) {
         user.horses = [
@@ -253,15 +261,7 @@
         div.textContent = item;
         newsListContainer.appendChild(div);
       });
-
-      showProfile(user);
-      renderStables(user);
-      renderSalesHorses(user);
-      setupJobs(user);
-      showRider(user);
-      showTack(user);
-      showTab("stables");
-    };
+    
   </script>
 </body>
 </html>
