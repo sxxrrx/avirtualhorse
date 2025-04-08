@@ -139,6 +139,11 @@ function prepareBreeding() {
 
   const partner = eligible.find(h => `${h.name} (${h.breed}, ${h.coatColor})` === choice);
   if (!partner) return alert("Invalid choice.");
+const eligible = user.horses.filter(h => ...);
+if (eligible.length === 0) {
+  alert("No eligible breeding partners.");
+  return;
+}
 
   let mare, stallion;
   if (horse.gender === "Mare") {
