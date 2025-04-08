@@ -229,7 +229,7 @@
       showTack(user);
       showTab("stables");
     };
-
+      const user = JSON.parse(localStorage.getItem("activeUser"));
       if (!user.horses || user.horses.length === 0) {
         user.horses = [
           {
@@ -251,7 +251,7 @@
       document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
 
       const news = [
-        "Welcome to HORSE GAME",
+        "Welcome to HORSE GAME,",
         "New event: coming soon...",
         "News Update: New Version of HORSE GAME v4.1.1"
       ];
