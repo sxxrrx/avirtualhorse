@@ -24,6 +24,28 @@
     </select><br><br>
     <select id="coatColor">
       <option value="">Select Coat Color</option>
+<script>
+  const breedColors = {
+    Friesian: ["Black"],
+    Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
+    Arabian: ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
+  };
+
+  document.getElementById("breed").addEventListener("change", function () {
+    const breed = this.value;
+    const coatColorSelect = document.getElementById("coatColor");
+    coatColorSelect.innerHTML = '<option value="">Select Coat Color</option>';
+    if (breedColors[breed]) {
+      breedColors[breed].forEach(color => {
+        const option = document.createElement("option");
+        option.value = color;
+        option.textContent = color;
+        coatColorSelect.appendChild(option);
+      });
+    }
+  });
+</script>
+
     </select><br><br>
     <select id="sex">
       <option value="">Select Sex</option>
