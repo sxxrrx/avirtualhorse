@@ -457,15 +457,75 @@ function prepareBreeding() {
   const horse = user.horses.find(h => h.id === horseId);
   if (!horse) return alert("Horse not found.");
 
-  // Basic checks
-  if (horse.age.years < 3) return alert(`${horse.name} is too young to breed.`);
-  if (horse.age.years >= 20) return alert(`${horse.name} is retired and can no longer breed.`);
-  if (horse.level < 2) return alert(`${horse.name} must be at least level 2 to breed.`);
+  if (horse.age.years < 3) return alert("This horse is too young to breed.");
+  if (horse.age.years >= 20) return alert("This horse is retired and cannot breed.");
+  if (horse.level < 2) return alert("This horse needs to be at least level 2 to breed.");
+  if (horse.gender !== "Mare" && horse.gender !== "Stallion") return alert("Only mares and stallions can breed.");
+  if (horse.gender === "Mare" && horse.pregnantSince) return alert("This mare is already pregnant.");
 
-  // Pregnancy check
-  if (horse.gender === "Mare" && horse.pregnantSince) {
-    return alert(`${horse.name} is already pregnant.`);
+  const isMare = horse.gender === "Mare";
+  const eligible = user.horses.filter(h =>
+    h.id !== horse.id &&
+    h.gender !== horse.gender &&
+    h.age.years >= 3 &&
+    h.age.years < 20 &&
+    h.level >= 2 &&
+    (!isMare || !h.pregnantSince) // Only exclude pregnant horses if viewing as Mare
+  );
+
+  if (eligible.length === 0) return alert("No eligible partners found.");
+
+  // Create dropdown UI
+  const dropdownDiv = document.createElement("div");
+  dropdownDiv.innerHTML = `
+    <label>Select a breeding partner:</label><br>
+    <select id="breedingPartnerSelect" style="margin: 10px; padding: 8px;">
+      ${eligible.map(h => `<option value="${h.id}">${h.name} (${h.breed}, ${h.coatColor}, Age ${h.age.years})</option>`).join("")}
+    </select><br>
+    <button onclick="confirmBreeding('${horseId}')">Confirm Breeding</button>
+  `;
+
+  const modal = document.createElement("div");
+  modal.style.position = "fixed";
+  modal.style.top = "0";
+  modal.style.left = "0";
+  modal.style.width = "100%";
+  modal.style.height = "100%";
+  modal.style.background = "rgba(0,0,0,0.6)";
+  modal.style.display = "flex";
+  modal.style.alignItems = "center";
+  modal.style.justifyContent = "center";
+  modal.appendChild(dropdownDiv);
+  document.body.appendChild(modal);
+}
+function confirmBreeding(horseId) {
+  const user = JSON.parse(localStorage.getItem("activeUser"));
+  const horse = user.horses.find(h => h.id === horseId);
+  const partnerId = document.getElementById("breedingPartnerSelect").value;
+  const partner = user.horses.find(h => h.id === partnerId);
+
+  let mare, stallion;
+  if (horse.gender === "Mare") {
+    mare = horse;
+    stallion = partner;
+  } else {
+    mare = partner;
+    stallion = horse;
   }
+
+  mare.pregnantSince = Date.now();
+  mare.sireId = stallion.id;
+
+  alert(`${mare.name} is now pregnant by ${stallion.name}. The foal will be born in 3 real days.`);
+
+  localStorage.setItem("activeUser", JSON.stringify(user));
+  renderStables(user); // Refresh stable
+  showHorseDetails(mare.id);
+
+  // Close dropdown modal
+  document.body.removeChild(document.body.lastChild);
+}
+
 
   // Partner filtering
   const eligible = user.horses.filter(h =>
