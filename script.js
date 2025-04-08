@@ -366,6 +366,41 @@ function submitForm() {
   }
 
   const horse = {
+    id: generateHorseId(),
+    name: horseName,
+    breed,
+    coatColor,
+    gender: sex,
+    level: 1,
+    exp: 0,
+    age: { years: 3, months: 0 }
+  };
+
+  const user = {
+    id: generateUserId(),
+    loginName,
+    username,
+    email,
+    password,
+    coins: 1000,
+    level: 1,
+    exp: 0,
+    horses: [horse],
+    job: "Stablehand",
+    joinDate: new Date().toLocaleDateString()
+  };
+
+  // Save to users object
+  let users = JSON.parse(localStorage.getItem("users")) || {};
+  users[loginName] = user;
+  localStorage.setItem("users", JSON.stringify(users));
+
+  // Also set as active user
+  localStorage.setItem("activeUser", JSON.stringify(user));
+  window.location.href = "game.html";
+}
+
+  const horse = {
     id: "horse_" + Date.now(),
     name: horseName,
     breed: breed,
