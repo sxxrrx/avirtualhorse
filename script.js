@@ -454,3 +454,17 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+function loginUser() {
+  const loginName = document.getElementById("loginName").value.trim();
+  const password = document.getElementById("password").value;
+
+  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
+  const user = allUsers[loginName];
+
+  if (!user || user.password !== password) {
+    return alert("Invalid login name or password.");
+  }
+
+  localStorage.setItem("activeUser", JSON.stringify(user));
+  window.location.href = "game.html";
+}
