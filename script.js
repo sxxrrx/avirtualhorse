@@ -552,41 +552,6 @@ function confirmBreeding(horseId) {
   document.body.removeChild(document.body.lastChild);
 }
 
-
-  // Partner filtering
-  const eligible = user.horses.filter(h =>
-    h.id !== horse.id &&
-    ((horse.gender === "Mare" && h.gender === "Stallion") ||
-     (horse.gender === "Stallion" && h.gender === "Mare")) &&
-    h.age.years >= 3 &&
-    h.age.years < 20 &&
-    h.level >= 2 &&
-    (!h.pregnantSince || h.gender !== "Mare")
-  );
-
-  if (eligible.length === 0) return alert("No eligible breeding partners available.");
-
-  const options = eligible.map(h => `${h.name} (${h.breed}, ${h.coatColor})`).join("\n");
-  const chosen = prompt("Choose a breeding partner:\n" + options);
-  const partner = eligible.find(h => `${h.name} (${h.breed}, ${h.coatColor})` === chosen);
-  if (!partner) return alert("Invalid partner selected.");
-
-  let mare, stallion;
-  if (horse.gender === "Mare") {
-    mare = horse;
-    stallion = partner;
-  } else {
-    mare = partner;
-    stallion = horse;
-  }
-
-  mare.pregnantSince = Date.now();
-  mare.sireId = stallion.id;
-
-  localStorage.setItem("activeUser", JSON.stringify(user));
-  alert(`${mare.name} is now pregnant by ${stallion.name}. Foal due in 3 real days.`);
-}
-
 function checkForFoals() {
   const user = JSON.parse(localStorage.getItem("activeUser"));
   let foalsBorn = 0;
