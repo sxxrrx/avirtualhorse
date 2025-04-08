@@ -190,21 +190,48 @@
     }
 
     function prepareBreeding() {
-      const user = JSON.parse(localStorage.getItem("activeUser"));
-      const horseId = localStorage.getItem("selectedHorseId");
-      const horse = user.horses.find(h => h.id === horseId);
-      if (!horse) return;
-      const options = user.horses.filter(h =>
-        h.id !== horse.id &&
-        ((horse.gender === "Mare" && h.gender === "Stallion") ||
-         (horse.gender === "Stallion" && h.gender === "Mare"))
-      );
-      if (options.length === 0) return alert("No eligible partners found.");
-      const names = options.map(h => `${h.name} (${h.breed})`).join("\n");
-      const chosen = prompt("Choose partner:\n" + names);
-      const match = options.find(h => `${h.name} (${h.breed})` === chosen);
-      if (match) alert(`${horse.name} and ${match.name} have been bred!`);
-    }
+  const user = JSON.parse(localStorage.getItem("activeUser"));
+  const horseId = localStorage.getItem("selectedHorseId");
+  const horse = user.horses.find(h => h.id === horseId);
+  if (!horse) return alert("Horse not found.");
+
+  if (horse.age.years < 3) return alert(`${horse.name} is too young to breed.`);
+  if (horse.age.years >= 20) return alert(`${horse.name} is retired and cannot breed.`);
+  if (horse.level < 2) return alert(`${horse.name} must be at least level 2 to breed.`);
+  if (horse.gender === "Mare" && horse.pregnantSince) return alert(`${horse.name} is already pregnant.`);
+
+  const eligible = user.horses.filter(h =>
+    h.id !== horse.id &&
+    ((horse.gender === "Mare" && h.gender === "Stallion") ||
+     (horse.gender === "Stallion" && h.gender === "Mare")) &&
+    h.age.years >= 3 && h.age.years < 20 && h.level >= 2 &&
+    (h.gender !== "Mare" || !h.pregnantSince)
+  );
+
+  if (eligible.length === 0) return alert("No eligible partners available.");
+
+  const partnerList = eligible.map(h => `${h.name} (${h.breed}, ${h.coatColor})`).join("\n");
+  const choice = prompt("Choose a partner:\n" + partnerList);
+  if (!choice) return;
+
+  const partner = eligible.find(h => `${h.name} (${h.breed}, ${h.coatColor})` === choice);
+  if (!partner) return alert("Invalid choice.");
+
+  let mare, stallion;
+  if (horse.gender === "Mare") {
+    mare = horse;
+    stallion = partner;
+  } else {
+    mare = partner;
+    stallion = horse;
+  }
+
+  mare.pregnantSince = Date.now();
+  mare.sireId = stallion.id;
+  localStorage.setItem("activeUser", JSON.stringify(user));
+  alert(`${mare.name} is now pregnant by ${stallion.name}.`);
+  showHorseDetails(mare.id); // Refresh details
+}
 
     window.onload = () => {
       const user = JSON.parse(localStorage.getItem("activeUser"));
