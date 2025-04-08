@@ -164,7 +164,7 @@
       document.getElementById("horseDetailInfo").innerHTML = `
         <p><strong>Breed:</strong> ${horse.breed}</p>
         <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
-        <p><strong>Gender:</strong> ${horse.gender}</p>
+        <p><strong>Gender:</strong> ${horse.gender}${horse.gender === "Mare" && horse.pregnantSince ? " (Pregnant)" : ""}</p>
         <p><strong>Age:</strong> ${horse.age?.years || 3} years</p>
         <p><strong>Level:</strong> ${horse.level || 1}</p>
         <p><strong>EXP:</strong> ${horse.exp || 0} / ${expNeeded}</p>
