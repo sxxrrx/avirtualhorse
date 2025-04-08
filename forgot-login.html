@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Forgot Login Name</title>
+  <script>
+    function recoverLoginName() {
+      const email = document.getElementById("email").value.trim();
+      const allUsers = JSON.parse(localStorage.getItem("users")) || {};
+      const matchedUser = Object.values(allUsers).find(u => u.email === email);
+
+      if (!matchedUser) {
+        alert("No account found with that email.");
+        return;
+      }
+
+      alert(`Your login name is: ${matchedUser.loginName}`);
+    }
+  </script>
+  <style>
+    body {
+      text-align: center;
+      background-color: #d2f8d2;
+      font-family: Arial, sans-serif;
+      padding-top: 50px;
+    }
+
+    .container {
+      display: inline-block;
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #3b5323;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #567d46;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Forgot Your Login Name?</h2>
+    <p>Enter the email address you used to sign up:</p>
+    <input type="email" id="email" placeholder="Email Address"><br>
+    <button onclick="recoverLoginName()">Recover Login Name</button><br>
+    <a href="login.html">Back to Login</a>
+  </div>
+</body>
+</html>
