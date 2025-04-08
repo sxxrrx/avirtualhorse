@@ -376,6 +376,42 @@ function submitForm() {
     age: { years: 3, months: 0 }
   };
 
+  const newUser = {
+    id: "user_" + Math.floor(Math.random() * 1000000000),
+    loginName,
+    username,
+    email,
+    password,
+    coins: 5000,
+    level: 1,
+    exp: 0,
+    horses: [horse],
+    job: "Stablehand",
+    joinDate: new Date().toLocaleDateString()
+  };
+
+  // Store in allUsers object
+  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
+  allUsers[loginName] = newUser;
+  localStorage.setItem("users", JSON.stringify(allUsers));
+
+  // Set as active user
+  localStorage.setItem("activeUser", JSON.stringify(newUser));
+
+  window.location.href = "game.html";
+}
+
+  const horse = {
+    id: "horse_" + Date.now(),
+    name: horseName,
+    breed,
+    coatColor,
+    gender: sex,
+    level: 1,
+    exp: 0,
+    age: { years: 3, months: 0 }
+  };
+
   const user = {
     id: "user_" + Math.floor(Math.random() * 1000000000),
     loginName,
