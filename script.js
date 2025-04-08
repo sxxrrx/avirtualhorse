@@ -451,3 +451,51 @@ function getGenesFromColor(color) {
       };
   }
 }
+function prepareBreeding() {
+  const user = JSON.parse(localStorage.getItem("activeUser"));
+  const horseId = localStorage.getItem("selectedHorseId");
+  const horse = user.horses.find(h => h.id === horseId);
+  if (!horse) return alert("Horse not found.");
+
+  if (horse.age.years < 3 || horse.level < 2 || horse.age.years >= 20) {
+    return alert("This horse is not eligible to breed.");
+  }
+
+  if (horse.gender !== "Mare" && horse.gender !== "Stallion") {
+    return alert("Only mares and stallions can breed.");
+  }
+
+  // If Mare, she can be pregnant. If Stallion, she must select a Mare.
+  const eligible = user.horses.filter(h =>
+    h.id !== horse.id &&
+    ((horse.gender === "Mare" && h.gender === "Stallion") ||
+     (horse.gender === "Stallion" && h.gender === "Mare")) &&
+    h.age.years >= 3 && h.level >= 2 && h.age.years < 20 &&
+    (!h.pregnantSince) // exclude already pregnant mares
+  );
+
+  if (eligible.length === 0) return alert("No eligible breeding partners.");
+
+  const partnerOptions = eligible.map(h => `${h.name} (${h.breed}, ${h.coatColor})`).join("\n");
+  const chosen = prompt("Choose a partner:\n" + partnerOptions);
+  if (!chosen) return;
+
+  const partner = eligible.find(h => `${h.name} (${h.breed}, ${h.coatColor})` === chosen);
+  if (!partner) return alert("Invalid choice.");
+
+  let mare, stallion;
+  if (horse.gender === "Mare") {
+    mare = horse;
+    stallion = partner;
+  } else {
+    mare = partner;
+    stallion = horse;
+  }
+
+  mare.pregnantSince = Date.now();
+  mare.sireId = stallion.id;
+
+  alert(`${mare.name} is now pregnant by ${stallion.name}. The foal will be born in 3 real days.`);
+
+  localStorage.setItem("activeUser", JSON.stringify(user));
+}
