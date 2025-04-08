@@ -14,7 +14,7 @@
         <li onclick="showTab('myranch')">My Ranch</li>
         <li onclick="showTab('stables')">Stables</li>
         <li onclick="showTab('sales')">Sales</li>
-        <li onclick="showTab('shows')">Shows</li>
+        <li onclick="showTab('Shows')">Shows</li>
         <li onclick="showTab('training')">Training</li>
         <li onclick="showTab('jobs')">Jobs</li>
       </ul>
@@ -131,7 +131,7 @@
     </div>
   </div>
 
-  <!-- Scripts -->
+  <!-- Script -->
   <script src="script.js"></script>
   <script>
     function showTab(id) {
@@ -164,9 +164,8 @@
       document.getElementById("horseDetailInfo").innerHTML = `
         <p><strong>Breed:</strong> ${horse.breed}</p>
         <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
-        <p><strong>Gender:</strong> ${horse.gender}${horse.gender === "Mare" && horse.pregnantSince ? " (Pregnant)" : ""}</p>
+        <p><strong>Gender:</strong> ${horse.gender}</p>
         <p><strong>Age:</strong> ${horse.age?.years || 3} years</p>
-        ${horse.pregnantSince ? `<p style="color: crimson;"><strong>This mare is pregnant</strong></p>` : ""}
         <p><strong>Level:</strong> ${horse.level || 1}</p>
         <p><strong>EXP:</strong> ${horse.exp || 0} / ${expNeeded}</p>
         <div style="background: #ccc; height: 20px; border-radius: 5px;">
@@ -177,83 +176,41 @@
       showTab("horseDetail");
     }
 
-    function checkForFoals() {
+    function changeHorseName() {
+      const newName = prompt("Enter a new name for your horse:");
+      if (!newName) return;
       const user = JSON.parse(localStorage.getItem("activeUser"));
-      if (!user || !user.horses) return;
-
-      const now = Date.now();
-      const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
-      let foalsBorn = 0;
-
-      user.horses.forEach(mare => {
-        if (mare.gender === "Mare" && mare.pregnantSince && (now - mare.pregnantSince >= THREE_DAYS)) {
-          const sire = user.horses.find(h => h.id === mare.sireId);
-          if (!sire) return;
-
-          const foal = {
-            id: 'horse_' + Date.now(),
-            name: 'Unnamed Foal',
-            breed: mare.breed,
-            coatColor: mare.coatColor,
-            gender: Math.random() < 0.5 ? "Mare" : "Stallion",
-            level: 1,
-            exp: 0,
-            age: { years: 0, months: 0 },
-            parents: { dam: mare.name, sire: sire.name }
-          };
-
-          user.horses.push(foal);
-          mare.pregnantSince = null;
-          mare.sireId = null;
-          foalsBorn++;
-        }
-      });
-
-      if (foalsBorn > 0) {
-        alert(`🎉 ${foalsBorn} new foal(s) have been born and added to your stable!`);
-        localStorage.setItem("activeUser", JSON.stringify(user));
-        renderStables(user);
-      }
+      const horseId = localStorage.getItem("selectedHorseId");
+      const horse = user.horses.find(h => h.id === horseId);
+      if (!horse) return;
+      horse.name = newName;
+      localStorage.setItem("activeUser", JSON.stringify(user));
+      showHorseDetails(horseId);
+      renderStables(user);
     }
-// ✅ Define this FIRST (outside window.onload)
-function renderSalesHorses(user) {
-  const horses = getSalesHorses();
-  const salesList = document.getElementById("salesList");
-  salesList.innerHTML = "";
-  horses.forEach(horse => {
-    const div = document.createElement("div");
-    div.innerHTML = `
-      <p><strong>${horse.name}</strong> (${horse.breed} - ${horse.coatColor} ${horse.gender}) - ${horse.price} coins
-      <button onclick="buyHorse('${horse.id}')">Purchase</button></p>
-    `;
-    salesList.appendChild(div);
-  });
-}
 
-// ✅ Then later, inside window.onload you can call it:
-window.onload = () => {
-  const user = JSON.parse(localStorage.getItem("activeUser"));
-  if (!user) return window.location.href = "login.html";
-
-  checkForFoals();
-  renderSalesHorses(user); // ← Call it here, now it works
-  ...
-};
+    function prepareBreeding() {
+      const user = JSON.parse(localStorage.getItem("activeUser"));
+      const horseId = localStorage.getItem("selectedHorseId");
+      const horse = user.horses.find(h => h.id === horseId);
+      if (!horse) return;
+      const options = user.horses.filter(h =>
+        h.id !== horse.id &&
+        ((horse.gender === "Mare" && h.gender === "Stallion") ||
+         (horse.gender === "Stallion" && h.gender === "Mare"))
+      );
+      if (options.length === 0) return alert("No eligible partners found.");
+      const names = options.map(h => `${h.name} (${h.breed})`).join("\n");
+      const chosen = prompt("Choose partner:\n" + names);
+      const match = options.find(h => `${h.name} (${h.breed})` === chosen);
+      if (match) alert(`${horse.name} and ${match.name} have been bred!`);
+    }
 
     window.onload = () => {
       const user = JSON.parse(localStorage.getItem("activeUser"));
       if (!user) return window.location.href = "login.html";
 
-      checkForFoals();
-      showProfile(user);
-      renderStables(user);
-      renderSalesHorses(user);
-      setupJobs(user);
-      showRider(user);
-      showTack(user);
-      showTab("stables");
-    };
-      const user = JSON.parse(localStorage.getItem("activeUser"));
+      // If user has no horses, create a default one
       if (!user.horses || user.horses.length === 0) {
         user.horses = [
           {
@@ -264,7 +221,10 @@ window.onload = () => {
             gender: "Stallion",
             level: 1,
             exp: 0,
-            age: { years: 3, months: 0 },
+            age: {
+              years: 3,
+              months: 0
+            },
             image: "horse-placeholder.png"
           }
         ];
@@ -275,7 +235,7 @@ window.onload = () => {
       document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
 
       const news = [
-        "Welcome to HORSE GAME,",
+        "Welcome to HORSE GAME",
         "New event: coming soon...",
         "News Update: New Version of HORSE GAME v4.1.1"
       ];
@@ -285,7 +245,15 @@ window.onload = () => {
         div.textContent = item;
         newsListContainer.appendChild(div);
       });
-    
+
+      showProfile(user);
+      renderStables(user);
+      renderSalesHorses(user);
+      setupJobs(user);
+      showRider(user);
+      showTack(user);
+      showTab("stables");
+    };
   </script>
 </body>
 </html>
