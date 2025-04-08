@@ -215,6 +215,30 @@
         renderStables(user);
       }
     }
+// ✅ Define this FIRST (outside window.onload)
+function renderSalesHorses(user) {
+  const horses = getSalesHorses();
+  const salesList = document.getElementById("salesList");
+  salesList.innerHTML = "";
+  horses.forEach(horse => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <p><strong>${horse.name}</strong> (${horse.breed} - ${horse.coatColor} ${horse.gender}) - ${horse.price} coins
+      <button onclick="buyHorse('${horse.id}')">Purchase</button></p>
+    `;
+    salesList.appendChild(div);
+  });
+}
+
+// ✅ Then later, inside window.onload you can call it:
+window.onload = () => {
+  const user = JSON.parse(localStorage.getItem("activeUser"));
+  if (!user) return window.location.href = "login.html";
+
+  checkForFoals();
+  renderSalesHorses(user); // ← Call it here, now it works
+  ...
+};
 
     window.onload = () => {
       const user = JSON.parse(localStorage.getItem("activeUser"));
