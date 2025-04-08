@@ -390,6 +390,13 @@ function submitForm() {
     joinDate: new Date().toLocaleDateString()
   };
 
+  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
+  allUsers[loginName] = newUser;
+  localStorage.setItem("users", JSON.stringify(allUsers));
+  localStorage.setItem("lastSignedUpUser", JSON.stringify(newUser));
+  window.location.href = "account-summary.html";
+}
+
   // Store in allUsers object
   const allUsers = JSON.parse(localStorage.getItem("users")) || {};
   allUsers[loginName] = newUser;
