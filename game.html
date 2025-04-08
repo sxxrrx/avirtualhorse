@@ -166,6 +166,7 @@
         <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
         <p><strong>Gender:</strong> ${horse.gender}${horse.gender === "Mare" && horse.pregnantSince ? " (Pregnant)" : ""}</p>
         <p><strong>Age:</strong> ${horse.age?.years || 3} years</p>
+        ${horse.pregnantSince ? `<p style="color: crimson;"><strong>This mare is pregnant</strong></p>` : ""}
         <p><strong>Level:</strong> ${horse.level || 1}</p>
         <p><strong>EXP:</strong> ${horse.exp || 0} / ${expNeeded}</p>
         <div style="background: #ccc; height: 20px; border-radius: 5px;">
