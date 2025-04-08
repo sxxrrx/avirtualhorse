@@ -366,7 +366,7 @@ function submitForm() {
   }
 
   const horse = {
-    id: generateHorseId(),
+    id: "horse_" + Date.now(),
     name: horseName,
     breed,
     coatColor,
@@ -376,8 +376,8 @@ function submitForm() {
     age: { years: 3, months: 0 }
   };
 
-  const user = {
-    id: generateUserId(),
+  const newUser = {
+    id: "user_" + Math.floor(Math.random() * 1000000000),
     loginName,
     username,
     email,
@@ -391,10 +391,9 @@ function submitForm() {
   };
 
   const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-  allUsers[loginName] = user;
+  allUsers[loginName] = newUser;
   localStorage.setItem("users", JSON.stringify(allUsers));
-  localStorage.setItem("lastSignedUpUser", JSON.stringify(user));
+  localStorage.setItem("lastSignedUpUser", JSON.stringify(newUser));
 
-  // Redirect to account summary
   window.location.href = "account-summary.html";
 }
