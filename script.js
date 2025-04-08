@@ -412,3 +412,51 @@ function submitForm() {
 
   window.location.href = "account-summary.html";
 }
+function showRider(user) {
+  const riderSection = document.getElementById("riderInfo");
+  if (!user.rider) {
+    riderSection.innerHTML = "<p>No rider hired yet.</p>";
+    return;
+  }
+
+  const { name, level, exp, assignedHorseId } = user.rider;
+  const expNeeded = level === 1 ? 50 : level === 2 ? 150 : 300;
+  const expPercent = Math.min((exp / expNeeded) * 100, 100);
+
+  let horseOptions = '<option value="">None</option>';
+  user.horses.forEach(horse => {
+    horseOptions += `<option value="${horse.id}" ${horse.id === assignedHorseId ? 'selected' : ''}>${horse.name}</option>`;
+  });
+
+  riderSection.innerHTML = `
+    <label>Name your rider:
+      <input type="text" value="${name}" onchange="updateRiderName(this.value)">
+    </label><br><br>
+    <p>Level: ${level}</p>
+    <p>EXP: ${exp} / ${expNeeded}</p>
+    <div style="width: 100%; background: #ccc; height: 20px; border-radius: 5px;">
+      <div style="width: ${expPercent}%; background: #4caf50; height: 100%;"></div>
+    </div><br>
+    <label>Assign to Horse:
+      <select id="riderHorseSelect">${horseOptions}</select>
+    </label>
+    <button onclick="confirmAssignRider()">Confirm Assignment</button>
+  `;
+}
+
+function showTack(user) {
+  const tackRoom = document.getElementById("tackContent");
+  if (!user.tack || user.tack.length === 0) {
+    tackRoom.innerHTML = "<p>No tack crafted yet.</p>";
+    return;
+  }
+
+  tackRoom.innerHTML = "";
+  user.tack.forEach((item, index) => {
+    const value = item.level === 1 ? 25 : item.level === 2 ? 75 : item.level === 3 ? 125 : 225;
+    tackRoom.innerHTML += `
+      <p>${item.type} (Level ${item.level})
+      <button onclick="sellTack(${index}, ${value})">Sell for ${value} coins</button></p>
+    `;
+  });
+}
