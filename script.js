@@ -470,8 +470,34 @@ function prepareBreeding() {
     h.age.years >= 3 &&
     h.age.years < 20 &&
     h.level >= 2 &&
-    (!isMare || !h.pregnantSince) // Only exclude pregnant horses if viewing as Mare
+    (!isMare || !h.pregnantSince)
   );
+
+  if (eligible.length === 0) return alert("No eligible breeding partners found.");
+
+  // Create dropdown selection
+  const partnerNames = eligible.map(h => `${h.name} (${h.breed}, ${h.coatColor})`);
+  const selected = prompt("Select a partner:\n" + partnerNames.join("\n"));
+  const partner = eligible.find(h => `${h.name} (${h.breed}, ${h.coatColor})` === selected);
+
+  if (!partner) return alert("Invalid selection.");
+
+  let mare, stallion;
+  if (isMare) {
+    mare = horse;
+    stallion = partner;
+  } else {
+    mare = partner;
+    stallion = horse;
+  }
+
+  mare.pregnantSince = Date.now();
+  mare.sireId = stallion.id;
+
+  alert(`${mare.name} is now pregnant by ${stallion.name}. The foal will be born in 3 real-life days.`);
+
+  localStorage.setItem("activeUser", JSON.stringify(user));
+}
 
   if (eligible.length === 0) return alert("No eligible partners found.");
 
@@ -564,7 +590,6 @@ function confirmBreeding(horseId) {
 function checkForFoals() {
   const user = JSON.parse(localStorage.getItem("activeUser"));
   let foalsBorn = 0;
-
   const now = Date.now();
   const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
 
@@ -574,10 +599,10 @@ function checkForFoals() {
       if (!sire) return;
 
       const foal = {
-        id: generateHorseId(),
+        id: "horse_" + Date.now(),
         name: "Unnamed Foal",
-        breed: mare.breed, // or blend later
-        coatColor: mare.coatColor, // simplified for now
+        breed: mare.breed,
+        coatColor: mare.coatColor,
         gender: Math.random() < 0.5 ? "Mare" : "Stallion",
         level: 1,
         exp: 0,
@@ -586,9 +611,19 @@ function checkForFoals() {
           dam: mare.name,
           sire: sire.name
         }
-        // We’ll add genetics later here!
       };
 
+      user.horses.push(foal);
+      mare.pregnantSince = null;
+      mare.sireId = null;
+      foalsBorn++;
+    }
+  });
+
+  if (foalsBorn > 0) {
+    alert(`🎉 ${foalsBorn} new foal(s) have been born and added to your stable!`);
+    localStorage.setItem("activeUser", JSON.stringify(user));
+  }
       user.horses.push(foal);
       mare.pregnantSince = null;
       mare.sireId = null;
