@@ -366,84 +366,6 @@ function submitForm() {
   }
 
   const horse = {
-    id: "horse_" + Date.now(),
-    name: horseName,
-    breed,
-    coatColor,
-    gender: sex,
-    level: 1,
-    exp: 0,
-    age: { years: 3, months: 0 }
-  };
-
-  const newUser = {
-    id: "user_" + Math.floor(Math.random() * 1000000000),
-    loginName,
-    username,
-    email,
-    password,
-    coins: 5000,
-    level: 1,
-    exp: 0,
-    horses: [horse],
-    job: "Stablehand",
-    joinDate: new Date().toLocaleDateString()
-  };
-
-  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-  allUsers[loginName] = newUser;
-  localStorage.setItem("users", JSON.stringify(allUsers));
-  localStorage.setItem("lastSignedUpUser", JSON.stringify(newUser));
-  window.location.href = "account-summary.html";
-}
-
-  // Store in allUsers object
-  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-  allUsers[loginName] = newUser;
-  localStorage.setItem("users", JSON.stringify(allUsers));
-
-  // Set as active user
-  localStorage.setItem("activeUser", JSON.stringify(newUser));
-
-  window.location.href = "game.html";
-}
-
-  const horse = {
-    id: "horse_" + Date.now(),
-    name: horseName,
-    breed,
-    coatColor,
-    gender: sex,
-    level: 1,
-    exp: 0,
-    age: { years: 3, months: 0 }
-  };
-
-  const user = {
-    id: "user_" + Math.floor(Math.random() * 1000000000),
-    loginName,
-    username,
-    email,
-    password,
-    coins: 1000,
-    level: 1,
-    exp: 0,
-    horses: [horse],
-    job: "Stablehand",
-    joinDate: new Date().toLocaleDateString()
-  };
-
-  // ✅ Save to users collection for login purposes
-  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-  allUsers[loginName] = user;
-  localStorage.setItem("users", JSON.stringify(allUsers));
-
-  // ✅ Save active session and redirect
-  localStorage.setItem("activeUser", JSON.stringify(user));
-  window.location.href = "game.html";
-}
-
-  const horse = {
     id: generateHorseId(),
     name: horseName,
     breed,
@@ -468,81 +390,11 @@ function submitForm() {
     joinDate: new Date().toLocaleDateString()
   };
 
-  // Save to users object
-  let users = JSON.parse(localStorage.getItem("users")) || {};
-  users[loginName] = user;
-  localStorage.setItem("users", JSON.stringify(users));
-
-  // Also set as active user
-  localStorage.setItem("activeUser", JSON.stringify(user));
-  window.location.href = "game.html";
-}
-
-  const horse = {
-    id: "horse_" + Date.now(),
-    name: horseName,
-    breed: breed,
-    coatColor: coatColor,
-    gender: sex,
-    level: 1,
-    exp: 0,
-    age: { years: 3, months: 0 }
-  };
-
-  const user = {
-    id: "user_" + Math.floor(Math.random() * 1000000000),
-    loginName,
-    username,
-    email,
-    password,
-    coins: 5000,
-    level: 1,
-    exp: 0,
-    horses: [horse],
-    job: "Stablehand",
-    joinDate: new Date().toLocaleDateString()
-  };
-
-  localStorage.setItem("activeUser", JSON.stringify(user));
-  window.location.href = "game.html";
-}
-const breedColors = {
-  Friesian: ["Black"],
-  Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
-  Arabian: ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
-};
-
-window.addEventListener("DOMContentLoaded", () => {
-  const breedSelect = document.getElementById("breed");
-  const coatColorSelect = document.getElementById("coatColor");
-
-  if (breedSelect && coatColorSelect) {
-    breedSelect.addEventListener("change", function () {
-      const selectedBreed = this.value;
-      coatColorSelect.innerHTML = '<option value="">Select Coat Color</option>';
-
-      if (breedColors[selectedBreed]) {
-        breedColors[selectedBreed].forEach(color => {
-          const option = document.createElement("option");
-          option.value = color;
-          option.textContent = color;
-          coatColorSelect.appendChild(option);
-        });
-      }
-    });
-  }
-});
-function loginUser() {
-  const loginName = document.getElementById("loginName").value.trim();
-  const password = document.getElementById("password").value;
-
   const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-  const user = allUsers[loginName];
+  allUsers[loginName] = user;
+  localStorage.setItem("users", JSON.stringify(allUsers));
+  localStorage.setItem("lastSignedUpUser", JSON.stringify(user));
 
-  if (!user || user.password !== password) {
-    return alert("Invalid login name or password.");
-  }
-
-  localStorage.setItem("activeUser", JSON.stringify(user));
-  window.location.href = "game.html";
+  // Redirect to account summary
+  window.location.href = "account-summary.html";
 }
