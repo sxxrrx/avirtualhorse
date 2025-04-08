@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Account Summary</title>
+  <script>
+    window.onload = () => {
+      const user = JSON.parse(localStorage.getItem("lastSignedUpUser"));
+      if (!user) {
+        document.body.innerHTML = "<h2>No account found. Please sign up again.</h2>";
+        return;
+      }
+
+      const container = document.getElementById("summary");
+
+      const horse = user.horses[0];
+      container.innerHTML = `
+        <h2>Account Created Successfully!</h2>
+        <p><strong>Login Name:</strong> ${user.loginName}</p>
+        <p><strong>Username:</strong> ${user.username}</p>
+        <p><strong>Email:</strong> ${user.email}</p>
+        <h3>Your First Horse</h3>
+        <p><strong>Name:</strong> ${horse.name}</p>
+        <p><strong>Breed:</strong> ${horse.breed}</p>
+        <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
+        <p><strong>Gender:</strong> ${horse.gender}</p>
+        <button onclick="window.location.href='login.html'">Log In to Start Playing</button>
+      `;
+    };
+  </script>
+</head>
+<body style="text-align: center; background-color: #d2f8d2;">
+  <div id="summary"></div>
+</body>
+</html>
