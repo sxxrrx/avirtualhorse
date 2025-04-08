@@ -382,7 +382,7 @@ function submitForm() {
     username,
     email,
     password,
-    coins: 1000,
+    coins: 5000,
     level: 1,
     exp: 0,
     horses: [horse],
