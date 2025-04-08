@@ -539,3 +539,41 @@ function checkForFoals() {
     localStorage.setItem("activeUser", JSON.stringify(user));
   }
 }
+function showHorseDetails(horseId) {
+  const user = JSON.parse(localStorage.getItem("activeUser"));
+  const horse = user.horses.find(h => h.id === horseId);
+  if (!horse) return;
+
+  const exp = horse.exp || 0;
+  const level = horse.level || 1;
+  const thresholds = { 1: 100, 2: 250, 3: 500 };
+  const nextLevelExp = thresholds[level] || 600;
+  const expPercent = Math.min((exp / nextLevelExp) * 100, 100);
+
+  // Show PREGNANT only if mare is actually pregnant
+  let pregnancyNote = "";
+  if (horse.gender === "Mare" && horse.pregnantSince) {
+    pregnancyNote = `<p style="color: darkred;"><strong>PREGNANT</strong></p>`;
+  }
+
+  const detailsDiv = document.getElementById("horseDetails");
+  detailsDiv.innerHTML = `
+    <h3>${horse.name}</h3>
+    <p><strong>Breed:</strong> ${horse.breed}</p>
+    <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
+    <p><strong>Gender:</strong> ${horse.gender}</p>
+    <p><strong>Age:</strong> ${horse.age?.years || 0} years</p>
+    <p><strong>Level:</strong> ${horse.level}</p>
+    <p><strong>EXP:</strong> ${exp} / ${nextLevelExp}</p>
+    <div style="background: #ccc; height: 20px; border-radius: 5px;">
+      <div style="width: ${expPercent}%; background: green; height: 100%;"></div>
+    </div>
+    ${pregnancyNote}
+    <br>
+    <button onclick="enterShow()">Enter Shows</button>
+    <button onclick="prepareBreeding()">Breed</button>
+  `;
+
+  localStorage.setItem("selectedHorseId", horse.id);
+  showTab("barn");
+}
