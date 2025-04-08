@@ -380,16 +380,19 @@ function submitForm() {
     return;
   }
 
-  const horse = {
-    id: "horse_" + Date.now(),
-    name: horseName,
-    breed,
-    coatColor,
-    gender: sex,
-    level: 1,
-    exp: 0,
-    age: { years: 3, months: 0 }
-  };
+const genes = getGenesFromColor(coatColor);
+
+const horse = {
+  id: "horse_" + Date.now(),
+  name: horseName,
+  breed,
+  coatColor,
+  gender: sex,
+  level: 1,
+  exp: 0,
+  age: { years: 3, months: 0 },
+  genes
+};
 
   const newUser = {
     id: "user_" + Math.floor(Math.random() * 1000000000),
@@ -411,4 +414,40 @@ function submitForm() {
   localStorage.setItem("lastSignedUpUser", JSON.stringify(newUser));
 
   window.location.href = "account-summary.html";
+}
+function getGenesFromColor(color) {
+  switch (color.toLowerCase()) {
+    case "black":
+      return {
+        black: ["B", "B"],
+        agouti: ["a", "a"]
+      };
+    case "bay":
+      return {
+        black: ["B", "b"],
+        agouti: ["A", "a"]
+      };
+    case "dark bay":
+      return {
+        black: ["B", "b"],
+        agouti: ["AT", "a"]
+      };
+    case "liver chestnut":
+    case "chestnut":
+      return {
+        black: ["b", "b"],
+        agouti: ["a", "a"]
+      };
+    case "grey":
+      return {
+        black: ["B", "b"],
+        agouti: ["A", "a"],
+        grey: ["G", "g"]
+      };
+    default:
+      return {
+        black: ["b", "b"],
+        agouti: ["a", "a"]
+      };
+  }
 }
