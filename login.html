@@ -1,14 +1,31 @@
-function loginUser() {
-  const loginName = document.getElementById("loginName").value;
-  const password = document.getElementById("password").value;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login</title>
+  <script>
+    function loginUser() {
+      const loginName = document.getElementById("loginName").value.trim();
+      const password = document.getElementById("password").value;
 
-  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-  const user = allUsers[loginName];
+      const allUsers = JSON.parse(localStorage.getItem("users")) || {};
+      const user = allUsers[loginName];
 
-  if (!user || user.password !== password) {
-    return alert("Invalid login name or password.");
-  }
+      if (!user || user.password !== password) {
+        return alert("Invalid login name or password.");
+      }
 
-  localStorage.setItem("activeUser", JSON.stringify(user));
-  window.location.href = "game.html";
-}
+      localStorage.setItem("activeUser", JSON.stringify(user));
+      window.location.href = "game.html";
+    }
+  </script>
+</head>
+<body style="text-align: center; background-color: #d2f8d2;">
+  <h2>Log Into Your Account</h2>
+  <div class="container">
+    <input type="text" id="loginName" placeholder="Login Name"><br><br>
+    <input type="password" id="password" placeholder="Password"><br><br>
+    <button onclick="loginUser()">Log In</button>
+  </div>
+</body>
+</html>
