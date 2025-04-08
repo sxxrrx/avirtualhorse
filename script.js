@@ -113,6 +113,22 @@ function checkForFoals() {
   }
 }
 
+function showProfile(user) {
+  document.getElementById("profileUsername").textContent = user.username || "Unknown";
+  document.getElementById("profileLevel").textContent = user.level || 1;
+  document.getElementById("profileJob").textContent = user.job || "None";
+  document.getElementById("profileHorseCount").textContent = user.horses?.length || 0;
+  document.getElementById("profileJoinDate").textContent = user.joinDate || "Unknown";
+
+  const level = user.level || 1;
+  const exp = user.exp || 0;
+  const nextLevelExp = level === 1 ? 100 : level === 2 ? 200 : level === 3 ? 400 : 600;
+  const expPercent = Math.min((exp / nextLevelExp) * 100, 100);
+
+  document.getElementById("profileExp").textContent = `${exp} / ${nextLevelExp}`;
+  document.getElementById("profileExpBar").style.width = `${expPercent}%`;
+}
+
 function prepareBreeding() {
   const user = JSON.parse(localStorage.getItem("activeUser"));
   const horseId = localStorage.getItem("selectedHorseId");
@@ -156,22 +172,7 @@ const eligible = user.horses.filter(h => ...);
   localStorage.setItem("activeUser", JSON.stringify(user));
   renderStables(user);
   showHorseDetails(mare.id);
-
-  const eligible = user.horses.filter(h =>
-    h.id !== horse.id &&
-    h.gender !== horse.gender &&
-    h.age.years >= 3 &&
-    h.age.years < 20 &&
-    h.level >= 2 &&
-    (!isMare || !h.pregnantSince)
-  );
-
-  if (eligible.length === 0) {
-    alert("No eligible breeding partners.");
-    return;
-  }
-
-
+  
   if (eligible.length === 0) {
     alert("No eligible breeding partners.");
     return;
