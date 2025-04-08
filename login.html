@@ -1,29 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Login</title>
-  <script>
-    function login() {
-      const loginName = document.getElementById("loginName").value;
-      const password = document.getElementById("password").value;
-      const users = JSON.parse(localStorage.getItem("allUsers")) || [];
+function loginUser() {
+  const loginName = document.getElementById("loginName").value;
+  const password = document.getElementById("password").value;
 
-      const match = users.find(u => u.loginName === loginName && u.password === password);
-      if (!match) {
-        alert("Incorrect login!");
-        return;
-      }
+  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
+  const user = allUsers[loginName];
 
-      localStorage.setItem("activeUser", JSON.stringify(match));
-      window.location.href = "game.html";
-    }
-  </script>
-</head>
-<body style="text-align: center; background-color: #d2f8d2;">
-  <h2>Login to Virtual Ranch</h2>
-  <input type="text" id="loginName" placeholder="Login Name"><br><br>
-  <input type="password" id="password" placeholder="Password"><br><br>
-  <button onclick="login()">Login</button>
-</body>
-</html>
+  if (!user || user.password !== password) {
+    return alert("Invalid login name or password.");
+  }
+
+  localStorage.setItem("activeUser", JSON.stringify(user));
+  window.location.href = "game.html";
+}
