@@ -343,3 +343,53 @@ function enterShow() {
   showTab("shows");
   updateShowTab(horse.name, placement);
 }
+function submitForm() {
+  const loginName = document.getElementById("loginName").value.trim();
+  const username = document.getElementById("username").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+
+  const horseName = document.getElementById("horseName").value.trim();
+  const breed = document.getElementById("breed").value;
+  const coatColor = document.getElementById("coatColor").value;
+  const sex = document.getElementById("sex").value;
+
+  if (!loginName || !username || !email || !password || !confirmPassword || !horseName || !breed || !coatColor || !sex) {
+    alert("Please fill out all fields.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+  const horse = {
+    id: "horse_" + Date.now(),
+    name: horseName,
+    breed: breed,
+    coatColor: coatColor,
+    gender: sex,
+    level: 1,
+    exp: 0,
+    age: { years: 3, months: 0 }
+  };
+
+  const user = {
+    id: "user_" + Math.floor(Math.random() * 1000000000),
+    loginName,
+    username,
+    email,
+    password,
+    coins: 1000,
+    level: 1,
+    exp: 0,
+    horses: [horse],
+    job: "Stablehand",
+    joinDate: new Date().toLocaleDateString()
+  };
+
+  localStorage.setItem("activeUser", JSON.stringify(user));
+  window.location.href = "game.html";
+}
