@@ -210,6 +210,7 @@
       const user = JSON.parse(localStorage.getItem("activeUser"));
       if (!user) return window.location.href = "login.html";
 
+      checkForFoals();
       // If user has no horses, create a default one
       if (!user.horses || user.horses.length === 0) {
         user.horses = [
