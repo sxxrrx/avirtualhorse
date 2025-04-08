@@ -37,26 +37,30 @@
     <button onclick="submitForm()">Sign Up</button>
   </div>
 
-  <!-- Script to populate coat colors based on breed -->
+  <!-- ✅ Move script here to ensure DOM is loaded -->
   <script>
-    const breedColors = {
-      Friesian: ["Black"],
-      Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
-      Arabian: ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
-    };
+    document.addEventListener("DOMContentLoaded", function () {
+      const breedColors = {
+        Friesian: ["Black"],
+        Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
+        Arabian: ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
+      };
 
-    document.getElementById("breed").addEventListener("change", function () {
-      const breed = this.value;
+      const breedSelect = document.getElementById("breed");
       const coatColorSelect = document.getElementById("coatColor");
-      coatColorSelect.innerHTML = '<option value="">Select Coat Color</option>';
-      if (breedColors[breed]) {
-        breedColors[breed].forEach(color => {
-          const option = document.createElement("option");
-          option.value = color;
-          option.textContent = color;
-          coatColorSelect.appendChild(option);
-        });
-      }
+
+      breedSelect.addEventListener("change", function () {
+        const breed = this.value;
+        coatColorSelect.innerHTML = '<option value="">Select Coat Color</option>';
+        if (breedColors[breed]) {
+          breedColors[breed].forEach(color => {
+            const option = document.createElement("option");
+            option.value = color;
+            option.textContent = color;
+            coatColorSelect.appendChild(option);
+          });
+        }
+      });
     });
   </script>
 </body>
