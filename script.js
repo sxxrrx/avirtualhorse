@@ -23,12 +23,22 @@ function loginUser() {
   const loginName = document.getElementById("loginName").value.trim();
   const password = document.getElementById("password").value;
 
-  const allUsers = JSON.parse(localStorage.getItem("users")) || {};
-  const user = allUsers[loginName];
-
-  if (!user || user.password !== password) {
-    return alert("Invalid login name or password.");
-  }
+  signInWithEmailAndPassword(auth, loginName, password)
+    .then(async (userCredential) => {
+      const uid = userCredential.user.uid;
+      const userRef = ref(db, 'users/' + uid);
+      const snapshot = await get(userRef);
+      if (snapshot.exists()) {
+        localStorage.setItem("activeUser", JSON.stringify(snapshot.val()));
+        window.location.href = "game.html";
+      } else {
+        alert("No user data found.");
+      }
+    })
+    .catch((error) => {
+      alert("Login failed: " + error.message);
+    });
+}
 
   localStorage.setItem("activeUser", JSON.stringify(user));
   window.location.href = "game.html";
