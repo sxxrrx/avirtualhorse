@@ -39,6 +39,10 @@ function loginUser() {
       alert("Login failed: " + error.message);
     });
 }
+function saveUserToFirebase(userId, userData) {
+  const dbRef = ref(db, 'users/' + userId);
+  return set(dbRef, userData);
+}
 
   localStorage.setItem("activeUser", JSON.stringify(user));
   window.location.href = "game.html";
