@@ -147,6 +147,127 @@
       localStorage.removeItem("salesHorses");
       window.location.href = "index.html";
     }
-  </script>
+
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getDatabase, ref, get, set, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
+    authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
+    projectId: "horse-game-by-sxxrrx",
+    storageBucket: "horse-game-by-sxxrrx.appspot.com",
+    messagingSenderId: "87883054918",
+    appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
+    measurementId: "G-ZW6W5HVXBJ"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  // Helper: Save user to Firebase
+  async function saveUserToFirebase(userId, userData) {
+    const userRef = ref(db, 'users/' + userId);
+    await set(userRef, userData);
+  }
+
+  // Helper: Create sales horses if missing
+  function generateHorsesForSale() {
+    const breeds = {
+      "Friesian": ["Black"],
+      "Thoroughbred": ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
+      "Arabian": ["Black", "Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Grey"]
+    };
+    const genders = ["Mare", "Stallion"];
+    const breedKeys = Object.keys(breeds);
+
+    const horses = [];
+    for (let i = 0; i < 5; i++) {
+      const breed = breedKeys[Math.floor(Math.random() * breedKeys.length)];
+      const coatColor = breeds[breed][Math.floor(Math.random() * breeds[breed].length)];
+      const gender = genders[Math.floor(Math.random() * genders.length)];
+      horses.push({
+        id: 'horse_' + Date.now() + "_" + i,
+        name: `${breed} (${coatColor} ${gender})`,
+        breed,
+        coatColor,
+        gender,
+        price: 1000,
+        level: 1,
+        exp: 0,
+        age: { years: 3, months: 0 }
+      });
+    }
+    localStorage.setItem("salesHorses", JSON.stringify({ timestamp: Date.now(), horses }));
+  }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
+
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, `users/${user.uid}`));
+    if (!snapshot.exists()) return alert("User data not found.");
+
+    const userData = snapshot.val();
+
+    // Initialize missing data
+    if (!userData.horses || userData.horses.length === 0) {
+      userData.horses = [{
+        id: 'horse_' + Date.now(),
+        name: "Arabian (Grey Stallion)",
+        breed: "Arabian",
+        coatColor: "Grey",
+        gender: "Stallion",
+        level: 1,
+        exp: 0,
+        age: { years: 3, months: 0 }
+      }];
+    }
+
+    if (!userData.tack) userData.tack = [];
+    if (!userData.rider) userData.rider = null;
+    if (!userData.job) userData.job = "Stablehand";
+
+    // Sales horses
+    const sales = JSON.parse(localStorage.getItem("salesHorses"));
+    const now = Date.now();
+    const THIRTY_MIN = 30 * 60 * 1000;
+    if (!sales || now - sales.timestamp > THIRTY_MIN) {
+      generateHorsesForSale();
+    }
+
+    // Store in localStorage for legacy functions
+    localStorage.setItem("activeUser", JSON.stringify(userData));
+
+    // Show UI
+    document.getElementById("welcomeUser").textContent = `Welcome, ${userData.username}!`;
+    document.getElementById("coinCounter").textContent = `Coins: ${userData.coins}`;
+
+    const news = [
+      "Welcome to HORSE GAME",
+      "New event: coming soon...",
+      "News Update: New Version of HORSE GAME v4.1.1"
+    ];
+    const newsListContainer = document.getElementById("newsList");
+    news.forEach(item => {
+      const div = document.createElement("div");
+      div.textContent = item;
+      newsListContainer.appendChild(div);
+    });
+
+    showProfile(userData);
+    renderStables(userData);
+    renderSalesHorses(userData);
+    setupJobs(userData);
+    showRider(userData);
+    showTack(userData);
+    showTab("stables");
+
+    // Save any newly initialized defaults
+    await saveUserToFirebase(user.uid, userData);
+  });
+</script>
+
 </body>
 </html>
