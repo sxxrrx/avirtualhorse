@@ -3,42 +3,92 @@
 <head>
   <meta charset="UTF-8" />
   <title>Sign Up</title>
-  <script src="script.js" defer></script>
+  <style>
+    body {
+      text-align: center;
+      background-color: #d2f8d2;
+      font-family: Arial, sans-serif;
+      padding-top: 30px;
+    }
+
+    .container {
+      display: inline-block;
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input, select, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #3b5323;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #567d46;
+    }
+  </style>
 </head>
-<body style="text-align: center; background-color: #d2f8d2;">
+<body>
   <h2>Create Your Account</h2>
   <div class="container">
-    <input type="text" id="loginName" placeholder="Login Name"><br><br>
-    <input type="text" id="username" placeholder="Username"><br><br>
-    <input type="email" id="email" placeholder="Email"><br><br>
-    <input type="password" id="password" placeholder="Password"><br><br>
-    <input type="password" id="confirmPassword" placeholder="Confirm Password"><br><br>
+    <input type="text" id="loginName" placeholder="Login Name"><br>
+    <input type="text" id="username" placeholder="Username"><br>
+    <input type="email" id="email" placeholder="Email"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <input type="password" id="confirmPassword" placeholder="Confirm Password"><br>
 
     <h3>Your First Horse</h3>
-    <input type="text" id="horseName" placeholder="Horse Name"><br><br>
-    
+    <input type="text" id="horseName" placeholder="Horse Name"><br>
+
     <select id="breed">
       <option value="">Select Breed</option>
       <option value="Friesian">Friesian</option>
       <option value="Thoroughbred">Thoroughbred</option>
       <option value="Arabian">Arabian</option>
-    </select><br><br>
+    </select><br>
 
     <select id="coatColor">
       <option value="">Select Coat Color</option>
-    </select><br><br>
+    </select><br>
 
     <select id="sex">
       <option value="">Select Sex</option>
       <option value="Mare">Mare</option>
       <option value="Stallion">Stallion</option>
-    </select><br><br>
+    </select><br>
 
-    <button onclick="submitForm()">Sign Up</button>
+    <button id="signupBtn">Sign Up</button>
   </div>
 
-  <script>
-    // Populate coat colors based on breed
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
+      authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
+      projectId: "horse-game-by-sxxrrx",
+      storageBucket: "horse-game-by-sxxrrx.appspot.com",
+      messagingSenderId: "87883054918",
+      appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
+      measurementId: "G-ZW6W5HVXBJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Dropdown logic
     const breedColors = {
       Friesian: ["Black"],
       Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
@@ -56,6 +106,65 @@
           option.textContent = color;
           coatColorSelect.appendChild(option);
         });
+      }
+    });
+
+    document.getElementById("signupBtn").addEventListener("click", async () => {
+      const loginName = document.getElementById("loginName").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+
+      const horseName = document.getElementById("horseName").value.trim();
+      const breed = document.getElementById("breed").value;
+      const coatColor = document.getElementById("coatColor").value;
+      const sex = document.getElementById("sex").value;
+
+      if (!loginName || !username || !email || !password || !confirmPassword || !horseName || !breed || !coatColor || !sex) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        alert("Passwords do not match.");
+        return;
+      }
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const firebaseUser = userCredential.user;
+
+        const horse = {
+          id: "horse_" + Date.now(),
+          name: horseName,
+          breed,
+          coatColor,
+          gender: sex,
+          level: 1,
+          exp: 0,
+          age: { years: 3, months: 0 }
+        };
+
+        const newUser = {
+          loginName,
+          username,
+          email,
+          firebaseUid: firebaseUser.uid,
+          coins: 5000,
+          level: 1,
+          exp: 0,
+          horses: [horse],
+          job: "Stablehand",
+          joinDate: new Date().toLocaleDateString()
+        };
+
+        // For now, store in localStorage (move to Firebase DB later)
+        localStorage.setItem("activeUser", JSON.stringify(newUser));
+        alert("Account created!");
+        window.location.href = "game.html";
+      } catch (error) {
+        alert("Signup failed: " + error.message);
       }
     });
   </script>
