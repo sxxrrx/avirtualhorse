@@ -125,7 +125,7 @@ export function submitForm() {
 export function showProfile(user) {
   document.getElementById("profileUsername").textContent = user.username || "Unknown";
   document.getElementById("profileLevel").textContent = user.level || 1;
-  document.getElementById("profileJob").textContent = user.job || "None";
+  document.getElementById("profileJob").textContent = user.job || "Stablehand";
   document.getElementById("profileHorseCount").textContent = user.horses?.length || 0;
   document.getElementById("profileJoinDate").textContent = user.joinDate || "Unknown";
 
@@ -136,6 +136,9 @@ export function showProfile(user) {
 
   document.getElementById("profileExp").textContent = `${exp} / ${nextLevelExp}`;
   document.getElementById("profileExpBar").style.width = `${expPercent}%`;
+
+  // Also update coins display
+  document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
 }
 
 // Random starter horse generator
