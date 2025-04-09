@@ -1,11 +1,9 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Virtual Ranch</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Firebase SDK (as ES module) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -21,12 +19,10 @@
       measurementId: "G-ZW6W5HVXBJ"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const database = getDatabase(app);
 
-    // Optional: store globally
     window.firebaseApp = app;
     window.firebaseAuth = auth;
     window.firebaseDatabase = database;
@@ -41,7 +37,7 @@
         <li onclick="showTab('myranch')">My Ranch</li>
         <li onclick="showTab('stables')">Stables</li>
         <li onclick="showTab('sales')">Sales</li>
-        <li onclick="showTab('Shows')">Shows</li>
+        <li onclick="showTab('shows')">Shows</li>
         <li onclick="showTab('training')">Training</li>
         <li onclick="showTab('jobs')">Jobs</li>
       </ul>
@@ -57,7 +53,6 @@
         <div id="newsList"></div>
       </div>
 
-      <!-- My Ranch -->
       <div id="myranch" class="content">
         <h2>Your Ranch</h2>
         <div class="player-profile">
@@ -73,13 +68,11 @@
         </div>
       </div>
 
-      <!-- Stables -->
       <div id="stables" class="content">
         <h2>Your Stable</h2>
         <div id="stableGrid" class="stable-grid"></div>
       </div>
 
-      <!-- Horse Detail -->
       <div id="horseDetail" class="content" style="display: none;">
         <h2 id="horseNameDetail"></h2>
         <div id="horseDetailInfo"></div>
@@ -89,34 +82,30 @@
         <button onclick="showTab('stables')">Back to Stable</button>
       </div>
 
-      <!-- Sales -->
       <div id="sales" class="content">
         <h2>Horses for Sale</h2>
         <div id="salesList"></div>
       </div>
 
-      <!-- Shows / Training -->
       <div id="shows" class="content">
         <h2>Horse Shows</h2>
         <p>Enter your horses into competitions to gain EXP and level up!</p>
         <div id="showEntries"></div>
       </div>
+
       <div id="training" class="content"><h2>Training</h2></div>
 
-      <!-- Jobs -->
       <div id="jobs" class="content">
         <h2>Jobs</h2>
         <div id="jobInfo"></div>
         <div id="jobActions"></div>
       </div>
 
-      <!-- Clubhouse -->
       <div id="clubhouse" class="content">
         <h2>Clubhouse</h2>
         <div id="riderInfo"></div>
       </div>
 
-      <!-- Barn -->
       <div id="barn" class="content">
         <h2>Barn</h2>
         <div id="barn-tabs">
@@ -138,7 +127,6 @@
         </div>
       </div>
 
-      <!-- Settings -->
       <div id="settings" class="content">
         <h2>Settings</h2>
         <button onclick="logout()">Log Out</button>
@@ -158,8 +146,9 @@
     </div>
   </div>
 
-  <!-- Script -->
-  <script src="script.js"></script>
+  <!-- Main Script -->
+  <script type="module" src="script.js"></script>
+
   <script>
     function showTab(id) {
       document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
@@ -180,109 +169,6 @@
       localStorage.removeItem("salesHorses");
       window.location.href = "index.html";
     }
-
-    function showHorseDetails(horseId) {
-      const user = JSON.parse(localStorage.getItem("activeUser"));
-      const horse = user.horses.find(h => h.id === horseId);
-      if (!horse) return alert("Horse not found.");
-      document.getElementById("horseNameDetail").textContent = horse.name;
-      const expNeeded = horse.level === 1 ? 100 : horse.level === 2 ? 250 : 500;
-      const expPercent = Math.min((horse.exp / expNeeded) * 100, 100);
-      document.getElementById("horseDetailInfo").innerHTML = `
-        <p><strong>Breed:</strong> ${horse.breed}</p>
-        <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
-        <p><strong>Gender:</strong> ${horse.gender}</p>
-        <p><strong>Age:</strong> ${horse.age?.years || 3} years</p>
-        <p><strong>Level:</strong> ${horse.level || 1}</p>
-        <p><strong>EXP:</strong> ${horse.exp || 0} / ${expNeeded}</p>
-        <div style="background: #ccc; height: 20px; border-radius: 5px;">
-          <div style="background: green; height: 100%; width: ${expPercent}%;"></div>
-        </div>
-      `;
-      localStorage.setItem("selectedHorseId", horseId);
-      showTab("horseDetail");
-    }
-
-    function changeHorseName() {
-      const newName = prompt("Enter a new name for your horse:");
-      if (!newName) return;
-      const user = JSON.parse(localStorage.getItem("activeUser"));
-      const horseId = localStorage.getItem("selectedHorseId");
-      const horse = user.horses.find(h => h.id === horseId);
-      if (!horse) return;
-      horse.name = newName;
-      localStorage.setItem("activeUser", JSON.stringify(user));
-      showHorseDetails(horseId);
-      renderStables(user);
-    }
-
-    function prepareBreeding() {
-      const user = JSON.parse(localStorage.getItem("activeUser"));
-      const horseId = localStorage.getItem("selectedHorseId");
-      const horse = user.horses.find(h => h.id === horseId);
-      if (!horse) return;
-      const options = user.horses.filter(h =>
-        h.id !== horse.id &&
-        ((horse.gender === "Mare" && h.gender === "Stallion") ||
-         (horse.gender === "Stallion" && h.gender === "Mare"))
-      );
-      if (options.length === 0) return alert("No eligible partners found.");
-      const names = options.map(h => `${h.name} (${h.breed})`).join("\n");
-      const chosen = prompt("Choose partner:\n" + names);
-      const match = options.find(h => `${h.name} (${h.breed})` === chosen);
-      if (match) alert(`${horse.name} and ${match.name} have been bred!`);
-    }
-
-    <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-  import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
-    authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
-    projectId: "horse-game-by-sxxrrx",
-    storageBucket: "horse-game-by-sxxrrx.firebasestorage.app",
-    messagingSenderId: "87883054918",
-    appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
-    measurementId: "G-ZW6W5HVXBJ"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getDatabase(app);
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) return window.location.href = "login.html";
-
-    const dbRef = ref(db);
-    const snapshot = await get(child(dbRef, `users/${user.uid}`));
-    if (!snapshot.exists()) return alert("User data not found.");
-
-    const userData = snapshot.val();
-
-    // Show user data
-    document.getElementById("welcomeUser").textContent = `Welcome, ${userData.username}!`;
-    document.getElementById("coinCounter").textContent = `Coins: ${userData.coins}`;
-
-    const news = [
-      "Welcome to HORSE GAME",
-      "New event: coming soon...",
-      "News Update: New Version of HORSE GAME v4.1.1"
-    ];
-    const newsListContainer = document.getElementById("newsList");
-    news.forEach(item => {
-      const div = document.createElement("div");
-      div.textContent = item;
-      newsListContainer.appendChild(div);
-    });
-
-    showProfile(userData);
-    renderStables(userData);
-    renderSalesHorses(userData);
-    setupJobs(userData);
-    showRider(userData);
-    showTack(userData);
-    showTab("stables");
-  });
-</script>
+  </script>
+</body>
+</html>
