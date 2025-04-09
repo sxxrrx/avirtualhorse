@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Login</title>
-  <script src="script.js" defer></script>
   <style>
     body {
       text-align: center;
@@ -50,12 +49,51 @@
     <h2>Login to Virtual Ranch</h2>
     <input type="text" id="loginName" placeholder="Login Name"><br>
     <input type="password" id="password" placeholder="Password"><br>
-    <button onclick="loginUser()">Log In</button>
+    <button id="loginBtn">Log In</button>
 
     <a href="forgot-login.html" class="link">Forgot Login Name?</a>
     <a href="signup.html" class="link">Don't have an account? Sign up here</a>
-    <script type="module" src="firebase-init.js"></script>
   </div>
+
+  <!-- Firebase + Login script as ES module -->
+  <script type="module">
+    // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
+      authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
+      projectId: "horse-game-by-sxxrrx",
+      storageBucket: "horse-game-by-sxxrrx.appspot.com",
+      messagingSenderId: "87883054918",
+      appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
+      measurementId: "G-ZW6W5HVXBJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Login handler
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const loginName = document.getElementById("loginName").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!loginName || !password) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, loginName, password);
+        const user = userCredential.user;
+        localStorage.setItem("activeUserEmail", user.email);
+        alert("Login successful!");
+        window.location.href = "game.html";
+      } catch (error) {
+        alert("Login failed: " + error.message);
+      }
+    });
+  </script>
 </body>
 </html>
-
