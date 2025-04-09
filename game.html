@@ -233,61 +233,11 @@
       if (match) alert(`${horse.name} and ${match.name} have been bred!`);
     }
 
-    window.onload = () => {
-      const user = JSON.parse(localStorage.getItem("activeUser"));
-      if (!user) return window.location.href = "login.html";
+    <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-      // If user has no horses, create a default one
-      if (!user.horses || user.horses.length === 0) {
-        user.horses = [
-          {
-            id: 'horse_' + Date.now(),
-            name: "Arabian (Grey Stallion)",
-            breed: "Arabian",
-            coatColor: "Grey",
-            gender: "Stallion",
-            level: 1,
-            exp: 0,
-            age: {
-              years: 3,
-              months: 0
-            },
-            image: "horse-placeholder.png"
-          }
-        ];
-        localStorage.setItem("activeUser", JSON.stringify(user));
-      }
-
-      document.getElementById("welcomeUser").textContent = `Welcome, ${user.username}!`;
-      document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
-
-      const news = [
-        "Welcome to HORSE GAME",
-        "New event: coming soon...",
-        "News Update: New Version of HORSE GAME v4.1.1"
-      ];
-      const newsListContainer = document.getElementById("newsList");
-      news.forEach(item => {
-        const div = document.createElement("div");
-        div.textContent = item;
-        newsListContainer.appendChild(div);
-      });
-
-      showProfile(user);
-      renderStables(user);
-      renderSalesHorses(user);
-      setupJobs(user);
-      showRider(user);
-      showTack(user);
-      showTab("stables");
-    };
-    <!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js"></script>
-
-<script>
-  // Your Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
     authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
@@ -298,47 +248,41 @@
     measurementId: "G-ZW6W5HVXBJ"
   };
 
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js"></script>
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
 
-<script>
-  // Your Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
-    authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
-    projectId: "horse-game-by-sxxrrx",
-    storageBucket: "horse-game-by-sxxrrx.firebasestorage.app",
-    messagingSenderId: "87883054918",
-    appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
-    measurementId: "G-ZW6W5HVXBJ"
-  };
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return window.location.href = "login.html";
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js"></script>
+    const dbRef = ref(db);
+    const snapshot = await get(child(dbRef, `users/${user.uid}`));
+    if (!snapshot.exists()) return alert("User data not found.");
 
-<script>
-  // Your Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
-    authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
-    projectId: "horse-game-by-sxxrrx",
-    storageBucket: "horse-game-by-sxxrrx.firebasestorage.app",
-    messagingSenderId: "87883054918",
-    appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
-    measurementId: "G-ZW6W5HVXBJ"
-  };
+    const userData = snapshot.val();
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  
-<script type="module" src="firebase-init.js">
+    // Show user data
+    document.getElementById("welcomeUser").textContent = `Welcome, ${userData.username}!`;
+    document.getElementById("coinCounter").textContent = `Coins: ${userData.coins}`;
 
-  </script>
-</body>
-</html>
+    const news = [
+      "Welcome to HORSE GAME",
+      "New event: coming soon...",
+      "News Update: New Version of HORSE GAME v4.1.1"
+    ];
+    const newsListContainer = document.getElementById("newsList");
+    news.forEach(item => {
+      const div = document.createElement("div");
+      div.textContent = item;
+      newsListContainer.appendChild(div);
+    });
+
+    showProfile(userData);
+    renderStables(userData);
+    renderSalesHorses(userData);
+    setupJobs(userData);
+    showRider(userData);
+    showTack(userData);
+    showTab("stables");
+  });
+</script>
