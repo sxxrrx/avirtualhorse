@@ -411,6 +411,51 @@ function submitForm() {
     return;
   }
 
+  // Create Firebase user
+  createUserWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      const userId = userCredential.user.uid;
+
+      const horse = {
+        id: "horse_" + Date.now(),
+        name: horseName,
+        breed,
+        coatColor,
+        gender: sex,
+        level: 1,
+        exp: 0,
+        age: { years: 3, months: 0 }
+      };
+
+      const newUser = {
+        id: userId,
+        loginName,
+        username,
+        email,
+        coins: 5000,
+        level: 1,
+        exp: 0,
+        horses: [horse],
+        job: "Stablehand",
+        joinDate: new Date().toLocaleDateString()
+      };
+
+      // Save user data in Realtime Database
+      set(ref(db, 'users/' + userId), newUser)
+        .then(() => {
+          localStorage.setItem("activeUser", JSON.stringify(newUser));
+          window.location.href = "account-summary.html";
+        })
+        .catch((error) => {
+          alert("Error saving user data: " + error.message);
+        });
+    })
+    .catch((error) => {
+      alert("Signup failed: " + error.message);
+    });
+}
+
+
   const horse = {
     id: "horse_" + Date.now(),
     name: horseName,
