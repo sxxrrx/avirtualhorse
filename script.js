@@ -1,3 +1,24 @@
+// script.js - now an ES module
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
+  authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
+  projectId: "horse-game-by-sxxrrx",
+  storageBucket: "horse-game-by-sxxrrx.firebasestorage.app",
+  messagingSenderId: "87883054918",
+  appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
+  measurementId: "G-ZW6W5HVXBJ"
+};
+
+// Initialize Firebase services
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
 function loginUser() {
   const loginName = document.getElementById("loginName").value.trim();
   const password = document.getElementById("password").value;
