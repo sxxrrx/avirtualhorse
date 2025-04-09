@@ -301,7 +301,11 @@ export async function initializeGamePage() {
   showTab("stables");
 
   // 🔥 Start the clock!
-  startGameClock();
+  function startGameClock() {
+  console.log("Game clock started");
+  ...
+}
+
 }
 // In-game clock: 1 real minute = 1 in-game hour
 export function startGameClock() {
