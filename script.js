@@ -163,10 +163,12 @@ let currentUserData = null;
 
 export function showHorseDetails(horseId) {
   if (!currentUserData || !currentUserData.horses) return;
+  currentHorseId = horseId;
 
   document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
   const horse = currentUserData.horses.find(h => h.id === horseId);
   if (!horse) return;
+  <button id="editHorseNameBtn">✎</button>
 
   document.getElementById("horseDetail").style.display = "block";
   document.getElementById("horseNameDetail").innerHTML = `
