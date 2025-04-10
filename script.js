@@ -286,13 +286,7 @@ export function startGameClock() {
 }
 
 // Tabs
-export function showTab(id) {
-  document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
-  const el = document.getElementById(id);
-  if (el) el.style.display = 'block';
-  const news = document.getElementById("newsSection");
-  if (news) news.style.display = (id === 'myranch') ? 'block' : 'none';
-}
+
 
 export function showSubTab(main, subId) {
   document.querySelectorAll(`#${main} .barn-tab`).forEach(tab => tab.style.display = 'none');
@@ -391,3 +385,29 @@ export function setupJobs() {}
 export function showRider() {}
 export function showTack() {}
 export function renderSalesHorses() {}
+
+  
+document.addEventListener("DOMContentLoaded", function () {
+  const tabs = document.querySelectorAll('.tab');
+  const contents = document.querySelectorAll('.content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+
+      // Remove active classes
+      tabs.forEach(t => t.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
+
+      // Add active to selected
+      tab.classList.add('active');
+      document.getElementById(target).classList.add('active');
+
+      // Optional: trigger Firebase renders when switching
+      if (target === 'stable') renderStables(currentUserData);
+      if (target === 'clubhouse') showRider(currentUserData);
+      if (target === 'workshop') showTack(currentUserData);
+      if (target === 'salesYard') renderSalesHorses(currentUserData);
+    });
+  });
+});
