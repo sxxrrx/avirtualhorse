@@ -498,27 +498,26 @@ button:hover {
   margin-bottom: 15px;
   border-radius: 8px;
 }
+
 #topBar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #f9f9f9;
   padding: 10px 20px;
-  background-color: #e6ffe6;
-  border-bottom: 2px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 10px;
 }
 
 #coinCounter {
   font-weight: bold;
-  font-size: 1.1em;
+  font-size: 16px;
+  color: #333;
 }
 
 #gameClock {
-  background-color: #f3f3f3;
-  padding: 6px 12px;
-  border-radius: 6px;
   font-weight: bold;
+  font-size: 16px;
   font-family: 'Arial', sans-serif;
   color: #333;
-  box-shadow: 0 0 5px rgba(0,0,0,0.2);
 }
-
