@@ -157,11 +157,10 @@
     };
   </script>
 
-  <script type="module">
-    import { initializeGamePage } from './script.js';
-    initializeGamePage();
-    import { showHorseDetails } from './script.js';
-window.showHorseDetails = showHorseDetails;
-  </script>
+<script type="module">
+  import { initializeGamePage, showHorseDetails } from './script.js';
+  initializeGamePage();
+  window.showHorseDetails = showHorseDetails;
+</script>
 </body>
 </html>
