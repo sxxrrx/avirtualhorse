@@ -1,4 +1,4 @@
-// script.js - now an ES module with Firebase only (no localStorage)
+// script.js - ES module using Firebase only
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
@@ -18,6 +18,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
+// Save user to Firebase
 function saveUserToFirebase(userId, userData) {
   return set(ref(db, 'users/' + userId), userData);
 }
@@ -29,15 +30,11 @@ export function loginUser(event) {
   const password = document.getElementById("password").value;
 
   signInWithEmailAndPassword(auth, loginName, password)
-    .then(() => {
-      window.location.href = "game.html";
-    })
-    .catch((error) => {
-      alert("Login failed: " + error.message);
-    });
+    .then(() => window.location.href = "game.html")
+    .catch((error) => alert("Login failed: " + error.message));
 }
 
-// Registration
+// Signup
 export function submitForm() {
   const loginName = document.getElementById("loginName").value.trim();
   const username = document.getElementById("username").value.trim();
@@ -50,13 +47,11 @@ export function submitForm() {
   const sex = document.getElementById("sex").value;
 
   if (!loginName || !username || !email || !password || !confirmPassword || !horseName || !breed || !coatColor || !sex) {
-    alert("Please fill out all fields.");
-    return;
+    return alert("Please fill out all fields.");
   }
 
   if (password !== confirmPassword) {
-    alert("Passwords do not match.");
-    return;
+    return alert("Passwords do not match.");
   }
 
   createUserWithEmailAndPassword(auth, email, password)
@@ -88,15 +83,11 @@ export function submitForm() {
 
       return saveUserToFirebase(userId, newUser);
     })
-    .then(() => {
-      window.location.href = "account-summary.html";
-    })
-    .catch((error) => {
-      alert("Signup failed: " + error.message);
-    });
+    .then(() => window.location.href = "account-summary.html")
+    .catch((error) => alert("Signup failed: " + error.message));
 }
 
-// Utilities
+// Utility Functions
 export function generateHorseId() {
   return 'horse_' + Date.now();
 }
@@ -126,6 +117,7 @@ export function generateRandomHorse() {
   };
 }
 
+// Display profile
 export function showProfile(user) {
   document.getElementById("profileUsername").textContent = user.username || "Unknown";
   document.getElementById("profileLevel").textContent = user.level || 1;
@@ -144,6 +136,7 @@ export function showProfile(user) {
   document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
 }
 
+// Render horses in stable
 export function renderStables(user) {
   const stableGrid = document.getElementById("stableGrid");
   stableGrid.innerHTML = "";
@@ -161,11 +154,10 @@ export function renderStables(user) {
   });
 }
 
-// Load game page from Firebase only
+// Load game page
 export async function initializeGamePage() {
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (!firebaseUser) return window.location.href = "login.html";
-
     const uid = firebaseUser.uid;
     const userRef = ref(db, `users/${uid}`);
     const snapshot = await get(userRef);
@@ -174,7 +166,7 @@ export async function initializeGamePage() {
     const user = snapshot.val();
     showProfile(user);
     renderStables(user);
-    renderSalesHorses(user);
+    renderSalesHorses(user); // placeholder if needed
     setupJobs(user);
     showRider(user);
     showTack(user);
@@ -183,28 +175,7 @@ export async function initializeGamePage() {
   });
 }
 
-// Placeholder functions for features
-export function setupJobs() {}
-export function showRider() {}
-export function showTack() {}
-
-// UI Tabs
-export function showTab(id) {
-  document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
-  const el = document.getElementById(id);
-  if (el) el.style.display = 'block';
-  const news = document.getElementById("newsSection");
-  if (news) news.style.display = (id === 'myranch') ? 'block' : 'none';
-}
-
-export function showSubTab(main, subId) {
-  document.querySelectorAll(`#${main} .barn-tab`).forEach(tab => tab.style.display = 'none');
-  const sub = document.getElementById(subId);
-  if (sub) sub.style.display = 'block';
-  showTab(main);
-}
-
-// In-game clock
+// Game Clock
 export function startGameClock() {
   const seasons = [
     { name: "Verdant's Bloom", start: [3, 20], end: [6, 19] },
@@ -248,3 +219,25 @@ export function startGameClock() {
   updateGameTime();
   setInterval(updateGameTime, 60 * 1000);
 }
+
+// Tabs
+export function showTab(id) {
+  document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+  const news = document.getElementById("newsSection");
+  if (news) news.style.display = (id === 'myranch') ? 'block' : 'none';
+}
+
+export function showSubTab(main, subId) {
+  document.querySelectorAll(`#${main} .barn-tab`).forEach(tab => tab.style.display = 'none');
+  const sub = document.getElementById(subId);
+  if (sub) sub.style.display = 'block';
+  showTab(main);
+}
+
+// Placeholders
+export function setupJobs() {}
+export function showRider() {}
+export function showTack() {}
+export function renderSalesHorses() {}
