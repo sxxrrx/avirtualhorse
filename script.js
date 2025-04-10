@@ -267,39 +267,54 @@ export function showSubTab(main, subId) {
 }
 
 // Load user on game.html with Firebase
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
 export async function initializeGamePage() {
-  const stored = localStorage.getItem("activeUser");
-  if (!stored) {
-    window.location.href = "login.html";
-    return;
-  }
+  onAuthStateChanged(auth, async (firebaseUser) => {
+    if (!firebaseUser) {
+      window.location.href = "login.html";
+      return;
+    }
 
-  const user = JSON.parse(stored);
-  document.getElementById("welcomeUser").textContent = `Welcome, ${user.username}!`;
-  document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
+    const uid = firebaseUser.uid;
+    const userRef = ref(db, `users/${uid}`);
+    const snapshot = await get(userRef);
 
-  const news = [
-    "Welcome to HORSE GAME",
-    "New event: coming soon...",
-    "News Update: New Version of Horse Game DEMO by Sxxrrx"
-  ];
-  const newsListContainer = document.getElementById("newsList");
-  if (newsListContainer) {
-    newsListContainer.innerHTML = "";
-    news.forEach(item => {
-      const div = document.createElement("div");
-      div.textContent = item;
-      newsListContainer.appendChild(div);
-    });
-  }
+    if (!snapshot.exists()) {
+      alert("User data not found.");
+      return;
+    }
 
-  showProfile(user);
-  renderStables(user);
-  renderSalesHorses(user);
-  setupJobs(user);
-  showRider(user);
-  showTack(user);
-  showTab("stables");
+    const user = snapshot.val();
+    console.log("✅ Loaded user from Firebase:", user);
+
+    // Show user info
+    document.getElementById("welcomeUser").textContent = `Welcome, ${user.username}!`;
+    document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
+
+    const news = [
+      "Welcome to HORSE GAME",
+      "New event: coming soon...",
+      "News Update: New Version of HORSE GAME v4.1.1"
+    ];
+    const newsListContainer = document.getElementById("newsList");
+    if (newsListContainer) {
+      newsListContainer.innerHTML = "";
+      news.forEach(item => {
+        const div = document.createElement("div");
+        div.textContent = item;
+        newsListContainer.appendChild(div);
+      });
+    }
+
+    // Update everything else
+    showProfile(user);
+    renderStables(user);
+    renderSalesHorses(user);
+    setupJobs(user);
+    showRider(user);
+    showTack(user);
+    showTab("stables");
+    startGameClock();
+  });
 }
-// 🔥 Start the clock after everything is ready
-startGameClock();
