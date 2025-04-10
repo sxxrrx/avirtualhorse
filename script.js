@@ -301,12 +301,10 @@ export function showSubTab(main, subId) {
 }
 export function changeHorseName() {
   const nameDisplay = document.getElementById("horseNameDetail");
-  const horseId = window.currentHorseId;
-  const user = window.currentUserData;
 
-  if (!horseId || !user) return;
+  if (!currentHorseId || !currentUserData) return;
 
-  const horse = user.horses.find(h => h.id === horseId);
+  const horse = currentUserData.horses.find(h => h.id === currentHorseId);
   if (!horse) return;
 
   // Prevent multiple inputs
@@ -332,12 +330,22 @@ export function changeHorseName() {
     horse.name = newName;
 
     // Update Firebase
-    await set(ref(db, 'users/' + user.id), user);
+    await set(ref(db, 'users/' + currentUserId), currentUserData);
 
     // Update display
-    nameDisplay.innerHTML = newName;
-    renderStables(user);
+    document.getElementById("horseNameDetail").innerHTML = `
+      <span id="horseNameText">${newName}</span>
+      <button onclick="editHorseName('${horse.id}')">✎</button>
+    `;
+
+    renderStables(currentUserData);
   };
+
+  // Clear existing name and insert input + button
+  nameDisplay.innerHTML = '';
+  nameDisplay.appendChild(input);
+  nameDisplay.appendChild(saveBtn);
+}
 
   // Clear existing name and insert input + button
   nameDisplay.innerHTML = '';
