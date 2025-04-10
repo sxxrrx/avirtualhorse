@@ -154,6 +154,21 @@ export function renderStables(user) {
   });
 }
 
+export function showHorseDetails(horseId) {
+  const horse = currentUserData.horses.find(h => h.id === horseId);
+  if (!horse) return;
+
+  document.getElementById("horseNameDetail").textContent = horse.name;
+  document.getElementById("horseDetailInfo").innerHTML = `
+    <p><strong>Breed:</strong> ${horse.breed}</p>
+    <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
+    <p><strong>Level:</strong> ${horse.level}</p>
+    <p><strong>EXP:</strong> ${horse.exp}</p>
+    <p><strong>Age:</strong> ${horse.age.years} years, ${horse.age.months} months</p>
+  `;
+  showTab("horseDetail");
+}
+
 // Load game page
 export async function initializeGamePage() {
   onAuthStateChanged(auth, async (firebaseUser) => {
