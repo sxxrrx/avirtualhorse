@@ -276,11 +276,10 @@ export async function initializeGamePage() {
   document.getElementById("welcomeUser").textContent = `Welcome, ${user.username}!`;
   document.getElementById("coinCounter").textContent = `Coins: ${user.coins}`;
 
-  // Show news
   const news = [
     "Welcome to HORSE GAME",
     "New event: coming soon...",
-    "News Update: New Version of HORSE GAME v4.1.1"
+    "News Update: New Version of Horse Game DEMO by Sxxrrx"
   ];
   const newsListContainer = document.getElementById("newsList");
   if (newsListContainer) {
@@ -300,58 +299,5 @@ export async function initializeGamePage() {
   showTack(user);
   showTab("stables");
 }
-// In-game clock: 1 real minute = 1 in-game hour
-export function startGameClock() {
-  const seasons = [
-    { name: "Verdant's Bloom", start: [3, 20], end: [6, 19] },       // Spring
-    { name: "Summer's Height", start: [6, 20], end: [9, 21] },       // Summer
-    { name: "Harvest's Embrace", start: [9, 22], end: [12, 20] },    // Autumn
-    { name: "Winter's Hold", start: [12, 21], end: [3, 19] }         // Winter
-  ];
-
-  function getSeason(month, day) {
-    for (let s of seasons) {
-      const [startMonth, startDay] = s.start;
-      const [endMonth, endDay] = s.end;
-
-      if (
-        (month > startMonth || (month === startMonth && day >= startDay)) &&
-        (month < endMonth || (month === endMonth && day <= endDay))
-      ) {
-        return s.name;
-      }
-
-      // Handle winter (wraps around year)
-      if (s.name === "Winter's Hold") {
-        if (
-          (month === 12 && day >= 21) ||
-          (month === 1 || month === 2 || (month === 3 && day <= 19))
-        ) {
-          return s.name;
-        }
-      }
-    }
-    return "Unknown Season";
-  }
-
-  function updateGameTime() {
-    const now = new Date();
-    const realStart = new Date(Date.UTC(2025, 0, 1, 0, 0, 0)); // Jan 1, 2025 UTC
-    const msSinceStart = now - realStart;
-    const inGameHours = Math.floor(msSinceStart / (60 * 1000)); // 1 real min = 1 in-game hour
-    const inGameDays = Math.floor(inGameHours / 24);
-    const inGameHour = inGameHours % 24;
-
-    const gameDate = new Date(realStart.getTime() + inGameDays * 24 * 60 * 60 * 1000);
-    const season = getSeason(gameDate.getMonth() + 1, gameDate.getDate());
-
-    const clock = document.getElementById("gameClock");
-    if (clock) {
-      clock.innerHTML = `<strong>In-Game Date:</strong> ${season}, ${gameDate.toLocaleDateString('en-US')} — <strong>Hour:</strong> ${inGameHour}:00`;
-    }
-  }
-
-  updateGameTime();
-  setInterval(updateGameTime, 60 * 1000); // Update every real-world minute
-}
- 
+// 🔥 Start the clock after everything is ready
+startGameClock();
