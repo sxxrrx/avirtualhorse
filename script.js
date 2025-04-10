@@ -354,8 +354,4 @@ export function startGameClock() {
   updateGameTime();
   setInterval(updateGameTime, 60 * 1000); // Update every real-world minute
 }
- // 🔥 Start the clock!
-  function startGameClock() {
-  console.log("Game clock started");
-  ...
-}
+ 
