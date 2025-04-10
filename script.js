@@ -189,7 +189,7 @@ export async function initializeGamePage() {
     startGameClock();
   });
 }
-
+window.currentUserData = user;
 // Game Clock
 export function startGameClock() {
   const seasons = [
