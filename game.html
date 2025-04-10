@@ -13,17 +13,33 @@
     <button onclick="logout()">Logout</button>
   </div>
 
-  <div class="tabs">
-    <button onclick="showTab('myranch')">My Ranch</button>
-    <button onclick="showTab('stables')">Stables</button>
-    <button onclick="showTab('market')">Market</button>
-    <button onclick="showTab('shows')">Shows</button>
-    <button onclick="showTab('training')">Training</button>
-    <button onclick="showTab('jobs')">Jobs</button>
-    <button onclick="showTab('clubhouse')">Clubhouse</button>
-    <button onclick="showTab('barn')">Barn</button>
-    <button onclick="showTab('settings')">Settings</button>
+ <body>
+  <div id="mainContainer">
+    <!-- Left Sidebar -->
+    <div class="sidebar left-sidebar">
+      <button class="tabButton" onclick="showTab('myranch')">🏡<br>My Ranch</button>
+      <button class="tabButton" onclick="showTab('stables')">🐴<br>Stable</button>
+      <button class="tabButton" onclick="showTab('market')">💰<br>Market</button>
+      <button class="tabButton" onclick="showTab('shows')">🏆<br>Shows</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div id="gameClock" class="top-bar"></div>
+      <div id="coinCounter" class="top-bar">Coins: 0</div>
+      <!-- Your tabbed content goes here, like #myranch, #stables, etc -->
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar right-sidebar">
+      <button class="tabButton" onclick="showTab('clubhouse')">👤<br>Clubhouse</button>
+      <button class="tabButton" onclick="showTab('training')">📚<br>Training</button>
+      <button class="tabButton" onclick="showTab('barn')">🏠<br>Barn</button>
+      <button class="tabButton" onclick="showTab('settings')">⚙️<br>Settings</button>
+    </div>
   </div>
+</body>
+
 
   <div id="myranch" class="content">
     <h2>My Ranch</h2>
