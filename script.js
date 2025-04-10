@@ -255,6 +255,40 @@ export function showSubTab(main, subId) {
   if (sub) sub.style.display = 'block';
   showTab(main);
 }
+export function changeHorseName() {
+  const newName = prompt("Enter a new name for your horse:");
+  if (!newName) return;
+
+  const horseId = window.currentHorseId;
+  if (!horseId || !window.currentUserData) return;
+
+  const horse = window.currentUserData.horses.find(h => h.id === horseId);
+  if (horse) {
+    horse.name = newName;
+    document.getElementById("horseNameDetail").textContent = newName;
+    saveUserToFirebase(window.currentUserData.id, window.currentUserData);
+  }
+}
+export function prepareBreeding() {
+  const horseId = window.currentHorseId;
+  if (!horseId || !window.currentUserData) return;
+
+  const horse = window.currentUserData.horses.find(h => h.id === horseId);
+  if (horse) {
+    const detailBox = document.getElementById("horseDetailInfo");
+    detailBox.innerHTML += `<p><em>Breeding system coming soon!</em></p>`;
+  }
+}
+export function enterShow() {
+  const horseId = window.currentHorseId;
+  if (!horseId || !window.currentUserData) return;
+
+  const horse = window.currentUserData.horses.find(h => h.id === horseId);
+  if (horse) {
+    const detailBox = document.getElementById("horseDetailInfo");
+    detailBox.innerHTML += `<p><em>${horse.name} is now entered into a local show! (Feature coming soon)</em></p>`;
+  }
+}
 
 // Placeholders
 export function setupJobs() {}
