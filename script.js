@@ -301,13 +301,6 @@ export function changeHorseName() {
   nameDisplay.appendChild(saveBtn);
 }
 
-
-  // Clear current text and append input and button
-  nameDisplay.textContent = "";
-  nameDisplay.appendChild(input);
-  nameDisplay.appendChild(saveBtn);
-}
-
 export function prepareBreeding() {
   const horseId = window.currentHorseId;
   if (!horseId || !window.currentUserData) return;
