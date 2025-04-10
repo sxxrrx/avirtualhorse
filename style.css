@@ -529,9 +529,11 @@ body, html {
 }
 
 #mainContainer {
-  display: flex;
+  display: grid;
+  grid-template-columns: 80px 1fr 80px;
   height: 100vh;
 }
+
 
 .sidebar {
   width: 80px;
