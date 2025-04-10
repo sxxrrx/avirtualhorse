@@ -579,3 +579,29 @@ body, html {
   font-weight: bold;
   margin-bottom: 10px;
 }
+.sidebar {
+  width: 80px;
+  background-color: #2f4f2f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  padding-top: 10px;
+  gap: 10px;
+}
+
+.tabButton {
+  background: none;
+  color: white;
+  border: none;
+  padding: 8px 4px;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.tabButton:hover, .tabButton.active {
+  background-color: #3a5d3a;
+}
