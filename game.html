@@ -2,181 +2,73 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Virtual Ranch</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="dashboard-layout">
-    <!-- Left Sidebar -->
-    <div class="sidebar left-sidebar">
-      <h3>Virtual Ranch</h3>
-      <ul>
-        <li onclick="showTab('myranch')">My Ranch</li>
-        <li onclick="showTab('stables')">Stables</li>
-        <li onclick="showTab('sales')">Sales</li>
-        <li onclick="showTab('shows')">Shows</li>
-        <li onclick="showTab('training')">Training</li>
-        <li onclick="showTab('jobs')">Jobs</li>
-      </ul>
+  <div id="topbar">
+    <div id="coinCounter">Coins: 0</div>
+    <div id="gameClock"></div>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="tabs">
+    <button onclick="showTab('myranch')">My Ranch</button>
+    <button onclick="showTab('stables')">Stables</button>
+    <button onclick="showTab('market')">Market</button>
+    <button onclick="showTab('shows')">Shows</button>
+    <button onclick="showTab('training')">Training</button>
+    <button onclick="showTab('jobs')">Jobs</button>
+    <button onclick="showTab('clubhouse')">Clubhouse</button>
+    <button onclick="showTab('barn')">Barn</button>
+    <button onclick="showTab('settings')">Settings</button>
+  </div>
+
+  <div id="myranch" class="content">
+    <h2>My Ranch</h2>
+    <div id="profile">
+      <p>Username: <span id="profileUsername"></span></p>
+      <p>Level: <span id="profileLevel"></span></p>
+      <p>Job: <span id="profileJob"></span></p>
+      <p>Join Date: <span id="profileJoinDate"></span></p>
+      <p>Horses Owned: <span id="profileHorseCount"></span></p>
+      <p>EXP: <span id="profileExp"></span></p>
+      <div id="profileExpBarContainer"><div id="profileExpBar"></div></div>
     </div>
+    <div id="newsSection">Welcome to your ranch!</div>
+  </div>
 
-    <!-- Main Content -->
-    <div class="main-panel">
-      <h2 id="welcomeUser"></h2>
+  <div id="stables" class="content">
+    <h2>Stables</h2>
+    <div id="stableGrid" class="grid"></div>
+  </div>
 
-      <!-- Top Bar -->
-      <div id="topBar">
-        <div id="coinCounter">Coins: 0</div>
-        <div id="gameClock"></div>
-      </div>
+  <div id="market" class="content">
+    <h2>Market</h2>
+    <div id="salesGrid" class="grid"></div>
+  </div>
 
-      <div id="newsSection">
-        <h3>Latest News</h3>
-        <div id="newsList"></div>
-      </div>
-
-      <div id="myranch" class="content">
-        <h2>Your Ranch</h2>
-        <div class="player-profile">
-          <p><strong>Username:</strong> <span id="profileUsername"></span></p>
-          <p><strong>Level:</strong> <span id="profileLevel"></span></p>
-          <p><strong>Current Job:</strong> <span id="profileJob"></span></p>
-          <p><strong>Total Horses:</strong> <span id="profileHorseCount"></span></p>
-          <p><strong>Join Date:</strong> <span id="profileJoinDate"></span></p>
-          <p><strong>EXP:</strong> <span id="profileExp"></span></p>
-          <div style="background: #ccc; border-radius: 5px; overflow: hidden; height: 20px;">
-            <div id="profileExpBar" style="width: 0%; background: #4caf50; height: 100%;"></div>
-          </div>
-        </div>
-      </div>
-
-      <div id="stables" class="content">
-        <h2>Your Stable</h2>
-        <div id="stableGrid" class="stable-grid"></div>
-      </div>
-
-      <div id="horseDetail" class="content" style="display: none;">
-        <h2 id="horseNameDetail"></h2>
-        <div id="horseDetailInfo"></div>
-        <button onclick="changeHorseName()">Change Name</button>
-        <button onclick="prepareBreeding()">Breed</button>
-        <button onclick="enterShow()">Enter Shows</button>
-        <button onclick="showTab('stables')">Back to Stable</button>
-      </div>
-
-      <div id="sales" class="content">
-        <h2>Horses for Sale</h2>
-        <div id="salesList"></div>
-      </div>
-
-      <div id="shows" class="content">
-        <h2>Horse Shows</h2>
-        <p>Enter your horses into competitions to gain EXP and level up!</p>
-        <div id="showEntries"></div>
-      </div>
-
-      <div id="training" class="content"><h2>Training</h2></div>
-
-      <div id="jobs" class="content">
-        <h2>Jobs</h2>
-        <div id="jobInfo"></div>
-        <div id="jobActions"></div>
-      </div>
-
-      <div id="clubhouse" class="content">
-        <h2>Clubhouse</h2>
-        <div id="riderInfo"></div>
-      </div>
-
-      <div id="barn" class="content">
-        <h2>Barn</h2>
-        <div id="barn-tabs">
-          <div id="inventory" class="barn-tab">
-            <h3>Inventory</h3>
-            <div id="inventoryContent">Inventory items will display here</div>
-          </div>
-          <div id="workshop" class="barn-tab" style="display:none">
-            <h3>Workshop</h3>
-            <button onclick="craftTack('Bridle')">Craft Bridle</button>
-            <button onclick="craftTack('Saddle')">Craft Saddle</button>
-            <button onclick="craftTack('Horse Boots')">Craft Horse Boots</button>
-            <button onclick="craftTack('Horse Shoes')">Craft Horse Shoes</button>
-          </div>
-          <div id="tackroom" class="barn-tab" style="display:none">
-            <h3>Tack Room</h3>
-            <div id="tackContent">Crafted tack items will show here</div>
-          </div>
-        </div>
-      </div>
-
-      <div id="settings" class="content">
-        <h2>Settings</h2>
-        <button onclick="logout()">Log Out</button>
-      </div>
-    </div>
-
-    <!-- Right Sidebar -->
-    <div class="sidebar right-sidebar">
-      <ul>
-        <li onclick="showTab('barn')">Barn</li>
-        <li onclick="showSubTab('barn', 'inventory')">- Inventory</li>
-        <li onclick="showSubTab('barn', 'workshop')">- Workshop</li>
-        <li onclick="showSubTab('barn', 'tackroom')">- Tack Room</li>
-        <li onclick="showTab('clubhouse')">Clubhouse</li>
-        <li onclick="showTab('settings')">Settings</li>
-      </ul>
+  <div id="shows" class="content">
+    <h2>Enter Show</h2>
+    <div id="horseDetail">
+      <h3 id="horseNameDetail"></h3>
+      <div id="horseDetailInfo"></div>
+      <button onclick="prepareBreeding()">Breed</button>
+      <button onclick="enterShow()">Enter Show</button>
     </div>
   </div>
 
-  <!-- Load Logic -->
+  <div id="training" class="content"><h2>Training</h2><p>Coming soon!</p></div>
+  <div id="jobs" class="content"><h2>Jobs</h2><p>Coming soon!</p></div>
+  <div id="clubhouse" class="content"><h2>Clubhouse</h2><p>Coming soon!</p></div>
+  <div id="barn" class="content"><h2>Barn</h2><p>Coming soon!</p></div>
+
+  <div id="settings" class="content">
+    <h2>Settings</h2>
+    <button onclick="logout()">Logout</button>
+  </div>
+
   <script type="module" src="script.js"></script>
-
-  <script>
-    window.showTab = function(id) {
-      document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'block';
-      const news = document.getElementById("newsSection");
-      if (news) news.style.display = (id === 'myranch') ? 'block' : 'none';
-    };
-
-    window.showSubTab = function(main, subId) {
-      document.querySelectorAll(`#${main} .barn-tab`).forEach(tab => tab.style.display = 'none');
-      const sub = document.getElementById(subId);
-      if (sub) sub.style.display = 'block';
-      showTab(main);
-    };
-
-    window.logout = function() {
-      import("https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js").then(({ getAuth, signOut }) => {
-        const auth = getAuth();
-        signOut(auth).then(() => {
-          window.location.href = "login.html";
-        });
-      });
-    };
-  </script>
-
-<script type="module">
-  import { initializeGamePage, showHorseDetails } from './script.js';
-  initializeGamePage();
-  window.showHorseDetails = showHorseDetails;
-</script>
-  <script type="module">
-  import {
-    initializeGamePage,
-    showHorseDetails,
-    changeHorseName,
-    prepareBreeding,
-    enterShow
-  } from './script.js';
-
-  initializeGamePage();
-  window.showHorseDetails = showHorseDetails;
-  window.changeHorseName = changeHorseName;
-  window.prepareBreeding = prepareBreeding;
-  window.enterShow = enterShow;
-</script>
-
 </body>
 </html>
