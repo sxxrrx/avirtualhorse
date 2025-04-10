@@ -218,7 +218,6 @@ document.addEventListener("click", async (e) => {
   }
 });
 
-// Load game page
 export async function initializeGamePage() {
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (!firebaseUser) return window.location.href = "login.html";
@@ -226,20 +225,20 @@ export async function initializeGamePage() {
     const uid = firebaseUser.uid;
     const userRef = ref(db, `users/${uid}`);
     const snapshot = await get(userRef);
+
     if (!snapshot.exists()) return alert("User data not found.");
 
-    const user = snapshot.val();
-
-    // 🔥 SET THESE
+    // ✅ Save for use in other functions
     currentUserId = uid;
-    currentUserData = user;
+    currentUserData = snapshot.val();
 
-    showProfile(user);
-    renderStables(user);
-    renderSalesHorses(user);
-    setupJobs(user);
-    showRider(user);
-    showTack(user);
+    // Then render everything
+    showProfile(currentUserData);
+    renderStables(currentUserData);
+    renderSalesHorses(currentUserData);
+    setupJobs(currentUserData);
+    showRider(currentUserData);
+    showTack(currentUserData);
     showTab("stables");
     startGameClock();
   });
