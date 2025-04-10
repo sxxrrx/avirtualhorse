@@ -155,8 +155,11 @@ export function renderStables(user) {
 }
 
 export function showHorseDetails(horseId) {
-  const horse = currentUserData.horses.find(h => h.id === horseId);
-  if (!horse) return;
+  const horse = window.currentUserData?.horses?.find(h => h.id === horseId);
+  if (!horse) {
+    console.warn("Horse not found for ID:", horseId);
+    return;
+  }
 
   document.getElementById("horseNameDetail").textContent = horse.name;
   document.getElementById("horseDetailInfo").innerHTML = `
@@ -166,6 +169,7 @@ export function showHorseDetails(horseId) {
     <p><strong>EXP:</strong> ${horse.exp}</p>
     <p><strong>Age:</strong> ${horse.age.years} years, ${horse.age.months} months</p>
   `;
+
   showTab("horseDetail");
 }
 
@@ -179,6 +183,7 @@ export async function initializeGamePage() {
     if (!snapshot.exists()) return alert("User data not found.");
 
     const user = snapshot.val();
+    window.currentUserData = user; // <-- THIS MUST BE HERE ✅
     showProfile(user);
     renderStables(user);
     renderSalesHorses(user); // placeholder if needed
@@ -189,7 +194,7 @@ export async function initializeGamePage() {
     startGameClock();
   });
 }
-window.currentUserData = user;
+
 // Game Clock
 export function startGameClock() {
   const seasons = [
