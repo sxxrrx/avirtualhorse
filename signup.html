@@ -72,8 +72,9 @@
   </div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
@@ -87,8 +88,8 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getDatabase(app);
 
-    // Dropdown logic
     const breedColors = {
       Friesian: ["Black"],
       Thoroughbred: ["Bay", "Dark Bay", "Chestnut", "Liver Chestnut", "Black"],
@@ -133,7 +134,7 @@
 
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const firebaseUser = userCredential.user;
+        const userId = userCredential.user.uid;
 
         const horse = {
           id: "horse_" + Date.now(),
@@ -147,10 +148,10 @@
         };
 
         const newUser = {
+          id: userId,
           loginName,
           username,
           email,
-          firebaseUid: firebaseUser.uid,
           coins: 5000,
           level: 1,
           exp: 0,
@@ -159,9 +160,8 @@
           joinDate: new Date().toLocaleDateString()
         };
 
-        // For now, store in localStorage (move to Firebase DB later)
-        localStorage.setItem("activeUser", JSON.stringify(newUser));
-        alert("Account created!");
+        await set(ref(db, 'users/' + userId), newUser);
+        alert("Account created successfully!");
         window.location.href = "game.html";
       } catch (error) {
         alert("Signup failed: " + error.message);
@@ -170,3 +170,4 @@
   </script>
 </body>
 </html>
+
