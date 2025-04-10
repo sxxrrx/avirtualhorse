@@ -160,11 +160,13 @@ let currentUserData = null;
 
 // Show Horse Details
 export function showHorseDetails(horseId) {
+  if (!currentUserData || !currentUserData.horses) return;
+
   document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
   const horse = currentUserData.horses.find(h => h.id === horseId);
   if (!horse) return;
 
-  currentHorseId = horseId;
+  // ... rest of the logic
 
   document.getElementById("horseNameDetail").innerHTML = `
     <h2>
