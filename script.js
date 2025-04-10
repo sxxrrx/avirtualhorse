@@ -168,12 +168,11 @@ export function showHorseDetails(horseId) {
   document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
   const horse = currentUserData.horses.find(h => h.id === horseId);
   if (!horse) return;
-  <button id="editHorseNameBtn">✎</button>
 
   document.getElementById("horseDetail").style.display = "block";
   document.getElementById("horseNameDetail").innerHTML = `
     <span id="horseNameText">${horse.name}</span>
-    <button onclick="editHorseName('${horse.id}')">✎</button>
+    <button id="editHorseNameBtn">✎</button>
   `;
   document.getElementById("horseDetailInfo").innerHTML = `
     <p><strong>Breed:</strong> ${horse.breed}</p>
@@ -184,6 +183,7 @@ export function showHorseDetails(horseId) {
     <p><strong>Age:</strong> ${horse.age.years} years, ${horse.age.months} months</p>
   `;
 }
+
 
 
 // Inline Editing Logic
