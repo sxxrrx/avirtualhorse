@@ -257,37 +257,50 @@ export function showSubTab(main, subId) {
 }
 export function changeHorseName() {
   const nameDisplay = document.getElementById("horseNameDetail");
+  const horseId = window.currentHorseId;
+  const user = window.currentUserData;
 
-  // If input already exists, don't create another one
+  if (!horseId || !user) return;
+
+  const horse = user.horses.find(h => h.id === horseId);
+  if (!horse) return;
+
+  // Prevent multiple inputs
   if (document.getElementById("nameInput")) return;
 
+  // Create input with current name
   const input = document.createElement("input");
-  input.type = "text";
   input.id = "nameInput";
-  input.value = nameDisplay.textContent;
+  input.type = "text";
+  input.value = horse.name;
   input.style.marginLeft = "10px";
   input.style.padding = "4px";
   input.style.fontSize = "16px";
 
+  // Create save button
   const saveBtn = document.createElement("button");
   saveBtn.textContent = "Save";
-  saveBtn.style.marginLeft = "6px";
-  saveBtn.onclick = () => {
+  saveBtn.style.marginLeft = "8px";
+  saveBtn.onclick = async () => {
     const newName = input.value.trim();
     if (!newName) return;
 
-    const horseId = window.currentHorseId;
-    if (!horseId || !window.currentUserData) return;
+    horse.name = newName;
 
-    const horse = window.currentUserData.horses.find(h => h.id === horseId);
-    if (horse) {
-      horse.name = newName;
-      saveUserToFirebase(window.currentUserData.id, window.currentUserData).then(() => {
-        document.getElementById("horseNameDetail").textContent = newName;
-        renderStables(window.currentUserData);
-      });
-    }
+    // Update Firebase
+    await set(ref(db, 'users/' + user.id), user);
+
+    // Update display
+    nameDisplay.innerHTML = newName;
+    renderStables(user);
   };
+
+  // Clear existing name and insert input + button
+  nameDisplay.innerHTML = '';
+  nameDisplay.appendChild(input);
+  nameDisplay.appendChild(saveBtn);
+}
+
 
   // Clear current text and append input and button
   nameDisplay.textContent = "";
