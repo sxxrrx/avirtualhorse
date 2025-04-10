@@ -26,7 +26,9 @@ function saveUserToFirebase(userId, userData) {
 }
 
 // Login function
-export function loginUser() {
+export function loginUser(event) {
+  event.preventDefault(); // Prevent the default form submission
+
   const loginName = document.getElementById("loginName").value.trim();
   const password = document.getElementById("password").value;
 
