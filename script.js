@@ -23,6 +23,9 @@ function saveUserToFirebase(userId, userData) {
   return set(ref(db, 'users/' + userId), userData);
 }
 
+let currentUserData = null;
+let currentUserId = null;
+
 // Login
 export function loginUser(event) {
   event.preventDefault();
