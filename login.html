@@ -47,7 +47,7 @@
 <body>
   <div class="container">
     <h2>Login to Virtual Ranch</h2>
-    <input type="text" id="loginName" placeholder="Login Name"><br>
+    <input type="email" id="loginEmail" placeholder="Email"><br>
     <input type="password" id="password" placeholder="Password"><br>
     <button id="loginBtn">Log In</button>
 
@@ -55,11 +55,10 @@
     <a href="signup.html" class="link">Don't have an account? Sign up here</a>
   </div>
 
-  <!-- Firebase + Login script as ES module -->
+  <!-- Firebase login handler -->
   <script type="module">
-    // Import Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
@@ -74,21 +73,17 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // Login handler
     document.getElementById("loginBtn").addEventListener("click", async () => {
-      const loginName = document.getElementById("loginName").value.trim();
+      const email = document.getElementById("loginEmail").value.trim();
       const password = document.getElementById("password").value;
 
-      if (!loginName || !password) {
+      if (!email || !password) {
         alert("Please fill in all fields.");
         return;
       }
 
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, loginName, password);
-        const user = userCredential.user;
-        localStorage.setItem("activeUserEmail", user.email);
-        alert("Login successful!");
+        await signInWithEmailAndPassword(auth, email, password);
         window.location.href = "game.html";
       } catch (error) {
         alert("Login failed: " + error.message);
