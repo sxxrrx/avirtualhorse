@@ -162,5 +162,21 @@
   initializeGamePage();
   window.showHorseDetails = showHorseDetails;
 </script>
+  <script type="module">
+  import {
+    initializeGamePage,
+    showHorseDetails,
+    changeHorseName,
+    prepareBreeding,
+    enterShow
+  } from './script.js';
+
+  initializeGamePage();
+  window.showHorseDetails = showHorseDetails;
+  window.changeHorseName = changeHorseName;
+  window.prepareBreeding = prepareBreeding;
+  window.enterShow = enterShow;
+</script>
+
 </body>
 </html>
