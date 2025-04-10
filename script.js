@@ -299,13 +299,6 @@ export async function initializeGamePage() {
   showRider(user);
   showTack(user);
   showTab("stables");
-
-  // 🔥 Start the clock!
-  function startGameClock() {
-  console.log("Game clock started");
-  ...
-}
-
 }
 // In-game clock: 1 real minute = 1 in-game hour
 export function startGameClock() {
@@ -360,4 +353,9 @@ export function startGameClock() {
 
   updateGameTime();
   setInterval(updateGameTime, 60 * 1000); // Update every real-world minute
+}
+ // 🔥 Start the clock!
+  function startGameClock() {
+  console.log("Game clock started");
+  ...
 }
