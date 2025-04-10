@@ -172,7 +172,6 @@ export function showHorseDetails(horseId) {
   document.getElementById("horseDetail").style.display = "block";
   document.getElementById("horseNameDetail").innerHTML = `
     <span id="horseNameText">${horse.name}</span>
-    <button id="editHorseNameBtn">✎</button>
   `;
   document.getElementById("horseDetailInfo").innerHTML = `
     <p><strong>Breed:</strong> ${horse.breed}</p>
@@ -301,6 +300,7 @@ export function showSubTab(main, subId) {
   if (sub) sub.style.display = 'block';
   showTab(main);
 }
+
 export function changeHorseName() {
   const nameDisplay = document.getElementById("horseNameDetail");
 
@@ -337,8 +337,18 @@ export function changeHorseName() {
     // Update display
     document.getElementById("horseNameDetail").innerHTML = `
       <span id="horseNameText">${newName}</span>
-      <button onclick="editHorseName('${horse.id}')">✎</button>
+      <button id="editHorseNameBtn">✎</button>
     `;
+
+    renderStables(currentUserData);
+  };
+
+  // Insert input + button
+  nameDisplay.innerHTML = '';
+  nameDisplay.appendChild(input);
+  nameDisplay.appendChild(saveBtn);
+}
+
 
     renderStables(currentUserData);
   };
