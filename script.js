@@ -154,24 +154,64 @@ export function renderStables(user) {
   });
 }
 
-export function showHorseDetails(horseId) {
-  const horse = window.currentUserData?.horses?.find(h => h.id === horseId);
-  if (!horse) {
-    console.warn("Horse not found for ID:", horseId);
-    return;
-  }
+let currentHorseId = null;
+let currentUserId = null;
+let currentUserData = null;
 
-  document.getElementById("horseNameDetail").textContent = horse.name;
+// Show Horse Details
+export function showHorseDetails(horseId) {
+  document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+  const horse = currentUserData.horses.find(h => h.id === horseId);
+  if (!horse) return;
+
+  currentHorseId = horseId;
+
+  document.getElementById("horseNameDetail").innerHTML = `
+    <h2>
+      <span id="horseNameText">${horse.name}</span>
+      <button id="editHorseNameBtn">Edit</button>
+    </h2>
+  `;
+
   document.getElementById("horseDetailInfo").innerHTML = `
     <p><strong>Breed:</strong> ${horse.breed}</p>
-    <p><strong>Coat Color:</strong> ${horse.coatColor}</p>
+    <p><strong>Color:</strong> ${horse.coatColor}</p>
+    <p><strong>Gender:</strong> ${horse.gender}</p>
     <p><strong>Level:</strong> ${horse.level}</p>
     <p><strong>EXP:</strong> ${horse.exp}</p>
     <p><strong>Age:</strong> ${horse.age.years} years, ${horse.age.months} months</p>
   `;
 
-  showTab("horseDetail");
+  document.getElementById("horseDetail").style.display = "block";
 }
+
+// Inline Editing Logic
+document.addEventListener("click", async (e) => {
+  if (e.target.id === "editHorseNameBtn") {
+    const span = document.getElementById("horseNameText");
+    const currentName = span.textContent;
+    span.innerHTML = `
+      <input id="horseNameInput" value="${currentName}" />
+      <button id="saveHorseNameBtn">Save</button>
+    `;
+  }
+
+  if (e.target.id === "saveHorseNameBtn") {
+    const input = document.getElementById("horseNameInput");
+    const newName = input.value.trim();
+    if (!newName) return;
+
+    const horse = currentUserData.horses.find(h => h.id === currentHorseId);
+    if (horse) horse.name = newName;
+
+    // Save to Firebase
+    const userRef = ref(db, `users/${currentUserId}`);
+    await set(userRef, currentUserData);
+
+    // Re-render name
+    document.getElementById("horseNameText").textContent = newName;
+  }
+});
 
 // Load game page
 export async function initializeGamePage() {
