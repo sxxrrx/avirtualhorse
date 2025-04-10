@@ -217,16 +217,21 @@ document.addEventListener("click", async (e) => {
 export async function initializeGamePage() {
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (!firebaseUser) return window.location.href = "login.html";
+
     const uid = firebaseUser.uid;
     const userRef = ref(db, `users/${uid}`);
     const snapshot = await get(userRef);
     if (!snapshot.exists()) return alert("User data not found.");
 
     const user = snapshot.val();
-    window.currentUserData = user; // <-- THIS MUST BE HERE ✅
+
+    // 🔥 SET THESE
+    currentUserId = uid;
+    currentUserData = user;
+
     showProfile(user);
     renderStables(user);
-    renderSalesHorses(user); // placeholder if needed
+    renderSalesHorses(user);
     setupJobs(user);
     showRider(user);
     showTack(user);
@@ -234,6 +239,7 @@ export async function initializeGamePage() {
     startGameClock();
   });
 }
+
 
 // Game Clock
 export function startGameClock() {
