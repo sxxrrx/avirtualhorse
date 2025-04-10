@@ -161,7 +161,6 @@ let currentHorseId = null;
 let currentUserId = null;
 let currentUserData = null;
 
-// Show Horse Details
 export function showHorseDetails(horseId) {
   if (!currentUserData || !currentUserData.horses) return;
 
@@ -169,15 +168,11 @@ export function showHorseDetails(horseId) {
   const horse = currentUserData.horses.find(h => h.id === horseId);
   if (!horse) return;
 
-  // ... rest of the logic
-
+  document.getElementById("horseDetail").style.display = "block";
   document.getElementById("horseNameDetail").innerHTML = `
-    <h2>
-      <span id="horseNameText">${horse.name}</span>
-      <button id="editHorseNameBtn">Edit</button>
-    </h2>
+    <span id="horseNameText">${horse.name}</span>
+    <button onclick="editHorseName('${horse.id}')">✎</button>
   `;
-
   document.getElementById("horseDetailInfo").innerHTML = `
     <p><strong>Breed:</strong> ${horse.breed}</p>
     <p><strong>Color:</strong> ${horse.coatColor}</p>
@@ -186,9 +181,8 @@ export function showHorseDetails(horseId) {
     <p><strong>EXP:</strong> ${horse.exp}</p>
     <p><strong>Age:</strong> ${horse.age.years} years, ${horse.age.months} months</p>
   `;
-
-  document.getElementById("horseDetail").style.display = "block";
 }
+
 
 // Inline Editing Logic
 document.addEventListener("click", async (e) => {
