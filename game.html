@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <title>Virtual Ranch</title>
   <link rel="stylesheet" href="style.css" />
-
 </head>
 <body>
   <div class="dashboard-layout">
@@ -21,21 +20,20 @@
       </ul>
     </div>
 
-   <div class="main-panel">
-  <h2 id="welcomeUser"></h2>
+    <!-- Main Content -->
+    <div class="main-panel">
+      <h2 id="welcomeUser"></h2>
 
-  <!-- ✅ New Top Bar Goes Here -->
-  <div id="topBar">
-    <div id="coinCounter">Coins: 0</div>
-    <div id="gameClock"></div>
-  </div>
+      <!-- ✅ Top Bar -->
+      <div id="topBar">
+        <div id="coinCounter">Coins: 0</div>
+        <div id="gameClock"></div>
+      </div>
 
-  <!-- News and other sections follow -->
-  <div id="newsSection">
-    <h3>Latest News</h3>
-    <div id="newsList"></div>
-  </div>
-
+      <div id="newsSection">
+        <h3>Latest News</h3>
+        <div id="newsList"></div>
+      </div>
 
       <div id="myranch" class="content">
         <h2>Your Ranch</h2>
@@ -132,34 +130,35 @@
 
   <!-- Main Script -->
   <script type="module" src="script.js"></script>
-<script>
-  window.showTab = function(id) {
-    document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'block';
-    document.getElementById("newsSection").style.display = (id === 'myranch') ? 'block' : 'none';
-  };
+  <script>
+    window.showTab = function(id) {
+      document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'block';
+      document.getElementById("newsSection").style.display = (id === 'myranch') ? 'block' : 'none';
+    };
 
-  window.showSubTab = function(main, subId) {
-    document.querySelectorAll(`#${main} .barn-tab`).forEach(tab => tab.style.display = 'none');
-    const sub = document.getElementById(subId);
-    if (sub) sub.style.display = 'block';
-    window.showTab(main);
-  };
+    window.showSubTab = function(main, subId) {
+      document.querySelectorAll(`#${main} .barn-tab`).forEach(tab => tab.style.display = 'none');
+      const sub = document.getElementById(subId);
+      if (sub) sub.style.display = 'block';
+      window.showTab(main);
+    };
 
-  window.logout = function() {
-    localStorage.removeItem("activeUser");
-    localStorage.removeItem("salesHorses");
-    window.location.href = "index.html";
-  };
-</script>
-<script type="module">
-  import { initializeGamePage } from './script.js';
-  initializeGamePage();
-</script>
+    window.logout = function() {
+      import("https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js").then(({ getAuth, signOut }) => {
+        const auth = getAuth();
+        signOut(auth).then(() => {
+          window.location.href = "login.html";
+        });
+      });
+    };
+  </script>
 
-  
-
-
+  <!-- Game Init -->
+  <script type="module">
+    import { initializeGamePage } from './script.js';
+    initializeGamePage();
+  </script>
 </body>
 </html>
