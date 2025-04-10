@@ -256,19 +256,45 @@ export function showSubTab(main, subId) {
   showTab(main);
 }
 export function changeHorseName() {
-  const newName = prompt("Enter a new name for your horse:");
-  if (!newName) return;
+  const nameDisplay = document.getElementById("horseNameDetail");
 
-  const horseId = window.currentHorseId;
-  if (!horseId || !window.currentUserData) return;
+  // If input already exists, don't create another one
+  if (document.getElementById("nameInput")) return;
 
-  const horse = window.currentUserData.horses.find(h => h.id === horseId);
-  if (horse) {
-    horse.name = newName;
-    document.getElementById("horseNameDetail").textContent = newName;
-    saveUserToFirebase(window.currentUserData.id, window.currentUserData);
-  }
+  const input = document.createElement("input");
+  input.type = "text";
+  input.id = "nameInput";
+  input.value = nameDisplay.textContent;
+  input.style.marginLeft = "10px";
+  input.style.padding = "4px";
+  input.style.fontSize = "16px";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "Save";
+  saveBtn.style.marginLeft = "6px";
+  saveBtn.onclick = () => {
+    const newName = input.value.trim();
+    if (!newName) return;
+
+    const horseId = window.currentHorseId;
+    if (!horseId || !window.currentUserData) return;
+
+    const horse = window.currentUserData.horses.find(h => h.id === horseId);
+    if (horse) {
+      horse.name = newName;
+      saveUserToFirebase(window.currentUserData.id, window.currentUserData).then(() => {
+        document.getElementById("horseNameDetail").textContent = newName;
+        renderStables(window.currentUserData);
+      });
+    }
+  };
+
+  // Clear current text and append input and button
+  nameDisplay.textContent = "";
+  nameDisplay.appendChild(input);
+  nameDisplay.appendChild(saveBtn);
 }
+
 export function prepareBreeding() {
   const horseId = window.currentHorseId;
   if (!horseId || !window.currentUserData) return;
