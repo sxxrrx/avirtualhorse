@@ -13,7 +13,6 @@
     <button onclick="logout()">Logout</button>
   </div>
 
- <body>
   <div id="mainContainer">
     <!-- Left Sidebar -->
     <div class="sidebar left-sidebar">
@@ -23,11 +22,51 @@
       <button class="tabButton" onclick="showTab('shows')">🏆<br>Shows</button>
     </div>
 
-    <!-- Main Content -->
+    <!-- Center Content -->
     <div class="main-content">
-      <div id="gameClock" class="top-bar"></div>
-      <div id="coinCounter" class="top-bar">Coins: 0</div>
-      <!-- Your tabbed content goes here, like #myranch, #stables, etc -->
+      <div id="myranch" class="content">
+        <h2>My Ranch</h2>
+        <div id="profile">
+          <p>Username: <span id="profileUsername"></span></p>
+          <p>Level: <span id="profileLevel"></span></p>
+          <p>Job: <span id="profileJob"></span></p>
+          <p>Join Date: <span id="profileJoinDate"></span></p>
+          <p>Horses Owned: <span id="profileHorseCount"></span></p>
+          <p>EXP: <span id="profileExp"></span></p>
+          <div id="profileExpBarContainer"><div id="profileExpBar"></div></div>
+        </div>
+        <div id="newsSection">Welcome to your ranch!</div>
+      </div>
+
+      <div id="stables" class="content">
+        <h2>Stables</h2>
+        <div id="stableGrid" class="grid"></div>
+      </div>
+
+      <div id="market" class="content">
+        <h2>Market</h2>
+        <div id="salesGrid" class="grid"></div>
+      </div>
+
+      <div id="shows" class="content">
+        <h2>Enter Show</h2>
+        <div id="horseDetail">
+          <h3 id="horseNameDetail"></h3>
+          <div id="horseDetailInfo"></div>
+          <button onclick="prepareBreeding()">Breed</button>
+          <button onclick="enterShow()">Enter Show</button>
+        </div>
+      </div>
+
+      <div id="training" class="content"><h2>Training</h2><p>Coming soon!</p></div>
+      <div id="jobs" class="content"><h2>Jobs</h2><p>Coming soon!</p></div>
+      <div id="clubhouse" class="content"><h2>Clubhouse</h2><p>Coming soon!</p></div>
+      <div id="barn" class="content"><h2>Barn</h2><p>Coming soon!</p></div>
+
+      <div id="settings" class="content">
+        <h2>Settings</h2>
+        <button onclick="logout()">Logout</button>
+      </div>
     </div>
 
     <!-- Right Sidebar -->
@@ -37,52 +76,6 @@
       <button class="tabButton" onclick="showTab('barn')">🏠<br>Barn</button>
       <button class="tabButton" onclick="showTab('settings')">⚙️<br>Settings</button>
     </div>
-  </div>
-</body>
-
-
-  <div id="myranch" class="content">
-    <h2>My Ranch</h2>
-    <div id="profile">
-      <p>Username: <span id="profileUsername"></span></p>
-      <p>Level: <span id="profileLevel"></span></p>
-      <p>Job: <span id="profileJob"></span></p>
-      <p>Join Date: <span id="profileJoinDate"></span></p>
-      <p>Horses Owned: <span id="profileHorseCount"></span></p>
-      <p>EXP: <span id="profileExp"></span></p>
-      <div id="profileExpBarContainer"><div id="profileExpBar"></div></div>
-    </div>
-    <div id="newsSection">Welcome to your ranch!</div>
-  </div>
-
-  <div id="stables" class="content">
-    <h2>Stables</h2>
-    <div id="stableGrid" class="grid"></div>
-  </div>
-
-  <div id="market" class="content">
-    <h2>Market</h2>
-    <div id="salesGrid" class="grid"></div>
-  </div>
-
-  <div id="shows" class="content">
-    <h2>Enter Show</h2>
-    <div id="horseDetail">
-      <h3 id="horseNameDetail"></h3>
-      <div id="horseDetailInfo"></div>
-      <button onclick="prepareBreeding()">Breed</button>
-      <button onclick="enterShow()">Enter Show</button>
-    </div>
-  </div>
-
-  <div id="training" class="content"><h2>Training</h2><p>Coming soon!</p></div>
-  <div id="jobs" class="content"><h2>Jobs</h2><p>Coming soon!</p></div>
-  <div id="clubhouse" class="content"><h2>Clubhouse</h2><p>Coming soon!</p></div>
-  <div id="barn" class="content"><h2>Barn</h2><p>Coming soon!</p></div>
-
-  <div id="settings" class="content">
-    <h2>Settings</h2>
-    <button onclick="logout()">Logout</button>
   </div>
 
   <script type="module" src="script.js"></script>
