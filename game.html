@@ -24,7 +24,7 @@
     <div class="main-panel">
       <h2 id="welcomeUser"></h2>
 
-      <!-- ✅ Top Bar -->
+      <!-- Top Bar -->
       <div id="topBar">
         <div id="coinCounter">Coins: 0</div>
         <div id="gameClock"></div>
@@ -128,21 +128,23 @@
     </div>
   </div>
 
-  <!-- Main Script -->
+  <!-- Load Logic -->
   <script type="module" src="script.js"></script>
+
   <script>
     window.showTab = function(id) {
       document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
       const el = document.getElementById(id);
       if (el) el.style.display = 'block';
-      document.getElementById("newsSection").style.display = (id === 'myranch') ? 'block' : 'none';
+      const news = document.getElementById("newsSection");
+      if (news) news.style.display = (id === 'myranch') ? 'block' : 'none';
     };
 
     window.showSubTab = function(main, subId) {
       document.querySelectorAll(`#${main} .barn-tab`).forEach(tab => tab.style.display = 'none');
       const sub = document.getElementById(subId);
       if (sub) sub.style.display = 'block';
-      window.showTab(main);
+      showTab(main);
     };
 
     window.logout = function() {
@@ -155,7 +157,6 @@
     };
   </script>
 
-  <!-- Game Init -->
   <script type="module">
     import { initializeGamePage } from './script.js';
     initializeGamePage();
