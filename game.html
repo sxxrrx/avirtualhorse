@@ -22,7 +22,7 @@
       <button class="tabButton" onclick="showTab('shows')">🏆<br>Shows</button>
     </div>
 
-    <!-- Center Content -->
+    <!-- Main Content -->
     <div class="main-content">
       <div id="myranch" class="content">
         <h2>My Ranch</h2>
@@ -60,8 +60,23 @@
 
       <div id="training" class="content"><h2>Training</h2><p>Coming soon!</p></div>
       <div id="jobs" class="content"><h2>Jobs</h2><p>Coming soon!</p></div>
-      <div id="clubhouse" class="content"><h2>Clubhouse</h2><p>Coming soon!</p></div>
-      <div id="barn" class="content"><h2>Barn</h2><p>Coming soon!</p></div>
+      <div id="clubhouse" class="content">
+        <h2>Clubhouse</h2>
+        <div id="riderList"></div>
+        <button onclick="hireRider()">Hire Rider (10,000 coins)</button>
+      </div>
+
+      <div id="barn" class="content">
+        <h2>Barn</h2>
+        <div id="tackSection">
+          <select id="tackHorseSelect"><option value="">Select Horse</option></select>
+          <div id="tackList"></div>
+        </div>
+        <button onclick="craftTack('bridle')">Craft Bridle</button>
+        <button onclick="craftTack('saddle')">Craft Saddle</button>
+        <button onclick="craftTack('horseBoots')">Craft Horse Boots</button>
+        <button onclick="craftTack('horseShoes')">Craft Horse Shoes</button>
+      </div>
 
       <div id="settings" class="content">
         <h2>Settings</h2>
