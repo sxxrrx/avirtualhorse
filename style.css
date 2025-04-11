@@ -1,151 +1,115 @@
-/* Reset and base */
+/* Reset and Base */
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  font-family: 'Verdana', sans-serif;
-  background-color: #e6f5e6;
-  color: #333;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #e5fbe5;
+  color: #2e402d;
   height: 100vh;
   overflow: hidden;
 }
 
-/* Top Bar */
+h1, h2, h3 {
+  color: #2e402d;
+}
+
+/* Topbar */
 #topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #305030;
-  color: white;
+  background-color: #2f4f2f;
+  color: #ffffff;
   padding: 10px 20px;
-  font-size: 14px;
-}
-
-#topbar button {
-  background-color: #4f804f;
-  border: none;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-#topbar button:hover {
-  background-color: #6aa86a;
+  font-size: 16px;
 }
 
 /* Main Grid Layout */
 #mainContainer {
   display: grid;
-  grid-template-columns: 100px 1fr 100px;
-  height: calc(100vh - 48px); /* Adjust for topbar height */
+  grid-template-columns: 80px 1fr 80px;
+  height: calc(100vh - 50px);
 }
 
-/* Sidebar (shared) */
+/* Sidebars */
 .sidebar {
-  background: linear-gradient(to bottom, #2f4f2f, #3b603b);
+  background-color: #3b5d3b;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 15px;
-  gap: 12px;
+  padding-top: 10px;
+  gap: 8px;
 }
 
+.left-sidebar {
+  border-right: 2px solid #2e402d;
+}
+
+.right-sidebar {
+  border-left: 2px solid #2e402d;
+}
+
+/* Tab Buttons */
 .tabButton {
   background: none;
+  color: #ffffff;
   border: none;
-  color: white;
-  width: 100%;
   padding: 10px 0;
-  font-size: 13px;
+  width: 100%;
   text-align: center;
+  font-size: 13px;
   cursor: pointer;
-  border-left: 4px solid transparent;
-  transition: background 0.2s, border-left 0.2s;
+  transition: background 0.3s ease;
 }
 
 .tabButton:hover,
 .tabButton.active {
-  background-color: #4d724d;
-  border-left: 4px solid #aaffaa;
+  background-color: #4a774a;
 }
 
-/* Left/Right Sidebar Borders */
-.left-sidebar {
-  border-right: 2px solid #264326;
-}
-
-.right-sidebar {
-  border-left: 2px solid #264326;
-}
-
-/* Main content area */
+/* Main Content Area */
 .main-content {
-  background-color: #f5fff5;
-  overflow-y: auto;
+  background-color: #f9fff9;
   padding: 20px;
+  overflow-y: auto;
 }
 
-/* Tab content */
+/* Content Sections */
 .content {
   display: none;
-  padding: 20px;
-  background-color: #ffffff;
+  background: #ffffff;
   border-radius: 8px;
-  box-shadow: 0 0 8px rgba(0, 50, 0, 0.1);
+  padding: 20px;
   margin-bottom: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
 }
 
-/* Active tab style JS toggles */
-.content.active {
-  display: block;
-}
-
-/* Headings */
-h2, h3 {
-  color: #305030;
-  margin-bottom: 12px;
-}
-
-/* Buttons */
-button {
-  background-color: #4f804f;
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #6aa86a;
-}
-
-/* Grid display for stable horses and market */
-.grid {
+/* Stable Grid */
+#stableGrid, #salesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
 }
 
-/* Horse Card / Stall */
+/* Horse Cards */
 .stall, .horse-card {
-  background: #f8fff8;
-  border: 1px solid #c3eac3;
+  background-color: #f0fff0;
+  border: 1px solid #c0e8c0;
   border-radius: 6px;
-  text-align: center;
   padding: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  transition: transform 0.2s;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .stall:hover, .horse-card:hover {
-  transform: scale(1.02);
-  background-color: #eaffea;
+  background-color: #e0ffe0;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  cursor: pointer;
 }
 
 .stall img, .horse-card img {
@@ -155,45 +119,54 @@ button:hover {
   border-radius: 4px;
 }
 
-/* Horse detail panel */
-#horseDetail {
-  background-color: #f0fff0;
-  border: 1px solid #cceccc;
-  border-radius: 10px;
-  padding: 20px;
-  max-width: 600px;
-  margin: 20px auto;
+/* Buttons */
+button {
+  background-color: #3b5d3b;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-#horseDetail button {
-  margin-right: 10px;
+button:hover {
+  background-color: #567d46;
 }
 
-/* Experience Bar */
+/* EXP Bar */
 #profileExpBarContainer {
   width: 100%;
-  background-color: #ddd;
+  background-color: #ccc;
+  height: 12px;
   border-radius: 6px;
   margin-top: 5px;
-  height: 10px;
-  overflow: hidden;
 }
 
 #profileExpBar {
   height: 100%;
-  background-color: #6aa86a;
+  background-color: #4caf50;
+  border-radius: 6px;
   width: 0%;
-  transition: width 0.3s;
 }
 
-/* Game Clock */
-#gameClock {
-  font-weight: bold;
-  color: #ffffff;
-}
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #mainContainer {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
 
-/* Coin counter */
-#coinCounter {
-  font-weight: bold;
-  color: #ffffff;
+  .sidebar {
+    flex-direction: row;
+    justify-content: space-around;
+    width: 100%;
+    height: auto;
+    padding: 10px;
+  }
+
+  .main-content {
+    padding: 10px;
+  }
 }
