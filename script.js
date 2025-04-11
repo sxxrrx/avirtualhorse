@@ -37,15 +37,6 @@ let currentUserId = null;
 let currentUserData = null;
 let currentHorseId = null;
 
-// Utility
-function generateHorseId() {
-  return 'horse_' + Date.now();
-}
-// Save user data to Firebase
-function saveUserToFirebase(userId, userData) {
-  return set(ref(db, 'users/' + userId), userData);
-}
-
 // Login
 export function loginUser(event) {
   event.preventDefault();
@@ -1071,4 +1062,16 @@ if (horse.exp >= nextLevelExp) {
 
   // Optional: notify player
   console.log(`${horse.name} leveled up to ${horse.level}!`);
+}
+// Expose functions to window for inline onclick in HTML
+window.showTab = showTab;
+window.logout = logout;
+window.showHorseDetails = showHorseDetails;
+window.buyHorse = buyHorse;
+window.renameRider = renameRider;
+window.assignRiderToHorse = assignRiderToHorse;
+export function logout() {
+  signOut(auth).then(() => {
+    window.location.href = "login.html";
+  });
 }
