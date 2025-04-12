@@ -170,3 +170,16 @@ button:hover {
     padding: 10px;
   }
 }
+.market-buttons {
+  margin-bottom: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.market-section {
+  display: none;
+}
+
+.market-section.active {
+  display: block;
+}
