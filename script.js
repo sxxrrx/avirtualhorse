@@ -213,6 +213,22 @@ document.addEventListener("click", async (e) => {
     renderStables(currentUserData);
   }
 });
+export function showMarketSection(section) {
+  const buy = document.getElementById("marketBuySection");
+  const sell = document.getElementById("marketSellSection");
+
+  if (section === 'buy') {
+    buy.style.display = "block";
+    sell.style.display = "none";
+  } else {
+    buy.style.display = "none";
+    sell.style.display = "block";
+    renderPlayerHorsesForSale(); // Optional function we’ll create next
+  }
+}
+
+window.showMarketSection = showMarketSection;
+
 
 // ✅ Expose to HTML
 window.showTab = showTab;
