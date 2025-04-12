@@ -39,16 +39,16 @@
       </div>
 
       <div id="stables" class="content">
-  <h2>Stables</h2>
-  <div id="stableGrid" class="grid"></div>
-        
-    <h2 id="horseNameDetail"></h2>
-    <div id="horseDetailInfo"></div>
-    <button onclick="enterShow()">Enter Show</button>
-    <button onclick="prepareBreeding()">Breed</button>
-  </div>
-</div>
+        <h2>Stables</h2>
+        <div id="stableGrid" class="grid"></div>
+      </div>
 
+      <div id="horseDetail" class="content" style="display:none;">
+        <h2 id="horseNameDetail"></h2>
+        <div id="horseDetailInfo"></div>
+        <button onclick="enterShow()">Enter Show</button>
+        <button onclick="prepareBreeding()">Breed</button>
+      </div>
 
       <div id="market" class="content">
         <h2>Market</h2>
@@ -57,14 +57,12 @@
 
       <div id="shows" class="content">
         <h2>Enter Show</h2>
-          <h3 id="horseNameDetail"></h3>
-          <div id="horseDetailInfo"></div>
-          <button onclick="enterShow()">Enter Show</button>
-        </div>
+        <p>Select a horse from your stable to enter shows.</p>
       </div>
 
       <div id="training" class="content"><h2>Training</h2><p>Coming soon!</p></div>
       <div id="jobs" class="content"><h2>Jobs</h2><p>Coming soon!</p></div>
+
       <div id="clubhouse" class="content">
         <h2>Clubhouse</h2>
         <div id="riderList"></div>
@@ -99,9 +97,5 @@
   </div>
 
   <script type="module" src="script.js"></script>
-  <h2 id="horseNameDetail"></h2>
-  <div id="horseDetailInfo"></div>
-</div>
-
 </body>
 </html>
