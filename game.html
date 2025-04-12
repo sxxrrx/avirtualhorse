@@ -95,6 +95,24 @@
       <button class="tabButton" onclick="showTab('settings')">⚙️<br>Settings</button>
     </div>
   </div>
+  <div id="market" class="content">
+  <h2>Market</h2>
+  <div class="market-buttons">
+    <button onclick="showMarketSection('buy')">Buy Horses</button>
+    <button onclick="showMarketSection('sell')">Sell Horses</button>
+  </div>
+
+  <div id="marketBuySection" class="market-section">
+    <h3>Horses for Sale</h3>
+    <div id="salesGrid" class="grid"></div>
+  </div>
+
+  <div id="marketSellSection" class="market-section" style="display:none;">
+    <h3>Your Horses (List for Sale)</h3>
+    <div id="playerHorseList" class="grid"></div>
+  </div>
+</div>
+
 
     <script type="module" src="script.js"></script>
   <script type="module">
