@@ -220,10 +220,11 @@ export function showMarketSection(section) {
   if (section === 'buy') {
     buy.style.display = "block";
     sell.style.display = "none";
+    renderMarketBuySection(); // 👈 Add this line to load buy horses
   } else {
     buy.style.display = "none";
     sell.style.display = "block";
-    renderPlayerHorsesForSale(); // Optional function we’ll create next
+    // You can later add: renderPlayerHorsesForSale();
   }
 }
 
@@ -234,3 +235,85 @@ window.showMarketSection = showMarketSection;
 window.showTab = showTab;
 window.logout = logout;
 window.showHorseDetails = showHorseDetails;
+
+function generateMarketHorse() {
+  const breeds = {
+    "Thoroughbred": ["Black", "Bay", "Chestnut"],
+    "Arabian": ["Grey", "Bay", "Chestnut"],
+    "Friesian": ["Black"]
+  };
+
+  const genders = ["Mare", "Stallion"];
+  const breedKeys = Object.keys(breeds);
+  const breed = breedKeys[Math.floor(Math.random() * breedKeys.length)];
+  const coatColor = breeds[breed][Math.floor(Math.random() * breeds[breed].length)];
+  const gender = genders[Math.floor(Math.random() * genders.length)];
+
+  return {
+    id: generateHorseId(),
+    name: "Unnamed Horse",
+    breed,
+    coatColor,
+    gender,
+    level: 1,
+    exp: 0,
+    age: { years: 3, months: 0 },
+    price: 1000
+  };
+}
+
+function renderMarketBuySection() {
+  const salesGrid = document.getElementById("salesGrid");
+  if (!salesGrid) return;
+
+  salesGrid.innerHTML = "";
+
+  // Create placeholder horses if none exist
+  if (!currentUserData.market || currentUserData.market.length === 0) {
+    currentUserData.market = [];
+    for (let i = 0; i < 4; i++) {
+      currentUserData.market.push(generateMarketHorse());
+    }
+    update(ref(db, `users/${currentUserId}`), { market: currentUserData.market });
+  }
+
+  currentUserData.market.forEach((horse, index) => {
+    const card = document.createElement("div");
+    card.className = "horse-card";
+    card.innerHTML = `
+      <strong>${horse.name}</strong><br>
+      Breed: ${horse.breed}<br>
+      Color: ${horse.coatColor}<br>
+      Gender: ${horse.gender}<br>
+      Age: ${horse.age.years} years<br>
+      Price: ${horse.price} coins<br>
+      <button onclick="window.buyHorse(${index})">Buy Horse</button>
+    `;
+    salesGrid.appendChild(card);
+  });
+}
+
+// Expose to HTML
+window.buyHorse = async function(index) {
+  const horse = currentUserData.market[index];
+  if (!horse) return alert("Horse not found.");
+
+  if (currentUserData.coins < horse.price) {
+    alert("Not enough coins.");
+    return;
+  }
+
+  // Deduct coins & add horse
+  currentUserData.coins -= horse.price;
+  currentUserData.horses.push({ ...horse, id: generateHorseId() });
+
+  // Remove from market
+  currentUserData.market.splice(index, 1);
+
+  // Save & update UI
+  await set(ref(db, `users/${currentUserId}`), currentUserData);
+  renderStables(currentUserData);
+  renderMarketBuySection();
+  showProfile(currentUserData);
+};
+
