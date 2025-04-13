@@ -67,10 +67,12 @@ export function showTab(id) {
   const news = document.getElementById("newsSection");
   if (news) news.style.display = (id === 'myranch') ? 'block' : 'none';
 
+  // ✅ If tab is market, default to BUY
   if (id === 'market') {
     showMarketSection('buy');
   }
 }
+
 
 
 // ✅ Initialize game
