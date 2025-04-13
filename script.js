@@ -63,9 +63,15 @@ export function showTab(id) {
   document.querySelectorAll('.content').forEach(c => c.style.display = 'none');
   const el = document.getElementById(id);
   if (el) el.style.display = 'block';
+
   const news = document.getElementById("newsSection");
   if (news) news.style.display = (id === 'myranch') ? 'block' : 'none';
+
+  if (id === 'market') {
+    showMarketSection('buy');
+  }
 }
+
 
 // ✅ Initialize game
 export async function initializeGamePage() {
