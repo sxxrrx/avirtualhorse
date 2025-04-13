@@ -225,6 +225,10 @@ export function showMarketSection(section) {
     buy.style.display = "none";
     sell.style.display = "block";
     // You can later add: renderPlayerHorsesForSale();
+    if (id === "market") {
+  showMarketSection('buy');
+}
+
   }
 }
 
