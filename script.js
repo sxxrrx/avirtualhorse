@@ -89,7 +89,6 @@ export async function initializeGamePage() {
     currentUserId = uid;
     currentUserData = snapshot.val();
       await set(ref(db, `users/${currentUserId}`), currentUserData);
-    }
 
     showProfile(currentUserData);
     renderStables(currentUserData);
