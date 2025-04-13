@@ -356,3 +356,9 @@ function generateMarketHorse() {
     price: 1000
   };
 }
+// ✅ Expose to HTML
+window.showTab = showTab;
+window.logout = logout;
+window.showHorseDetails = showHorseDetails;
+window.showMarketSection = showMarketSection;
+window.buyHorse = buyHorse; // If you're using the buy function
