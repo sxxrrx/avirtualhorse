@@ -123,3 +123,45 @@ window.buyHorse = async function (horseId) {
   renderMarketHorses();
   document.getElementById("coinCounter").textContent = `Coins: ${currentUserData.coins}`;
 };
+import { ref, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { db } from "./firebaseInit.js"; // make sure this points to your initialized DB
+
+function generateMarketHorse() {
+  const breeds = {
+    "Thoroughbred": ["Black", "Bay", "Chestnut"],
+    "Arabian": ["Grey", "Bay", "Chestnut"],
+    "Friesian": ["Black"]
+  };
+  const genders = ["Mare", "Stallion"];
+  const breedKeys = Object.keys(breeds);
+  const breed = breedKeys[Math.floor(Math.random() * breedKeys.length)];
+  const coatColor = breeds[breed][Math.floor(Math.random() * breeds[breed].length)];
+  const gender = genders[Math.floor(Math.random() * genders.length)];
+
+  return {
+    id: "horse_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+    name: "Unnamed Horse",
+    breed,
+    coatColor,
+    gender,
+    level: 1,
+    exp: 0,
+    age: { years: 3, months: 0 },
+    price: 1000,
+    store: true
+  };
+}
+
+// Call this once to seed the market
+async function seedMarketStoreHorses() {
+  const marketRef = ref(db, "market");
+  const horses = {};
+  for (let i = 0; i < 4; i++) {
+    const horse = generateMarketHorse();
+    horses[horse.id] = horse;
+  }
+  await set(marketRef, horses);
+  console.log("Market store horses seeded.");
+}
+
+seedMarketStoreHorses();
