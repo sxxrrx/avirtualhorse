@@ -81,6 +81,15 @@ export async function initializeGamePage() {
     currentUserId = uid;
     currentUserData = snapshot.val();
 
+     // ✅ If market doesn't exist yet, create 4 horses
+    if (!currentUserData.market || currentUserData.market.length === 0) {
+      currentUserData.market = [];
+      for (let i = 0; i < 4; i++) {
+        currentUserData.market.push(generateMarketHorse());
+      }
+      await set(ref(db, `users/${currentUserId}`), currentUserData);
+    }
+
     showProfile(currentUserData);
     renderStables(currentUserData);
     showTab("myranch");
