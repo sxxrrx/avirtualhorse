@@ -232,6 +232,7 @@ export function showMarketSection(section) {
     buy.style.display = "block";
     sell.style.display = "none";
     renderMarketBuySection(); // this loads the horses
+    console.log("Rendering market horses:", currentUserData.market);
   } else {
     buy.style.display = "none";
     sell.style.display = "block";
