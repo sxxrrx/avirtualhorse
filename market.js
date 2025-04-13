@@ -1,6 +1,4 @@
-// scripts/market.js
-
-// Firebase imports
+// market.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import {
   getAuth,
@@ -12,61 +10,40 @@ import {
   ref,
   get,
   set,
-  update
+  onValue
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
-// Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
+  authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
+  projectId: "horse-game-by-sxxrrx",
+  storageBucket: "horse-game-by-sxxrrx.appspot.com",
+  messagingSenderId: "87883054918",
+  appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
+  measurementId: "G-ZW6W5HVXBJ"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// Global variables
 let currentUserId = null;
 let currentUserData = null;
 
-// Utility function to generate unique horse IDs
-function generateHorseId() {
-  return 'horse_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-}
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return window.location.href = "login.html";
+  currentUserId = user.uid;
+  const userSnap = await get(ref(db, `users/${currentUserId}`));
+  currentUserData = userSnap.val();
+  document.getElementById("coinCounter").textContent = `Coins: ${currentUserData.coins || 0}`;
+  startGameClock();
+  renderMarketHorses();
+});
 
-// Function to generate a store-bought horse
-function generateMarketHorse() {
-  const breeds = {
-    "Thoroughbred": ["Black", "Bay", "Chestnut"],
-    "Arabian": ["Grey", "Bay", "Chestnut"],
-    "Friesian": ["Black"]
-  };
-  const genders = ["Mare", "Stallion"];
-  const breedKeys = Object.keys(breeds);
-  const breed = breedKeys[Math.floor(Math.random() * breedKeys.length)];
-  const coatColor = breeds[breed][Math.floor(Math.random() * breeds[breed].length)];
-  const gender = genders[Math.floor(Math.random() * genders.length)];
+window.logout = function () {
+  signOut(auth).then(() => location.href = "login.html");
+};
 
-  return {
-    id: generateHorseId(),
-    name: "Unnamed Horse",
-    breed,
-    coatColor,
-    gender,
-    level: 1,
-    exp: 0,
-    age: { years: 3, months: 0 },
-    price: 1000
-  };
-}
-
-// Function to update the game clock
 function startGameClock() {
   function getSeason(month, day) {
     const seasons = [
@@ -95,77 +72,54 @@ function startGameClock() {
     const gameDate = new Date(realStart.getTime() + inGameDays * 86400000);
     const season = getSeason(gameDate.getMonth() + 1, gameDate.getDate());
 
-    const clock = document.getElementById("gameClock");
-    if (clock) {
-      clock.innerHTML = `<strong>In-Game Date:</strong> ${season}, ${gameDate.toLocaleDateString()} — <strong>Hour:</strong> ${hour}:00`;
-    }
+    document.getElementById("gameClock").innerHTML = `<strong>${season}</strong> — ${gameDate.toLocaleDateString()} @ ${hour}:00`;
   }
 
   updateTime();
   setInterval(updateTime, 60000);
 }
 
-// Function to render the Buy section
-function renderMarketBuySection() {
-  const salesGrid = document.getElementById("salesGrid");
-  if (!salesGrid) return;
-  salesGrid.innerHTML = "";
+function renderMarketHorses() {
+  const grid = document.getElementById("salesGrid");
+  if (!grid) return;
+  grid.innerHTML = "Loading...";
 
-  // Load store horses
-  if (!currentUserData.market || currentUserData.market.length === 0) {
-    currentUserData.market = [];
-    for (let i = 0; i < 4; i++) {
-      currentUserData.market.push(generateMarketHorse());
+  onValue(ref(db, 'market'), (snapshot) => {
+    grid.innerHTML = "";
+    const horses = snapshot.val();
+    if (!horses) {
+      grid.innerHTML = "<p>No horses for sale right now.</p>";
+      return;
     }
-    update(ref(db, `users/${currentUserId}`), { market: currentUserData.market });
-  }
 
-  currentUserData.market.forEach((horse, index) => {
-    const card = document.createElement("div");
-    card.className = "horse-card";
-    card.innerHTML = `
-      <strong>${horse.name}</strong><br>
-      Breed: ${horse.breed}<br>
-      Color: ${horse.coatColor}<br>
-      Gender: ${horse.gender}<br>
-      Age: ${horse.age.years} years<br>
-      Price: ${horse.price} coins<br>
-      <button onclick="buyHorse(${index})">Buy Horse</button>
-    `;
-    salesGrid.appendChild(card);
-  });
-
-  // Load rescue horses
-  const rescueRef = ref(db, 'rescueHorses');
-  get(rescueRef).then(snapshot => {
-    if (snapshot.exists()) {
-      const rescueHorses = snapshot.val();
-      Object.keys(rescueHorses).forEach((key) => {
-        const horse = rescueHorses[key];
-        const card = document.createElement("div");
-        card.className = "horse-card";
-        card.innerHTML = `
-          <strong>${horse.name}</strong><br>
-          Breed: ${horse.breed}<br>
-          Color: ${horse.coatColor}<br>
-          Gender: ${horse.gender}<br>
-          Age: ${horse.age.years} years<br>
-          Price: ${horse.price} coins<br>
-          <button onclick="buyRescueHorse('${key}')">Adopt Horse</button>
-        `;
-        salesGrid.appendChild(card);
-      });
-    }
+    Object.entries(horses).forEach(([id, horse]) => {
+      const card = document.createElement("div");
+      card.className = "horse-card";
+      card.innerHTML = `
+        <strong>${horse.name}</strong><br>
+        Breed: ${horse.breed}<br>
+        Color: ${horse.coatColor}<br>
+        Gender: ${horse.gender}<br>
+        Price: ${horse.price} coins<br>
+        <button onclick="buyHorse('${id}')">Buy</button>
+      `;
+      grid.appendChild(card);
+    });
   });
 }
 
-// Function to render the Sell section
-function renderMarketSellSection() {
-  const playerHorseList = document.getElementById("playerHorseList");
-  if (!playerHorseList) return;
-  playerHorseList.innerHTML = "";
+window.buyHorse = async function (horseId) {
+  const horseSnap = await get(ref(db, `market/${horseId}`));
+  if (!horseSnap.exists()) return alert("Horse no longer available.");
+  const horse = horseSnap.val();
 
-  if (!currentUserData.horses || currentUserData.horses.length === 0) {
-    playerHorseList
-::contentReference[oaicite:3]{index=3}
- 
+  if (currentUserData.coins < horse.price) return alert("Not enough coins.");
+
+  currentUserData.coins -= horse.price;
+  currentUserData.horses.push({ ...horse, id: 'horse_' + Date.now() });
+
+  await set(ref(db, `users/${currentUserId}`), currentUserData);
+  await set(ref(db, `market/${horseId}`), null); // remove from market
+  renderMarketHorses();
+  document.getElementById("coinCounter").textContent = `Coins: ${currentUserData.coins}`;
+};
