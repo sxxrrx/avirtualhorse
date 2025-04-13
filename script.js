@@ -330,31 +330,6 @@ window.buyHorse = async function(index) {
   showProfile(currentUserData);
 };
 
-function generateMarketHorse() {
-  const breeds = {
-    "Thoroughbred": ["Black", "Bay", "Chestnut"],
-    "Arabian": ["Grey", "Bay", "Chestnut"],
-    "Friesian": ["Black"]
-  };
-
-  const genders = ["Mare", "Stallion"];
-  const breedKeys = Object.keys(breeds);
-  const breed = breedKeys[Math.floor(Math.random() * breedKeys.length)];
-  const coatColor = breeds[breed][Math.floor(Math.random() * breeds[breed].length)];
-  const gender = genders[Math.floor(Math.random() * genders.length)];
-
-  return {
-    id: generateHorseId(),
-    name: "Unnamed Horse",
-    breed,
-    coatColor,
-    gender,
-    level: 1,
-    exp: 0,
-    age: { years: 3, months: 0 },
-    price: 1000
-  };
-}
 // ✅ Expose to HTML
 window.showTab = showTab;
 window.logout = logout;
