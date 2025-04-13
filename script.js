@@ -226,20 +226,19 @@ export function showMarketSection(section) {
   const buy = document.getElementById("marketBuySection");
   const sell = document.getElementById("marketSellSection");
 
+  if (!buy || !sell) return;
+
   if (section === 'buy') {
     buy.style.display = "block";
     sell.style.display = "none";
-    renderMarketBuySection(); // 👈 Add this line to load buy horses
+    renderMarketBuySection(); // this loads the horses
   } else {
     buy.style.display = "none";
     sell.style.display = "block";
-    // You can later add: renderPlayerHorsesForSale();
-    if (id === "market") {
-  showMarketSection('buy');
-}
-
+    // renderPlayerHorsesForSale(); // you can add this later
   }
 }
+
 
 window.showMarketSection = showMarketSection;
 
