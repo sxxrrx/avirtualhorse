@@ -16,44 +16,46 @@
   <div id="mainContainer">
     <!-- Left Sidebar -->
     <div class="sidebar left-sidebar">
-      <button class="tabButton" onclick="location.href='game.html'">🏡<br>My Ranch</button>
-      <button class="tabButton" onclick="location.href='stables.html'">🐴<br>Stable</button>
+      <button class="tabButton" onclick="window.location.href='game.html'">🏡<br>My Ranch</button>
+      <button class="tabButton" onclick="window.location.href='game.html#stables'">🐴<br>Stable</button>
       <button class="tabButton active">💰<br>Market</button>
-      <button class="tabButton" onclick="location.href='shows.html'">🏆<br>Shows</button>
+      <button class="tabButton" onclick="window.location.href='game.html#shows'">🏆<br>Shows</button>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
-      <h2>Market</h2>
-      <div class="market-buttons">
-        <button onclick="showMarketSection('buy')">Buy Horses</button>
-        <button onclick="showMarketSection('sell')">Sell Horses</button>
-      </div>
+      <div id="market" class="content" style="display: block;">
+        <h2>Market</h2>
+        <div class="market-buttons">
+          <button onclick="showMarketSection('buy')">Buy Horses</button>
+          <button onclick="showMarketSection('sell')">Sell Horses</button>
+        </div>
 
-      <div id="marketBuySection" class="market-section">
-        <h3>Store Horses</h3>
-        <div id="storeGrid" class="grid"></div>
+        <div id="marketBuySection" class="market-section active">
+          <h3>Store Horses</h3>
+          <div id="salesGrid" class="grid"></div>
 
-        <h3>Rescue Horses</h3>
-        <div id="rescueGrid" class="grid"></div>
-      </div>
+          <h3 style="margin-top: 20px;">Rescue Horses</h3>
+          <div id="rescueGrid" class="grid"></div>
+        </div>
 
-      <div id="marketSellSection" class="market-section" style="display:none;">
-        <h3>Your Horses (List for Sale)</h3>
-        <div id="playerHorseList" class="grid"></div>
+        <div id="marketSellSection" class="market-section" style="display: none;">
+          <h3>Your Horses (List for Sale)</h3>
+          <div id="playerHorseList" class="grid"></div>
+        </div>
       </div>
     </div>
 
     <!-- Right Sidebar -->
     <div class="sidebar right-sidebar">
-      <button class="tabButton" onclick="location.href='clubhouse.html'">👤<br>Clubhouse</button>
-      <button class="tabButton" onclick="location.href='training.html'">📚<br>Training</button>
-      <button class="tabButton" onclick="location.href='barn.html'">🏠<br>Barn</button>
-      <button class="tabButton" onclick="location.href='settings.html'">⚙️<br>Settings</button>
+      <button class="tabButton" onclick="window.location.href='game.html#clubhouse'">👤<br>Clubhouse</button>
+      <button class="tabButton" onclick="window.location.href='game.html#training'">📚<br>Training</button>
+      <button class="tabButton" onclick="window.location.href='game.html#barn'">🏠<br>Barn</button>
+      <button class="tabButton" onclick="window.location.href='game.html#settings'">⚙️<br>Settings</button>
     </div>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <script type="module" src="market.js"></script>
 </body>
 </html>
 
