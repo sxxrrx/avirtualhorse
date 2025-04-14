@@ -17,3 +17,23 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 export { auth };
+/storeHorses: [
+  {
+    "id": "store_1",
+    "name": "Midnight Comet",
+    "breed": "Thoroughbred",
+    "coatColor": "Black",
+    "gender": "Mare",
+    "age": {"years": 3, "months": 0},
+    "price": 1000
+  },
+  {
+    "id": "store_2",
+    "name": "Golden Whisper",
+    "breed": "Arabian",
+    "coatColor": "Palomino",
+    "gender": "Stallion",
+    "age": {"years": 4, "months": 2},
+    "price": 1200
+  }
+]
