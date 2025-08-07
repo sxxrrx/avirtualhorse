@@ -1,123 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Virtual Ranch</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A Virtual Horse</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="topbar">
-    <div id="coinCounter">Coins: 0</div>
-    <div id="gameClock"></div>
-    <button onclick="logout()">Logout</button>
+  <div id="sidebar-left">
+    <h2 class="brand">A Virtual Horse</h2>
+    <nav>
+      <button id="tab-ranch">My Ranch</button>
+      <button id="tab-bank">Bank</button>
+      <button id="tab-stables">Stables</button>
+      <button id="tab-market">Market</button>
+    </nav>
   </div>
 
-  <div id="mainContainer">
-    <!-- Left Sidebar -->
-    <div class="sidebar left-sidebar">
-      <button class="tabButton" onclick="showTab('myranch')">🏡<br>My Ranch</button>
-      <button class="tabButton" onclick="showTab('stables')">🐴<br>Stable</button>
-      <a href="market.html" class="tabButton">💰<br>Market</a>
-      <button class="tabButton" onclick="showTab('shows')">🏆<br>Shows</button>
-    </div>
+  <div id="main-content"></div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-      <div id="myranch" class="content">
-        <h2>My Ranch</h2>
-        <div id="profile">
-          <p>Username: <span id="profileUsername"></span></p>
-          <p>Level: <span id="profileLevel"></span></p>
-          <p>Job: <span id="profileJob"></span></p>
-          <p>Join Date: <span id="profileJoinDate"></span></p>
-          <p>Horses Owned: <span id="profileHorseCount"></span></p>
-          <p>EXP: <span id="profileExp"></span></p>
-          <div id="profileExpBarContainer"><div id="profileExpBar"></div></div>
-        </div>
-        <div id="newsSection">Welcome to your ranch!</div>
-      </div>
-
-      <div id="stables" class="content">
-        <h2>Stables</h2>
-        <div id="stableGrid" class="grid"></div>
-      </div>
-
-      <div id="horseDetail" class="content" style="display:none;">
-        <h2 id="horseNameDetail"></h2>
-        <div id="horseDetailInfo"></div>
-        <button onclick="enterShow()">Enter Show</button>
-        <button onclick="prepareBreeding()">Breed</button>
-      </div>
-
-      <div id="shows" class="content">
-        <h2>Enter Show</h2>
-        <p>Select a horse from your stable to enter shows.</p>
-      </div>
-
-      <div id="training" class="content"><h2>Training</h2><p>Coming soon!</p></div>
-      <div id="jobs" class="content"><h2>Jobs</h2><p>Coming soon!</p></div>
-
-      <div id="clubhouse" class="content">
-        <h2>Clubhouse</h2>
-        <div id="riderList"></div>
-        <button onclick="hireRider()">Hire Rider (10,000 coins)</button>
-      </div>
-
-      <div id="barn" class="content">
-        <h2>Barn</h2>
-        <div id="tackSection">
-          <select id="tackHorseSelect"><option value="">Select Horse</option></select>
-          <div id="tackList"></div>
-        </div>
-        <button onclick="craftTack('bridle')">Craft Bridle</button>
-        <button onclick="craftTack('saddle')">Craft Saddle</button>
-        <button onclick="craftTack('horseBoots')">Craft Horse Boots</button>
-        <button onclick="craftTack('horseShoes')">Craft Horse Shoes</button>
-      </div>
-
-      <div id="settings" class="content">
-        <h2>Settings</h2>
-        <button onclick="logout()">Logout</button>
-      </div>
-    </div>
-
-    <!-- Right Sidebar -->
-    <div class="sidebar right-sidebar">
-      <button class="tabButton" onclick="showTab('clubhouse')">👤<br>Clubhouse</button>
-      <button class="tabButton" onclick="showTab('training')">📚<br>Training</button>
-      <button class="tabButton" onclick="showTab('barn')">🏠<br>Barn</button>
-      <button class="tabButton" onclick="showTab('settings')">⚙️<br>Settings</button>
-    </div>
+  <div id="sidebar-right">
+    <nav>
+      <button id="tab-home">Home</button>
+      <button id="tab-services">Services</button>
+      <button id="tab-shows">Shows</button>
+      <button id="tab-settings">Settings</button>
+    </nav>
   </div>
-<div class="market-buttons">
-  <button onclick="showMarketSection('buy')">Buy Horses</button>
-  <button onclick="showMarketSection('sell')">Sell Horses</button>
-</div>
 
-<div id="marketBuySection" class="market-section">
-  <h3>Horses for Sale</h3>
-  <div id="salesGrid" class="grid"></div>
-</div>
-
-<div id="marketSellSection" class="market-section" style="display:none;">
-  <h3>Your Horses (List for Sale)</h3>
-  <div id="playerHorseList" class="grid"></div>
-</div>
-
-
-
-  <div id="marketSellSection" class="market-section" style="display:none;">
-    <h3>Your Horses (List for Sale)</h3>
-    <div id="playerHorseList" class="grid"></div>
-  </div>
-</div>
-
-
-    <script type="module" src="script.js"></script>
-  <script type="module">
-    import { initializeGamePage } from './script.js';
-    initializeGamePage();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
+
+/* ----- style.css ----- */
+body {
+  display: flex;
+  margin: 0;
+  font-family: sans-serif;
+  height: 100vh;
+}
+
+#sidebar-left,
+#sidebar-right {
+  width: 180px;
+  background-color: #e0f7e0;
+  padding: 20px 10px;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#sidebar-right {
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+}
+
+.brand {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #2e7d32;
+  text-align: center;
+}
+
+nav button {
+  display: block;
+  width: 100%;
+  margin: 8px 0;
+  padding: 10px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+nav button:hover,
+nav button.active {
+  background: #c8e6c9;
+}
+
+#main-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* ----- script.js ----- */
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize or load saved game data
+  const defaultData = { coins: 1000, horses: [] };
+  let gameData = JSON.parse(localStorage.getItem('horseGameData')) || defaultData;
+
+  // Tab buttons
+  const tabs = ['ranch', 'bank', 'stables', 'market', 'home', 'services', 'shows', 'settings'];
+  tabs.forEach(name => {
+    const btn = document.getElementById(`tab-${name}`);
+    if (btn) btn.addEventListener('click', () => selectTab(name));
+  });
+
+  function selectTab(name) {
+    // Highlight active button
+    tabs.forEach(n => {
+      const el = document.getElementById(`tab-${n}`);
+      if (el) el.classList.toggle('active', n === name);
+    });
+    // Render content
+    const main = document.getElementById('main-content');
+    switch(name) {
+      case 'home':
+        main.innerHTML = `<h1>Home</h1><p>Welcome to A Virtual Horse!</p>`;
+        break;
+      case 'ranch':
+        main.innerHTML = `<h1>My Ranch</h1><p>💰 Coins: ${gameData.coins}</p>`;
+        break;
+      case 'bank':
+        main.innerHTML = `<h1>Bank</h1><p>Coming soon...</p>`;
+        break;
+      case 'stables':
+        main.innerHTML = `<h1>Stables</h1><p>You have ${gameData.horses.length} horses.</p>`;
+        break;
+      case 'market':
+        main.innerHTML = `<h1>Market</h1><p>Coming soon...</p>`;
+        break;
+      case 'services':
+        main.innerHTML = `<h1>Services</h1><p>Coming soon...</p>`;
+        break;
+      case 'shows':
+        main.innerHTML = `<h1>Shows</h1><p>Coming soon...</p>`;
+        break;
+      case 'settings':
+        main.innerHTML = `<h1>Settings</h1><p>Coming soon...</p>`;
+        break;
+    }
+  }
+
+  // Save game data when leaving
+  window.addEventListener('beforeunload', () => {
+    localStorage.setItem('horseGameData', JSON.stringify(gameData));
+  });
+
+  // Start on Home tab
+  selectTab('home');
+});
