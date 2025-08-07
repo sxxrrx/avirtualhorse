@@ -1,39 +1,20 @@
 // firebase-init.js
-// Firebase core + modules
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth }        from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getDatabase }    from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCkFOc0BwRqmR2LkjHj0vwXSAS1h4BlBCE",
-  authDomain: "horse-game-by-sxxrrx.firebaseapp.com",
-  projectId: "horse-game-by-sxxrrx",
-  storageBucket: "horse-game-by-sxxrrx.firebasestorage.app",
-  messagingSenderId: "87883054918",
-  appId: "1:87883054918:web:4771a90eb5c6a3e7c0ef47",
-  measurementId: "G-ZW6W5HVXBJ"
+  apiKey: "...",
+  authDomain: "...",
+  databaseURL: "...",        // ← add this if you haven’t yet
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
 };
 
-const app = initializeApp(firebaseConfig);
+const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db   = getDatabase(app);
 
-export { auth };
-/storeHorses: [
-  {
-    "id": "store_1",
-    "name": "Midnight Comet",
-    "breed": "Thoroughbred",
-    "coatColor": "Black",
-    "gender": "Mare",
-    "age": {"years": 3, "months": 0},
-    "price": 1000
-  },
-  {
-    "id": "store_2",
-    "name": "Golden Whisper",
-    "breed": "Arabian",
-    "coatColor": "Palomino",
-    "gender": "Stallion",
-    "age": {"years": 4, "months": 2},
-    "price": 1200
-  }
-]
+export { auth, db };
