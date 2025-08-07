@@ -1,17 +1,10 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import {
-  getDatabase,
-  ref,
-  set,
-  get,
-  update
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+// script.js
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged }      from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { ref, get, set }           from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+// …the rest of your code stays the same…
+
 
 // Firebase config
 const firebaseConfig = {
