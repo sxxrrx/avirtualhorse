@@ -1,18 +1,6 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import {
-  getDatabase,
-  ref,
-  get,
-  set,
-  update,
-  push,
-  child
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged, signOut }   from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { ref, get, set, update, push } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
 // Firebase Config
 const firebaseConfig = {
