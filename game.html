@@ -1,8 +1,9 @@
+<!-- game.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Virtual Ranch</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -16,105 +17,29 @@
   <div id="mainContainer">
     <!-- Left Sidebar -->
     <div class="sidebar left-sidebar">
-      <button class="tabButton" onclick="showTab('myranch')">🏡<br>My Ranch</button>
-      <button class="tabButton" onclick="showTab('stables')">🐴<br>Stable</button>
+      <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Home</button>
+      <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
+      <button class="tabButton" onclick="window.location.href='stables.html'">🐴<br>Stables</button>
       <a href="market.html" class="tabButton">💰<br>Market</a>
-      <button class="tabButton" onclick="showTab('shows')">🏆<br>Shows</button>
+      <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content (Home) -->
     <div class="main-content">
-      <div id="myranch" class="content">
-        <h2>My Ranch</h2>
-        <div id="profile">
-          <p>Username: <span id="profileUsername"></span></p>
-          <p>Level: <span id="profileLevel"></span></p>
-          <p>Job: <span id="profileJob"></span></p>
-          <p>Join Date: <span id="profileJoinDate"></span></p>
-          <p>Horses Owned: <span id="profileHorseCount"></span></p>
-          <p>EXP: <span id="profileExp"></span></p>
-          <div id="profileExpBarContainer"><div id="profileExpBar"></div></div>
-        </div>
-        <div id="newsSection">Welcome to your ranch!</div>
-      </div>
-
-      <div id="stables" class="content">
-        <h2>Stables</h2>
-        <div id="stableGrid" class="grid"></div>
-      </div>
-
-      <div id="horseDetail" class="content" style="display:none;">
-        <h2 id="horseNameDetail"></h2>
-        <div id="horseDetailInfo"></div>
-        <button onclick="enterShow()">Enter Show</button>
-        <button onclick="prepareBreeding()">Breed</button>
-      </div>
-
-      <div id="shows" class="content">
-        <h2>Enter Show</h2>
-        <p>Select a horse from your stable to enter shows.</p>
-      </div>
-
-      <div id="training" class="content"><h2>Training</h2><p>Coming soon!</p></div>
-      <div id="jobs" class="content"><h2>Jobs</h2><p>Coming soon!</p></div>
-
-      <div id="clubhouse" class="content">
-        <h2>Clubhouse</h2>
-        <div id="riderList"></div>
-        <button onclick="hireRider()">Hire Rider (10,000 coins)</button>
-      </div>
-
-      <div id="barn" class="content">
-        <h2>Barn</h2>
-        <div id="tackSection">
-          <select id="tackHorseSelect"><option value="">Select Horse</option></select>
-          <div id="tackList"></div>
-        </div>
-        <button onclick="craftTack('bridle')">Craft Bridle</button>
-        <button onclick="craftTack('saddle')">Craft Saddle</button>
-        <button onclick="craftTack('horseBoots')">Craft Horse Boots</button>
-        <button onclick="craftTack('horseShoes')">Craft Horse Shoes</button>
-      </div>
-
-      <div id="settings" class="content">
-        <h2>Settings</h2>
-        <button onclick="logout()">Logout</button>
-      </div>
+      <h1>Welcome to Virtual Ranch</h1>
+      <p>Start your ranch adventures by using the sidebar.</p>
     </div>
 
     <!-- Right Sidebar -->
     <div class="sidebar right-sidebar">
-      <button class="tabButton" onclick="showTab('clubhouse')">👤<br>Clubhouse</button>
-      <button class="tabButton" onclick="showTab('training')">📚<br>Training</button>
-      <button class="tabButton" onclick="showTab('barn')">🏠<br>Barn</button>
-      <button class="tabButton" onclick="showTab('settings')">⚙️<br>Settings</button>
+      <button class="tabButton" onclick="window.location.href='clubhouse.html'">👤<br>Clubhouse</button>
+      <button class="tabButton" onclick="window.location.href='training.html'">📚<br>Training</button>
+      <button class="tabButton" onclick="window.location.href='barn.html'">🏠<br>Barn</button>
+      <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
     </div>
   </div>
-<div class="market-buttons">
-  <button onclick="showMarketSection('buy')">Buy Horses</button>
-  <button onclick="showMarketSection('sell')">Sell Horses</button>
-</div>
 
-<div id="marketBuySection" class="market-section">
-  <h3>Horses for Sale</h3>
-  <div id="salesGrid" class="grid"></div>
-</div>
-
-<div id="marketSellSection" class="market-section" style="display:none;">
-  <h3>Your Horses (List for Sale)</h3>
-  <div id="playerHorseList" class="grid"></div>
-</div>
-
-
-
-  <div id="marketSellSection" class="market-section" style="display:none;">
-    <h3>Your Horses (List for Sale)</h3>
-    <div id="playerHorseList" class="grid"></div>
-  </div>
-</div>
-
-
-    <script type="module" src="script.js"></script>
+  <script type="module" src="script.js"></script>
   <script type="module">
     import { initializeGamePage } from './script.js';
     initializeGamePage();
