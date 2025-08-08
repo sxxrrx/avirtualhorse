@@ -8,17 +8,28 @@ const escapeHtml = (str) => String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<
 
 let meUid = null;
 
-// Tabs
-$('tabFriends').onclick = () => showView('Friends');
-$('tabPending').onclick = () => showView('Pending');
+// Wait for DOM before wiring buttons that reference elements
+document.addEventListener('DOMContentLoaded', () => {
+  const tabFriends = $('tabFriends');
+  const tabPending = $('tabPending');
+  if (tabFriends && tabPending) {
+    tabFriends.onclick = () => showView('Friends');
+    tabPending.onclick = () => showView('Pending');
+  }
+  // Default tab
+  showView('Friends');
+});
+
 function showView(name){
   ['Friends','Pending'].forEach(n => {
-    $('view'+n).style.display = (n===name) ? 'block' : 'none';
-    $('tab'+n).classList.toggle('active', n===name);
+    const view = $('view'+n);
+    const tab  = $('tab'+n);
+    if (view) view.style.display = (n===name) ? 'block' : 'none';
+    if (tab)  tab.classList.toggle('active', n===name);
   });
 }
 
-// Auth
+// Auth + live data
 onAuthStateChanged(auth, async user => {
   if (!user) return (window.location.href = 'login.html');
   meUid = user.uid;
@@ -27,27 +38,24 @@ onAuthStateChanged(auth, async user => {
   onValue(ref(db, `users/${meUid}/friends`), async snap => {
     const friendsObj = snap.exists() ? snap.val() : {};
     const friendUids = Object.keys(friendsObj).filter(uid => friendsObj[uid] === true);
-    $('friendsCount').textContent = `(${friendUids.length})`;
+    if ($('friendsCount')) $('friendsCount').textContent = `(${friendUids.length})`;
     if (friendUids.length === 0) {
-      $('friendsList').innerHTML = '<p>No friends yet.</p>';
+      if ($('friendsList')) $('friendsList').innerHTML = '<p>No friends yet.</p>';
     } else {
       const names = await getNamesMap(friendUids);
       renderFriends(friendUids, names);
     }
   });
 
-  // Live pending: incoming + outgoing
-  // We watch the two indices; fetch referenced mail and filter to pending friend_request
+  // Live pending: incoming + outgoing (watch indices; then load details)
   onValue(ref(db, `userMailIndex/${meUid}/inbox`), () => loadPending());
   onValue(ref(db, `userMailIndex/${meUid}/sent`),  () => loadPending());
-
-  // Default tab
-  showView('Friends');
 });
 
 // Render friends list
 function renderFriends(uids, namesMap){
   const list = $('friendsList');
+  if (!list) return;
   list.innerHTML = '';
   uids.forEach(uid => {
     const name = namesMap[uid] || shortUid(uid);
@@ -82,7 +90,7 @@ async function loadPending() {
   const incomingFR = incomingMsgs.filter(m => m.type==='friend_request' && m.status==='pending' && m.toUid===meUid);
   const outgoingFR = outgoingMsgs.filter(m => m.type==='friend_request' && m.status==='pending' && m.fromUid===meUid);
 
-  $('pendingCount').textContent = `(${incomingFR.length + outgoingFR.length})`;
+  if ($('pendingCount')) $('pendingCount').textContent = `(${incomingFR.length + outgoingFR.length})`;
 
   // Names for all peers
   const peerUids = new Set();
@@ -95,7 +103,7 @@ async function loadPending() {
 }
 
 async function fetchMessages(ids){
-  const snaps = await Promise.all(ids.map(id => get(ref(db, `mail/${id}`)).then(s => ({id, s}))));
+  const snaps = await Promise.all(ids.map(id => get(ref(db, `mail/${id}`)).then(s => ({id, s}))));  
   return snaps
     .filter(({s}) => s.exists())
     .map(({id, s}) => ({ id, ...s.val() }))
@@ -104,6 +112,7 @@ async function fetchMessages(ids){
 
 function renderPendingIncoming(rows, names){
   const list = $('pendingIncomingList');
+  if (!list) return;
   list.innerHTML = '';
   if (rows.length === 0) {
     list.innerHTML = '<p>No incoming requests.</p>';
@@ -120,7 +129,6 @@ function renderPendingIncoming(rows, names){
         <button data-act="deny"   data-id="${m.id}">Deny</button>
       </div>
     `;
-    // Wire
     div.querySelector('[data-act="accept"]').onclick = () => acceptFriend(m.id, m.fromUid);
     div.querySelector('[data-act="deny"]').onclick   = () => denyFriend(m.id);
     list.appendChild(div);
@@ -129,6 +137,7 @@ function renderPendingIncoming(rows, names){
 
 function renderPendingOutgoing(rows, names){
   const list = $('pendingOutgoingList');
+  if (!list) return;
   list.innerHTML = '';
   if (rows.length === 0) {
     list.innerHTML = '<p>No outgoing requests.</p>';
@@ -153,12 +162,12 @@ async function acceptFriend(mailId, peerUid){
     set(ref(db, `users/${meUid}/friends/${peerUid}`), true),
     set(ref(db, `users/${peerUid}/friends/${meUid}`), true),
   ]);
-  // Trigger re-render via listeners
+  // Re-render will be triggered by listeners
 }
 
 async function denyFriend(mailId){
   await update(ref(db, `mail/${mailId}`), { status: 'denied' });
-  // Trigger re-render via listeners
+  // Re-render via listeners
 }
 
 // Names helpers
