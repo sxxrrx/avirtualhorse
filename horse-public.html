@@ -2,37 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>A Virtual Horse — Horse</title>
+  <title>Horse (Public)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="style.css"/>
+  <style>
+    .horse-wrap { display:grid; grid-template-columns: 1fr 320px; gap:16px; align-items:start; }
+    .right-panel p { margin:6px 0; }
+    .owner-links { margin:8px 0 16px; display:flex; gap:10px; flex-wrap:wrap; }
+    .owner-links a { text-decoration:none; }
+  </style>
 </head>
 <body>
-  <div class="sidebar left-sidebar">
-    <button class="tabButton" onclick="window.history.back()">🔙<br>Back</button>
-    <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Home</button>
-  </div>
-
-  <div class="main-content">
+  <!-- Page content only; shared chrome wraps this -->
+  <div id="pageMain" class="main-content">
     <h1 id="horseName">Horse</h1>
-    <img id="horseImage" src="horse-placeholder.png" alt="Horse" style="width:100%; max-width:600px; border-radius:8px;"/>
-    <p id="horseDesc" style="margin-top:8px; white-space:pre-wrap;">No description yet.</p>
 
-    <div class="right-panel" style="margin-top:12px;">
-      <p><strong>Color:</strong> <span id="color">—</span></p>
-      <p><strong>Breed:</strong> <span id="breed">—</span></p>
-      <p><strong>Gender:</strong> <span id="gender">—</span></p>
-      <p><strong>Age:</strong> <span id="age">—</span></p>
-      <p><strong>Level:</strong> <span id="level">1</span></p>
-      <p><strong>Foals:</strong> <span id="foals">0</span></p>
-      <p><strong>Earnings:</strong> <span id="earnings">0</span></p>
-      <p><strong>Shows Entered:</strong> <span id="shows">0</span></p>
+    <div class="owner-links">
+      <a id="ownerRanchLink" class="tabButton" href="#">🌾 Owner Ranch</a>
+      <a id="ownerStableLink" class="tabButton" href="#">🐴 Owner Stable</a>
+    </div>
+
+    <div class="horse-wrap">
+      <div>
+        <img id="horseImage" src="horse-placeholder.png" alt="Horse"
+             style="width:100%; max-width:600px; border-radius:8px;"/>
+        <p id="horseDesc" style="margin-top:8px; white-space:pre-wrap;">No description yet.</p>
+      </div>
+
+      <div class="right-panel">
+        <p><strong>Color:</strong> <span id="color">—</span></p>
+        <p><strong>Breed:</strong> <span id="breed">—</span></p>
+        <p><strong>Gender:</strong> <span id="gender">—</span></p>
+        <p><strong>Age:</strong> <span id="age">—</span></p>
+        <p><strong>Level:</strong> <span id="level">1</span></p>
+        <p><strong>Foals:</strong> <span id="foals">0</span></p>
+        <p><strong>Earnings:</strong> <span id="earnings">0</span></p>
+        <p><strong>Shows Entered:</strong> <span id="shows">0</span></p>
+      </div>
     </div>
   </div>
 
-  <div class="sidebar right-sidebar">
-    <button class="tabButton" onclick="window.location.href='ranch-public.html?uid='+new URLSearchParams(location.search).get('uid')">🌾<br>Owner Ranch</button>
-  </div>
+  <!-- Shared chrome -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    // This is a horse view, so highlighting Stables makes sense
+    mountChrome({ leftActive: 'stables' });
+  </script>
 
+  <!-- Page logic -->
   <script type="module" src="horse-public.js"></script>
 </body>
 </html>
