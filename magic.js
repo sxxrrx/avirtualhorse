@@ -5,6 +5,18 @@ import { ref, get, set, update, onValue, push } from 'https://www.gstatic.com/fi
 
 const $ = id => document.getElementById(id);
 
+// ------- Conversion config -------
+const COINS_PER_100_PASSES = 8000;     // 100 passes costs 8,000 coins
+const DAILY_CONVERT_COIN_CAP = 40000;  // per real day cap (coins you can convert)
+
+// Date helpers (UTC day key)
+function yyyymmddUTC(d = new Date()) {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}${m}${day}`;
+}
+
 // ---- in-game clock helpers (1 real min = 1 in-game hour) ----
 function currentGameHour() {
   const start = Date.UTC(2025,0,1);
@@ -110,6 +122,15 @@ onAuthStateChanged(auth, async u => {
   if (!u) return location.href = 'login.html';
   uid = u.uid;
 
+  // ensure user object exists & has passes field
+  const uSnap = await get(ref(db, `users/${uid}`));
+  if (!uSnap.exists()) return;
+  user = uSnap.val();
+  if (user.passes === undefined) {
+    await update(ref(db, `users/${uid}`), { passes: 0 });
+    user.passes = 0;
+  }
+
   // live passes
   onValue(ref(db, `users/${uid}/passes`), snap => {
     passes = Number(snap.val() || 0);
@@ -122,14 +143,10 @@ onAuthStateChanged(auth, async u => {
     renderInventory();
   });
 
+  // render store and wire converter
   renderStore();
-  // ensure field exists
-  const uSnap = await get(ref(db, `users/${uid}`));
-  if (!uSnap.exists()) return;
-  user = uSnap.val();
-  if (user.passes === undefined) {
-    await update(ref(db, `users/${uid}`), { passes: 0 });
-  }
+  wireConverter();
+  refreshConvertLimit();
 });
 
 function updatePassesUI(){
@@ -140,6 +157,7 @@ function updatePassesUI(){
 // ---------- Store render ----------
 function renderStore(){
   const grid = $('storeGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   CATALOG.forEach(item => {
     const card = document.createElement('div');
@@ -174,8 +192,9 @@ function durationPill(item){
 // ---------- Inventory render ----------
 function renderInventory(){
   const grid = $('inventoryGrid');
-  grid.innerHTML = '';
+  if (!grid) return;
 
+  grid.innerHTML = '';
   const entries = Object.entries(inventory);
   if (entries.length === 0) {
     grid.innerHTML = '<div class="muted">No magical items yet.</div>';
@@ -204,7 +223,6 @@ function renderInventory(){
 }
 
 function humanStatus(it){
-  // show bound horse, remaining duration, uses
   const parts = [];
   if (it.boundHorseId) parts.push(`Bound to: ${it.boundHorseName || it.boundHorseId}`);
   if (it.usesRemaining != null) parts.push(`Uses remaining: ${it.usesRemaining}`);
@@ -256,11 +274,82 @@ async function buyItem(item){
     payload.boundHorseId = null;
   }
 
-  // Special fields for Pouch of Gold daily payout
+  // Special fields for Pouch of Gold daily payout (claim logic later)
   if (item.key === 'pouch_of_gold') {
-    payload.lastClaimRealMs = 0; // will credit daily; we’ll implement claim/auto-credit later
+    payload.lastClaimRealMs = 0;
   }
 
   await set(invRef, payload);
   alert(`Purchased: ${item.name}`);
+}
+
+// ---------- Coins → Passes converter ----------
+function wireConverter(){
+  const btn = $('btnConvert');
+  if (!btn) return; // page might not have converter UI
+  btn.onclick = convertCoinsToPasses;
+}
+
+async function refreshConvertLimit(){
+  const el = $('convertLimit');
+  if (!el) return;
+  const dayKey = yyyymmddUTC();
+  const s = await get(ref(db, `users/${uid}/conversionStats/${dayKey}/coinsSpent`));
+  const spent = Number(s.val() || 0);
+  const left = Math.max(0, DAILY_CONVERT_COIN_CAP - spent);
+  el.textContent = `Daily conversion used: ${spent.toLocaleString()} / ${DAILY_CONVERT_COIN_CAP.toLocaleString()} coins. Remaining: ${left.toLocaleString()}.`;
+}
+
+async function convertCoinsToPasses(){
+  const input = $('coinsToConvert');
+  const msgEl = $('convertMsg');
+  if (!input || !msgEl) return;
+
+  msgEl.textContent = '';
+  let coins = Math.floor(Number(input.value || 0));
+
+  if (isNaN(coins) || coins <= 0) {
+    msgEl.textContent = 'Enter a positive number of coins.';
+    return;
+  }
+  // must be multiples of the rate block (8,000 coins per 100 passes)
+  if (coins % COINS_PER_100_PASSES !== 0) {
+    msgEl.textContent = `Amount must be a multiple of ${COINS_PER_100_PASSES.toLocaleString()} coins.`;
+    return;
+  }
+
+  // refresh latest user balance
+  const uSnap = await get(ref(db, `users/${uid}`));
+  if (!uSnap.exists()) { msgEl.textContent = 'User not found.'; return; }
+  const u = uSnap.val();
+  const myCoins = Number(u.coins || 0);
+  if (myCoins < coins) { msgEl.textContent = 'Not enough coins.'; return; }
+
+  // daily cap check
+  const dayKey = yyyymmddUTC();
+  const spentSnap = await get(ref(db, `users/${uid}/conversionStats/${dayKey}/coinsSpent`));
+  const already = Number(spentSnap.val() || 0);
+  const remaining = Math.max(0, DAILY_CONVERT_COIN_CAP - already);
+  if (coins > remaining) {
+    msgEl.textContent = `Over daily limit. You can convert at most ${remaining.toLocaleString()} more coins today.`;
+    return;
+  }
+
+  // compute passes: 100 passes per 8,000 coins
+  const passesToGive = (coins / COINS_PER_100_PASSES) * 100;
+
+  // commit updates
+  const newCoins = myCoins - coins;
+  const newPasses = Number(u.passes || 0) + passesToGive;
+
+  await update(ref(db, `users/${uid}`), { coins: newCoins, passes: newPasses });
+  await update(ref(db, `users/${uid}/conversionStats/${dayKey}`), { coinsSpent: already + coins });
+
+  // UI updates
+  msgEl.textContent = `Converted ${coins.toLocaleString()} coins → ${passesToGive.toLocaleString()} passes.`;
+  const pc = $('passesCount'); if (pc) pc.textContent = newPasses.toLocaleString();
+  const cc = $('coinCounter'); if (cc) cc.textContent = `Coins: ${newCoins.toLocaleString()}`;
+
+  input.value = '';
+  refreshConvertLimit();
 }
