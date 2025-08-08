@@ -1,1 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Enter Shows</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .head { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+    .head img { width:96px; height:96px; object-fit:cover; border-radius:8px; border:1px solid #c0e8c0; background:#fff; }
+    .muted { opacity:.85; }
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 14px; }
+    .tabs .tabButton { width:auto; padding:6px 10px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:12px; }
+    .card { background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#eef7ee; border:1px solid #c0e8c0; font-size:12px; }
+    .warn { color:#8b0000; font-weight:600; }
+  </style>
+</head>
+<body>
+  <div id="pageMain" class="main-content">
+    <div class="head">
+      <img id="horseImage" src="horse-placeholder.png" alt="">
+      <div>
+        <h1 id="pageTitle">Enter Shows</h1>
+        <div id="horseMeta" class="muted"></div>
+        <div id="reqLine"></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button id="tabEnglish" class="tabButton active">English</button>
+      <button id="tabJumper"  class="tabButton">Jumper</button>
+      <button id="tabRacing"  class="tabButton">Racing</button>
+      <button id="tabWestern" class="tabButton">Western</button>
+    </div>
+
+    <div id="showsGrid" class="grid"></div>
+    <p id="emptyMsg" class="muted" style="display:none;">No open shows match this specialty right now.</p>
+  </div>
+
+  <!-- shared chrome -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ leftActive: 'stables' });
+  </script>
+
+  <!-- page logic -->
+  <script type="module" src="horse-shows.js"></script>
+</body>
+</html>
 
