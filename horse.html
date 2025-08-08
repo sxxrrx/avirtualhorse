@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>A Virtual Horse — Horse</title>
+  <title>Horse</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     .horse-layout { display:grid; grid-template-columns: 1fr 320px; gap: 16px; }
@@ -14,18 +14,10 @@
   </style>
 </head>
 <body>
-<div id="mainContainer">
-  <!-- Left Sidebar -->
-  <div class="sidebar left-sidebar">
-    <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Town Square</button>
-    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>Stables</button>
-    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main-content">
+  <!-- Page content only; app-chrome will wrap it with topbar + sidebars -->
+  <div id="pageMain" class="main-content">
     <h1 id="horseNameHeading">Horse</h1>
+
     <div class="tiny-buttons">
       <button id="btnRename">Change Name</button>
       <button id="btnDescription">Add Description</button>
@@ -54,45 +46,48 @@
       </div>
 
       <div class="right-panel">
-  <p><strong>Color:</strong> <span id="horseColor">—</span></p>
-  <p><strong>Breed:</strong> <span id="horseBreed">—</span></p>
-  <p><strong>Gender:</strong> <span id="horseGender">—</span></p>
-  <p><strong>Age:</strong> <span id="horseAge">—</span></p>
+        <p><strong>Color:</strong> <span id="horseColor">—</span></p>
+        <p><strong>Breed:</strong> <span id="horseBreed">—</span></p>
+        <p><strong>Gender:</strong> <span id="horseGender">—</span></p>
+        <p><strong>Age:</strong> <span id="horseAge">—</span></p>
 
-  <p><strong>XP:</strong></p>
-  <div class="bar-container"><div id="xpBar" class="bar-fill"></div></div>
-  <p><strong>Level:</strong> <span id="horseLevel">1</span></p>
-  <p><strong>Foals:</strong> <span id="horseFoals">0</span></p>
-  <p><strong>Earnings:</strong> <span id="horseEarnings">0</span></p>
-  <p><strong>Shows Entered:</strong> <span id="horseShows">0</span></p>
+        <p><strong>XP:</strong></p>
+        <div class="bar-container"><div id="xpBar" class="bar-fill"></div></div>
+        <p><strong>Level:</strong> <span id="horseLevel">1</span></p>
+        <p><strong>Foals:</strong> <span id="horseFoals">0</span></p>
+        <p><strong>Earnings:</strong> <span id="horseEarnings">0</span></p>
+        <p><strong>Shows Entered:</strong> <span id="horseShows">0</span></p>
 
-  <h3 style="margin-top:10px;">Health, Feeding & Happiness</h3>
-  <p><strong>Happiness:</strong> <span id="happinessPct">0%</span></p>
-  <div class="bar-container"><div id="happinessBar" class="bar-fill"></div></div>
+        <h3 style="margin-top:10px;">Health, Feeding & Happiness</h3>
+        <p><strong>Happiness:</strong> <span id="happinessPct">0%</span></p>
+        <div class="bar-container"><div id="happinessBar" class="bar-fill"></div></div>
 
-  <!-- clickable status rows -->
-  <p><strong>Fed Properly (4 real days):</strong>
-    <a id="fedStatusLink"><span id="fedStatus">❌</span></a>
-  </p>
-  <p><strong>Vet shots (every 3 in-game years, start 8mo):</strong>
-    <a id="vetShotsStatusLink"><span id="vetShotsStatus">❌</span></a>
-  </p>
-  <p><strong>Vet checks (yearly, start 6mo):</strong>
-    <a id="vetChecksStatusLink"><span id="vetChecksStatus">❌</span></a>
-  </p>
-  <p><strong>Breeding check (every 3 in-game years, start 2y5m):</strong>
-    <a id="breedCheckStatusLink"><span id="breedCheckStatus">❌</span></a>
-  </p>
-</div>
-
-
-  <!-- Right Sidebar -->
-  <div class="sidebar right-sidebar">
-    <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
-    <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
-    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
+        <!-- clickable status rows (chrome/JS will populate links) -->
+        <p><strong>Fed Properly:</strong>
+          <a id="fedStatusLink"><span id="fedStatus">❌</span></a>
+        </p>
+        <p><strong>Vet shots:</strong>
+          <a id="vetShotsStatusLink"><span id="vetShotsStatus">❌</span></a>
+        </p>
+        <p><strong>Vet checks:</strong>
+          <a id="vetChecksStatusLink"><span id="vetChecksStatus">❌</span></a>
+        </p>
+        <p><strong>Breeding check:</strong>
+          <a id="breedCheckStatusLink"><span id="breedCheckStatus">❌</span></a>
+        </p>
+      </div>
+    </div>
   </div>
 
+  <!-- Shared chrome (mount before page logic) -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    // Viewing a single horse is part of stables flow
+    mountChrome({ leftActive: 'stables' });
+  </script>
+
+  <!-- Page logic -->
   <script type="module" src="horse.js"></script>
 </body>
 </html>
+
