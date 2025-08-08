@@ -1,15 +1,9 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, set, update, push } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { currentGameHour, currentGameDay } from './time.js'; // ✅ use centralized clock
 
 const $ = id => document.getElementById(id);
-
-// ---- clock helpers ----
-function currentGameHour(){
-  const start = new Date(Date.UTC(2025,0,1)).getTime();
-  return Math.floor((Date.now() - start) / (60 * 1000)); // 1 real min = 1 game hour
-}
-function currentGameDay(){ return Math.floor(currentGameHour()/24); }
 
 // ---- state ----
 let uid = null;
@@ -67,7 +61,7 @@ async function switchJob(nextJob){
   if (nowH < until) { alert(`You can switch jobs in ${until - nowH} in-game hours.`); return; }
 
   userData.job = nextJob;
-  userData.jobSwitchUntilGameHour = nowH + 12; // 12-hour cooldown
+  userData.jobSwitchUntilGameHour = nowH + 12; // 12 in-game hours (~6 real hours)
   await update(ref(db, `users/${uid}`), {
     job: userData.job,
     jobSwitchUntilGameHour: userData.jobSwitchUntilGameHour
@@ -248,11 +242,10 @@ async function completeStablehandTask(r){
 }
 
 async function enqueueNextStablehandTask(kind, plan){
-  // Use existing planId if present; else reconstruct
   const pid = plan.planId || `${plan.ownerUid}_${plan.horseId}_${plan.planType || (kind === 'feed_daily' ? 'feed' : 'groom')}`;
   const req = {
     role: 'stablehand',
-    type: kind, // 'feed_daily' | 'groom_daily'
+    type: kind,
     ownerUid: plan.ownerUid,
     horseId: plan.horseId,
     horseName: plan.horseName,
