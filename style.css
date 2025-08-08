@@ -187,3 +187,24 @@ button:hover {
 body { height: auto !important; overflow-y: auto !important; }
 /* make sure the main content can scroll if it needs to */
 .main-content { overflow-y: auto; max-height: none; }
+/* Center page content nicely */
+.main-content {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Topbar mail icon + badge */
+.topbar-right {
+  display: flex; align-items: center; gap: 12px;
+}
+.icon-btn {
+  background: none; border: none; cursor: pointer; font-size: 18px;
+  display: inline-flex; align-items: center; position: relative;
+}
+.badge {
+  position: absolute; top: -6px; right: -8px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  background: #d33; color: #fff; border-radius: 8px;
+  font-size: 11px; line-height: 16px; text-align: center;
+}
+
