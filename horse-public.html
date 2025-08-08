@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>A Virtual Horse — Horse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="sidebar left-sidebar">
+    <button class="tabButton" onclick="window.history.back()">🔙<br>Back</button>
+    <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Home</button>
+  </div>
+
+  <div class="main-content">
+    <h1 id="horseName">Horse</h1>
+    <img id="horseImage" src="horse-placeholder.png" alt="Horse" style="width:100%; max-width:600px; border-radius:8px;"/>
+    <p id="horseDesc" style="margin-top:8px; white-space:pre-wrap;">No description yet.</p>
+
+    <div class="right-panel" style="margin-top:12px;">
+      <p><strong>Color:</strong> <span id="color">—</span></p>
+      <p><strong>Breed:</strong> <span id="breed">—</span></p>
+      <p><strong>Gender:</strong> <span id="gender">—</span></p>
+      <p><strong>Age:</strong> <span id="age">—</span></p>
+      <p><strong>Level:</strong> <span id="level">1</span></p>
+      <p><strong>Foals:</strong> <span id="foals">0</span></p>
+      <p><strong>Earnings:</strong> <span id="earnings">0</span></p>
+      <p><strong>Shows Entered:</strong> <span id="shows">0</span></p>
+    </div>
+  </div>
+
+  <div class="sidebar right-sidebar">
+    <button class="tabButton" onclick="window.location.href='ranch-public.html?uid='+new URLSearchParams(location.search).get('uid')">🌾<br>Owner Ranch</button>
+  </div>
+
+  <script type="module" src="horse-public.js"></script>
+</body>
+</html>
