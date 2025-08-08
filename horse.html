@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A Virtual Horse — Horse</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .horse-layout { display:grid; grid-template-columns: 1fr 320px; gap: 16px; }
+    .bar-container { width:100%; background:#ddd; border-radius:6px; height:12px; }
+    .bar-fill { height:100%; width:0%; background:#4caf50; border-radius:6px; }
+    .tiny-buttons button{ margin-right:6px; margin-bottom:6px; }
+    .right-panel p{ margin:6px 0; }
+  </style>
+</head>
+<body>
+  <!-- Left Sidebar -->
+  <div class="sidebar left-sidebar">
+    <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Home</button>
+    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
+    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>Stables</button>
+    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1 id="horseNameHeading">Horse</h1>
+    <div class="tiny-buttons">
+      <button id="btnRename">Change Name</button>
+      <button id="btnDescription">Add Description</button>
+      <button id="btnTreatCarrot">Give Carrot (+2%)</button>
+      <button id="btnTreatApple">Give Apple (+5%)</button>
+      <button id="btnTreatSugar">Give Sugar Cube (+10%)</button>
+      <button id="btnShowResults">Show Results</button>
+    </div>
+
+    <div class="horse-layout">
+      <div>
+        <img id="horseImage" src="horse-placeholder.png" alt="Horse" style="width:100%; max-width:600px; border-radius:8px;"/>
+        <p id="horseDescription" style="margin-top:8px; white-space:pre-wrap;">No description yet.</p>
+
+        <div style="margin-top:12px; display:flex; flex-wrap: wrap; gap:8px;">
+          <button onclick="window.location.href='pedigree.html'">View Pedigree</button>
+          <button onclick="window.location.href='children.html'">View Children</button>
+          <button onclick="window.location.href='history.html'">Horse History</button>
+          <button onclick="window.location.href='enter-shows.html'">Enter Shows</button>
+          <button id="btnChangeTack">Change Tack</button>
+          <button id="btnFeedHorse">Feed Horse</button>
+          <button id="btnBreedHorse">Breed Horse</button>
+        </div>
+
+        <div id="showResults" class="content" style="display:none; margin-top:12px;"></div>
+      </div>
+
+      <div class="right-panel">
+        <p><strong>Color:</strong> <span id="horseColor">—</span></p>
+        <p><strong>Breed:</strong> <span id="horseBreed">—</span></p>
+        <p><strong>Gender:</strong> <span id="horseGender">—</span></p>
+        <p><strong>Age:</strong> <span id="horseAge">—</span></p>
+        <p><strong>XP:</strong></p>
+        <div class="bar-container"><div id="xpBar" class="bar-fill"></div></div>
+        <p><strong>Level:</strong> <span id="horseLevel">1</span></p>
+        <p><strong>Foals:</strong> <span id="horseFoals">0</span></p>
+        <p><strong>Earnings:</strong> <span id="horseEarnings">0</span></p>
+        <p><strong>Shows Entered:</strong> <span id="horseShows">0</span></p>
+
+        <h3 style="margin-top:10px;">Health, Feeding & Happiness</h3>
+        <p><strong>Happiness:</strong> <span id="happinessPct">0%</span></p>
+        <div class="bar-container"><div id="happinessBar" class="bar-fill"></div></div>
+        <p><strong>Fed Properly (4 real days):</strong> <span id="fedStatus">❌</span></p>
+        <p><strong>Vet shots (every 3 in-game years, start 8mo):</strong> <span id="vetShotsStatus">❌</span></p>
+        <p><strong>Vet checks (yearly, start 6mo):</strong> <span id="vetChecksStatus">❌</span></p>
+        <p><strong>Breeding check (every 3 in-game years, start 2y5m):</strong> <span id="breedCheckStatus">❌</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Sidebar -->
+  <div class="sidebar right-sidebar">
+    <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
+    <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
+    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
+  </div>
+
+  <script type="module" src="horse.js"></script>
+</body>
+</html>
