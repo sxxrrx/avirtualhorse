@@ -1,57 +1,154 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
+  <title>Market</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Virtual Ranch - Market</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .market-tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+    .market-tabs button { padding:8px 14px; }
+    .menu-list { background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:12px; }
+    .menu-row { display:flex; gap:12px; align-items:center; padding:10px 8px; border-radius:6px; }
+    .menu-row:hover { background:#f6fff6; }
+    .menu-row img { width:28px; height:28px; object-fit:cover; }
+    .menu-row a { font-weight:600; text-decoration:underline; cursor:pointer; }
+    .menu-desc { opacity:.85; margin-left:auto; }
+    .topline { display:flex; gap:12px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+    .backlink { margin-bottom:10px; display:inline-block; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  </style>
 </head>
 <body>
-  <div id="topbar">
-    <div id="coinCounter">Coins: 0</div>
-    <div id="gameClock"></div>
-    <button onclick="logout()">Logout</button>
-  </div>
-
   <div id="mainContainer">
-   <!-- Left Sidebar -->
-  <div class="sidebar left-sidebar">
-    <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Town Square</button>
-    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>Stables</button>
+    <!-- Left Sidebar -->
+    <div class="sidebar left-sidebar">
+      <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
+      <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
       <button class="tabButton active">💰<br>Market</button>
-  </div>
+      <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
+    </div>
 
     <!-- Main Content -->
     <div class="main-content">
-      <div id="market" class="content" style="display: block;">
-        <h2>Market</h2>
-        <div class="market-buttons">
-          <button onclick="showMarketSection('buy')">Buy Horses</button>
-          <button onclick="showMarketSection('sell')">Sell Horses</button>
-        </div>
+      <h1>Market</h1>
 
-        <div id="marketBuySection" class="market-section active">
-          <h3>Store Horses</h3>
-          <div id="salesGrid" class="grid"></div>
+      <div class="topline">
+        <div><strong>Coins:</strong> <span id="coinCounter">0</span></div>
+      </div>
 
-          <h3 style="margin-top: 20px;">Rescue Horses</h3>
-          <div id="rescueGrid" class="grid"></div>
-        </div>
+      <div class="market-tabs">
+        <button id="tabBuy"  class="tabButton active">🛒 Buy items</button>
+        <button id="tabSell" class="tabButton">💸 Sell items</button>
+      </div>
 
-        <div id="marketSellSection" class="market-section" style="display: none;">
-          <h3>Your Horses (List for Sale)</h3>
-          <div id="playerHorseList" class="grid"></div>
+      <!-- BUY MENU -->
+      <div id="buyMenu" class="content" style="display:block;">
+        <div class="menu-list">
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Store">
+            <a id="linkStore">Store horses</a>
+            <div class="menu-desc">The store horses are 2 years old with no ancestry line.</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Rescue">
+            <a id="linkRescue">Rescued horses</a>
+            <div class="menu-desc">Horses listed by other players.</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Feed">
+            <a id="linkFeed">Buy feed</a>
+            <div class="menu-desc">Keep your horses healthy by feeding them periodically.</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Treats">
+            <a id="linkTreats">Buy treats</a>
+            <div class="menu-desc">Treats boost happiness and performance.</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Tack">
+            <a id="linkTack">Buy tack</a>
+            <div class="menu-desc">Tack improves your horse’s show performance.</div>
+          </div>
         </div>
+      </div>
+
+      <!-- BUY SUBVIEWS -->
+      <div id="buyStore" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromStore">← Back to Buy items</a>
+        <div class="topline"><button id="btnRestockStore">🔄 Restock Store</button></div>
+        <div id="storeGrid" class="grid"></div>
+      </div>
+
+      <div id="buyRescue" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromRescue">← Back to Buy items</a>
+        <div id="rescueGrid" class="grid"></div>
+      </div>
+
+      <div id="buyFeed" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromFeed">← Back to Buy items</a>
+        <p>Feed shop coming soon.</p>
+      </div>
+
+      <div id="buyTreats" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromTreats">← Back to Buy items</a>
+        <p>Treats shop coming soon.</p>
+      </div>
+
+      <div id="buyTack" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromTack">← Back to Buy items</a>
+        <p>Tack shop coming soon.</p>
+      </div>
+
+      <!-- SELL MENU -->
+      <div id="sellMenu" class="content" style="display:none;">
+        <div class="menu-list">
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Sell horses">
+            <a id="linkSellHorses">Sell horses</a>
+            <div class="menu-desc">The market buys level 5+; for now, list to Rescue for 500 coins.</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Sell tack">
+            <a id="linkSellTack">Sell tack</a>
+            <div class="menu-desc">Sell tack you no longer use. (coming soon)</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Sell feed">
+            <a id="linkSellFeed">Sell feed</a>
+            <div class="menu-desc">Sell surplus feed. (coming soon)</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Sell treats">
+            <a id="linkSellTreats">Sell treats</a>
+            <div class="menu-desc">Sell extra treats. (coming soon)</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Sell materials">
+            <a id="linkSellMaterials">Sell materials</a>
+            <div class="menu-desc">Sell unused materials. (coming soon)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SELL SUBVIEWS -->
+      <div id="sellHorses" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromSellHorses">← Back to Sell items</a>
+        <p>List one of your horses to the community rescue for 500 coins.</p>
+        <div id="sellGrid" class="grid"></div>
+      </div>
+
+      <div id="sellComingSoon" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromSellSoon">← Back to Sell items</a>
+        <p>Coming soon.</p>
       </div>
     </div>
 
     <!-- Right Sidebar -->
     <div class="sidebar right-sidebar">
-      <button class="tabButton" onclick="window.location.href='game.html#clubhouse'">👤<br>Clubhouse</button>
-      <button class="tabButton" onclick="window.location.href='game.html#training'">📚<br>Training</button>
-      <button class="tabButton" onclick="window.location.href='game.html#barn'">🏠<br>Barn</button>
-      <button class="tabButton" onclick="window.location.href='game.html#settings'">⚙️<br>Settings</button>
+      <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
+      <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
+      <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
     </div>
   </div>
 
