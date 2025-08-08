@@ -207,3 +207,12 @@ a.btn:active, .ctaButton:active{ transform:translateY(1px); }
   .right-sidebar{ border-left:none; border-top:2px solid var(--c-text); }
 }
 
+/* --- emergency topbar fix (stick this at the very end) --- */
+#topbar, .topbar {
+  background: #2e402d !important;
+  color: #fff !important;
+}
+#topbar a, #topbar button, #topbar span,
+.topbar a, .topbar button, .topbar span {
+  color: #fff !important;
+}
