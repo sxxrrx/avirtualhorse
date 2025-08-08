@@ -6,8 +6,8 @@ import { ref, get, push, set } from 'https://www.gstatic.com/firebasejs/10.8.1/f
 const params = new URLSearchParams(location.search);
 const targetUid = params.get('uid');
 
-let me = null;            // current user (viewer)
-let targetUser = null;    // profile owner
+let me = null;         // current viewer
+let targetUser = null; // profile owner
 
 if (!targetUid) {
   const mc = document.querySelector('.main-content');
@@ -20,7 +20,7 @@ if (!targetUid) {
     }
     me = user;
 
-    // Load the target user’s profile
+    // Load profile owner
     const snap = await get(ref(db, `users/${targetUid}`));
     if (!snap.exists()) {
       const mc = document.querySelector('.main-content');
@@ -29,9 +29,9 @@ if (!targetUid) {
     }
     targetUser = snap.val();
 
-    // Fill header + fields
+    // Fill fields
     const name = targetUser.username || targetUser.loginName || '(unnamed)';
-    byId('ranchTitle')?.appendChild(document.createTextNode(`${name} — Ranch`));
+    setText('ranchTitle', `${name} — Ranch`);
     setText('profileUsername', name);
     setText('profileJoinDate', targetUser.joinDate || '—');
     setText('profileLastSeen', formatDateTime(targetUser.lastSeen) || '—');
@@ -40,25 +40,25 @@ if (!targetUid) {
     const horses = toArray(targetUser.horses);
     setText('profileHorseCount', horses.length);
 
-    // Wire buttons (guard if elements missing)
+    // Buttons
     const toEnc = encodeURIComponent(targetUid);
     const mail = byId('btnMail');
     const viewStable = byId('btnViewStable');
     if (mail) mail.href = `post-office.html?to=${toEnc}`;
     if (viewStable) viewStable.href = `stable-public.html?uid=${toEnc}`;
 
-    // Add Friend button logic
+    // Friend button
     setupFriendButton();
   });
 }
 
-// --------------- friend request ---------------
+// ---------------- friend request ----------------
 async function setupFriendButton() {
   const btn = byId('btnAddFriend');
   const status = byId('statusMsg');
   if (!btn) return;
 
-  // Hide if this is your own ranch
+  // Own ranch? hide the button
   if (me.uid === targetUid) {
     btn.style.display = 'none';
     if (status) status.textContent = '';
@@ -74,7 +74,7 @@ async function setupFriendButton() {
     return;
   }
 
-  // Pending outgoing request?
+  // Outgoing pending?
   const outPending = await hasPendingFriendRequest(me.uid, targetUid);
   if (outPending) {
     btn.disabled = true;
@@ -83,7 +83,7 @@ async function setupFriendButton() {
     return;
   }
 
-  // Pending incoming request (they already asked you)?
+  // Incoming pending (they asked you)?
   const inPending = await hasPendingFriendRequest(targetUid, me.uid);
   if (inPending) {
     btn.disabled = true;
@@ -94,11 +94,10 @@ async function setupFriendButton() {
     return;
   }
 
-  // Otherwise, allow sending
+  // Can send
   btn.disabled = false;
   btn.textContent = '🤝 Add Friend';
   if (status) status.textContent = '';
-
   btn.onclick = async () => {
     btn.disabled = true;
     btn.textContent = 'Sending…';
@@ -115,7 +114,7 @@ async function setupFriendButton() {
   };
 }
 
-// Create a friend request message and index it into sender/receiver mailboxes
+// Create a friend request and index it
 async function sendFriendRequest(fromUid, toUid) {
   const msgRef = push(ref(db, 'mail'));
   const message = {
@@ -124,28 +123,23 @@ async function sendFriendRequest(fromUid, toUid) {
     toUid,
     subject: 'Friend Request',
     body: '',
-    status: 'pending',           // 'pending' | 'accepted' | 'denied'
+    status: 'pending',
     sentAt: Date.now()
   };
   await set(msgRef, message);
-
-  // Index for fast lookups in inbox/sent
   await Promise.all([
     set(ref(db, `userMailIndex/${fromUid}/sent/${msgRef.key}`), true),
     set(ref(db, `userMailIndex/${toUid}/inbox/${msgRef.key}`), true)
   ]);
 }
 
-// Check if there's a pending request where fromUid -> toUid
+// Check pending request from -> to
 async function hasPendingFriendRequest(fromUid, toUid) {
-  // Look up toUid inbox index
   const idxSnap = await get(ref(db, `userMailIndex/${toUid}/inbox`));
   if (!idxSnap.exists()) return false;
-
   const ids = Object.keys(idxSnap.val() || {});
   if (!ids.length) return false;
 
-  // Pull the referenced mail entries and see if any match the pattern
   const fetches = ids.map(id => get(ref(db, `mail/${id}`)));
   const results = await Promise.all(fetches);
   for (const s of results) {
@@ -161,8 +155,11 @@ async function hasPendingFriendRequest(fromUid, toUid) {
   return false;
 }
 
-// --------------- helpers ---------------
+// ---------------- helpers ----------------
 function byId(id){ return document.getElementById(id); }
 function setText(id, val){ const el = byId(id); if (el) el.textContent = String(val); }
-function toArray(val){ return Array.isArray(val) ? val : Object.values(val || {}); }
-function formatDateTime(ts){ if(!ts) return null; try { return new Date(ts).toLocaleString(); } catch { return null; } }
+function toArray(val){ return Array.isArray(val) ? val.filter(Boolean) : Object.values(val || {}); }
+function formatDateTime(ts){
+  if (!ts) return null;
+  try { return new Date(ts).toLocaleString(); } catch { return null; }
+}
