@@ -16,7 +16,7 @@ onAuthStateChanged(auth, async (user) => {
     document.querySelector('.main-content').innerHTML = '<p>No user specified.</p>';
     return;
   }
-  // Require login (keeps it consistent with ranch-public). If you want public view, remove this redirect.
+  // Require login (keep consistent with other public pages)
   if (!user) return (window.location.href = 'login.html');
 
   // Load owner profile
@@ -82,11 +82,13 @@ function horseCard(h) {
   const level = Number(h.level || 1);
   const age = formatAge(h.age);
 
-  const link = `horse-public.html?uid=${encodeURIComponent(targetUid)}&id=${encodeURIComponent(h.id)}`;
+  const link = h.id
+    ? `horse-public.html?uid=${encodeURIComponent(targetUid)}&id=${encodeURIComponent(h.id)}`
+    : null;
 
   return `
     <div class="horse-card">
-      <p><strong><a href="${link}">${name}</a></strong></p>
+      <p><strong>${link ? `<a href="${link}">${name}</a>` : name}</strong></p>
       <p>Breed: ${breed}</p>
       <p>Gender: ${gender}</p>
       <p>Level: ${level}</p>
