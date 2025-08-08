@@ -3,28 +3,73 @@ import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
-console.log('[chrome] loaded');
+const $ = (id) => document.getElementById(id);
 
-// --- add this near the top of app-chrome.js ---
+// ---------- helpers ----------
+function currentGameHour(){
+  const start = new Date(Date.UTC(2025,0,1)).getTime();
+  return Math.floor((Date.now() - start) / (60 * 1000)); // 1 real min = 1 in-game hour
+}
+
+function updateClockUI(){
+  const h = currentGameHour();
+  const day = Math.floor(h/24), hour = h%24;
+  const start = new Date(Date.UTC(2025,0,1));
+  const d = new Date(start.getTime() + day*86400000);
+
+  const seasons = [
+    {s:[3,20], e:[6,19], name:"Verdant's Bloom"},
+    {s:[6,20], e:[9,21], name:"Summer's Height"},
+    {s:[9,22], e:[12,20], name:"Harvest's Embrace"},
+  ];
+  let season = "Winter's Hold";
+  const m = d.getUTCMonth()+1, dd = d.getUTCDate();
+  const inRange = (sm,sd,em,ed)=> (m>sm || (m===sm && dd>=sd)) && (m<em || (m===em && dd<=ed));
+  for (const x of seasons){ if (inRange(x.s[0],x.s[1],x.e[0],x.e[1])) { season = x.name; break; } }
+
+  const target = $('gameClock');
+  if (target) target.innerHTML = `<strong>${season}</strong> — ${d.toLocaleDateString()} — <strong>${hour}:00</strong>`;
+}
+
+function injectOnce(id, css){
+  if (document.getElementById(id)) return;
+  const s = document.createElement('style');
+  s.id = id;
+  s.textContent = css;
+  document.head.appendChild(s);
+}
+
+function navBtn(href, icon, label, key){
+  return `<button class="tabButton" data-key="${key}" onclick="window.location.href='${href}'">${icon}<br>${label}</button>`;
+}
+
+function badge(count){
+  return count>0
+    ? `<span id="mailBadge" class="badge">${count}</span>`
+    : `<span id="mailBadge" class="badge" style="display:none"></span>`;
+}
+
+// Build/normalize layout without fighting existing markup
 function ensureChromeContainers() {
-  // If the page already has placeholders, just make sure sidebars exist and bail
+  // Ensure #topbar exists and is the FIRST child of <body>
   let top = document.getElementById('topbar');
+  if (!top) {
+    top = document.createElement('div');
+    top.id = 'topbar';
+    const first = document.body.firstChild;
+    if (first) document.body.insertBefore(top, first);
+    else document.body.appendChild(top);
+  } else if (document.body.firstElementChild !== top) {
+    document.body.insertBefore(top, document.body.firstChild);
+  }
+
+  // If page provided #pageMain, wrap it inside our 3-col chrome
   let mc  = document.getElementById('mainContainer');
   let left = document.getElementById('leftSidebar');
   let right = document.getElementById('rightSidebar');
-
-  // Mode A: content-only page provided <div id="pageMain" class="main-content">…</div>
   const pageMain = document.getElementById('pageMain');
 
   if (!mc && pageMain) {
-    // Create topbar (insert before pageMain)
-    if (!top) {
-      top = document.createElement('div');
-      top.id = 'topbar';
-      document.body.insertBefore(top, pageMain);
-    }
-
-    // Build container
     mc = document.createElement('div');
     mc.id = 'mainContainer';
 
@@ -32,179 +77,129 @@ function ensureChromeContainers() {
     left.id = 'leftSidebar';
     left.className = 'sidebar left-sidebar';
 
-    // new main-content wrapper
     const mainWrap = document.createElement('div');
     mainWrap.className = 'main-content';
-    // move children out of #pageMain into the new wrapper
     while (pageMain.firstChild) mainWrap.appendChild(pageMain.firstChild);
 
     right = document.createElement('div');
     right.id = 'rightSidebar';
     right.className = 'sidebar right-sidebar';
 
-    // Replace #pageMain with the full layout
     pageMain.replaceWith(mc);
     mc.appendChild(left);
     mc.appendChild(mainWrap);
     mc.appendChild(right);
-  } else {
-    // Mode B: page already has #mainContainer — ensure sidebars exist
-    if (mc) {
-      if (!left) {
-        left = document.createElement('div');
-        left.id = 'leftSidebar';
-        left.className = 'sidebar left-sidebar';
-        mc.insertBefore(left, mc.firstChild);
-      }
-      if (!right) {
-        right = document.createElement('div');
-        right.id = 'rightSidebar';
-        right.className = 'sidebar right-sidebar';
-        mc.appendChild(right);
-      }
-      if (!top) {
-        // Add a topbar at the top of body if missing
-        top = document.createElement('div');
-        top.id = 'topbar';
-        document.body.insertBefore(top, mc);
-      }
+  } else if (mc) {
+    if (!left) {
+      left = document.createElement('div');
+      left.id = 'leftSidebar';
+      left.className = 'sidebar left-sidebar';
+      mc.insertBefore(left, mc.firstChild);
+    }
+    if (!right) {
+      right = document.createElement('div');
+      right.id = 'rightSidebar';
+      right.className = 'sidebar right-sidebar';
+      mc.appendChild(right);
     }
   }
 }
 
-// make mountChrome resilient
+// ---------- PUBLIC API ----------
 export async function mountChrome(opts = {}) {
+  // 1) Make sure the structural containers exist in the right order
   ensureChromeContainers();
-  // ...existing mountChrome logic that renders topbar & sidebars...
-}
 
-// ---------- helpers ----------
-function el(id){ return document.getElementById(id); }
-function ensureEl(id, tag, parent=document.body){
-  let n = el(id);
-  if (!n) { n = document.createElement(tag); n.id = id; parent.appendChild(n); }
-  return n;
-}
-function currentGameHour(){
-  const start = new Date(Date.UTC(2025,0,1)).getTime();
-  return Math.floor((Date.now() - start) / (60 * 1000)); // 1 real min = 1 in-game hour
-}
-function updateClockUI(){
-  const h = currentGameHour();
-  const day = Math.floor(h/24), hour = h%24;
-  const start = new Date(Date.UTC(2025,0,1));
-  const d = new Date(start.getTime() + day*86400000);
-  const seasons = [
-    {s:[3,20], e:[6,19], name:"Verdant's Bloom"},
-    {s:[6,20], e:[9,21], name:"Summer's Height"},
-    {s:[9,22], e:[12,20], name:"Harvest's Embrace"},
-  ];
-  let season = "Winter's Hold";
-  for (const x of seasons){
-    const m = d.getUTCMonth()+1, dd = d.getUTCDate();
-    const inRange = (sm,sd,em,ed)=> (m>sm || (m===sm && dd>=sd)) && (m<em || (m===em && dd<=ed));
-    if (inRange(x.s[0],x.s[1],x.e[0],x.e[1])) { season = x.name; break; }
-  }
-  const target = el('gameClock');
-  if (target) target.innerHTML = `<strong>${season}</strong> — ${d.toLocaleDateString()} — <strong>${hour}:00</strong>`;
-}
-function navBtn(href, icon, label){
-  return `<button class="tabButton" onclick="window.location.href='${href}'">${icon}<br>${label}</button>`;
-}
-function badge(count){ return count>0 ? `<span id="mailBadge" class="badge">${count}</span>` : `<span id="mailBadge" class="badge" style="display:none"></span>`; }
-function shortUid(u){ return (u||'').slice(0,6)+'…'; }
+  // 2) Force dark, legible topbar (defensive — still respects your site CSS)
+  injectOnce('chrome-dark-style', `
+    #topbar{background:#2e402d!important;color:#fff!important;position:sticky;top:0;z-index:1000}
+    #topbar a,#topbar button,#topbar span{color:#fff!important}
+    #topbar .topbar-inner{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 12px}
+    #topbar .left-pack{display:flex;align-items:center;gap:10px}
+    #topbar .badge{position:relative;top:-8px;left:-8px;background:#c62828;color:#fff;border-radius:10px;padding:0 6px;font-size:12px}
+    #topbar .tb-logout{background:#3b5d3b;border:none;border-radius:6px;padding:6px 10px;cursor:pointer}
+    #topbar .tb-logout:hover{background:#567d46}
+    #mainContainer{margin-top:8px}
+  `);
 
-// ---------- ensure containers exist ----------
-const topbar = ensureEl('topbar', 'div');
-const main   = ensureEl('mainContainer', 'div');
-const left   = ensureEl('leftSidebar', 'div', main);
-const right  = ensureEl('rightSidebar', 'div', main);
+  // 3) Inject chrome markup (fill placeholders only — no extra nodes)
+  const topbar = $('topbar');
+  const left   = $('leftSidebar');
+  const right  = $('rightSidebar');
 
-// apply required classes if missing
-left.classList.add('sidebar','left-sidebar');
-right.classList.add('sidebar','right-sidebar');
-
-// ---------- inject chrome ----------
-topbar.innerHTML = `
-  <div class="topbar-inner">
-    <div class="left-pack">
-      <div id="coinCounter">0</div>
-      <a id="mailLink" class="mail-link" href="post-office.html" title="Inbox">📬</a>${badge(0)}
+  topbar.innerHTML = `
+    <div class="topbar-inner">
+      <div class="left-pack">
+        <div id="coinCounter">Coins: 0</div>
+        <a id="mailLink" class="mail-link" href="post-office.html" title="Inbox">📬</a>${badge(0)}
+      </div>
+      <div id="gameClock"></div>
+      <div class="right-pack">
+        <button id="btnLogout" class="tb-logout">Logout</button>
+      </div>
     </div>
-    <div id="gameClock"></div>
-    <div class="right-pack">
-      <button id="btnLogout">Logout</button>
-    </div>
-  </div>
-`;
+  `;
 
-left.innerHTML = `
-  ${navBtn('town-square.html','🏙️','Town Square')}
-  ${navBtn('ranch.html','🌾','My Ranch')}
-  ${navBtn('my-stable.html','🐴','Stables')}
-  ${navBtn('barn.html','🧰','Barn')}
-  ${navBtn('bank.html','🏦','Bank')}
-`;
+  left.innerHTML = `
+    ${navBtn('town-square.html','🏙️','Town Square','town')}
+    ${navBtn('ranch.html','🌾','My Ranch','ranch')}
+    ${navBtn('my-stable.html','🐴','Stables','stables')}
+    ${navBtn('barn.html','🧰','Barn','barn')}
+    ${navBtn('bank.html','🏦','Bank','bank')}
+  `;
 
-right.innerHTML = `
-  ${navBtn('clubhouse.html','🏇','Clubhouse')}
-  ${navBtn('services.html','🔧','Services')}
-  ${navBtn('market.html','💰','Market')}
-  ${navBtn('magic.html','✨','Magic Shop')}
-  ${navBtn('settings.html','⚙️','Settings')}
-`;
+  right.innerHTML = `
+    ${navBtn('clubhouse.html','🏇','Clubhouse','clubhouse')}
+    ${navBtn('services.html','🔧','Services','services')}
+    ${navBtn('market.html','💰','Market','market')}
+    ${navBtn('magic.html','✨','Magic Shop','magic')}
+    ${navBtn('settings.html','⚙️','Settings','settings')}
+  `;
 
-// ---------- behavior ----------
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return; // let page-level auth guards handle redirects
+  // 4) Highlight the active tab(s) if provided
+  if (opts.leftActive)  left.querySelector(`[data-key="${opts.leftActive}"]`)?.classList.add('active');
+  if (opts.rightActive) right.querySelector(`[data-key="${opts.rightActive}"]`)?.classList.add('active');
 
-  // coins live
-  onValue(ref(db, `users/${user.uid}/coins`), snap => {
-    const c = Number(snap.val() || 0);
-    const cc = el('coinCounter');
-    if (cc) cc.textContent = `Coins: ${c.toLocaleString()}`;
-  });
+  // 5) Live data wiring (coins, mail badge, logout)
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return; // let the page handle redirects if needed
 
-  // unread/pending mail badge
-  // Count: regular mail with status !== 'read' + friend_request with status === 'pending'
-  onValue(ref(db, `userMailIndex/${user.uid}/inbox`), async idxSnap => {
-    const idx = idxSnap.exists() ? Object.keys(idxSnap.val()) : [];
-    if (idx.length === 0) {
-      const b = el('mailBadge'); if (b){ b.style.display='none'; b.textContent=''; }
-      return;
-    }
-    const gets = idx.slice(0,100).map(id => get(ref(db, `mail/${id}`)).then(s => s.exists()? s.val(): null));
-    const rows = (await Promise.all(gets)).filter(Boolean);
-    let count = 0;
-    rows.forEach(m => {
-      if (m.type === 'friend_request' && (m.status || 'pending') === 'pending') count++;
-      if (m.type === 'mail' && (m.status || 'unread') !== 'read') count++;
+    // Coins live
+    onValue(ref(db, `users/${user.uid}/coins`), snap => {
+      const c = Number(snap.val() || 0);
+      const cc = $('coinCounter');
+      if (cc) cc.textContent = `Coins: ${c.toLocaleString()}`;
     });
-    const b = el('mailBadge');
-    if (b){
-      if (count>0){ b.style.display='inline-block'; b.textContent = String(count); }
-      else { b.style.display='none'; b.textContent=''; }
-    }
+
+    // Mail badge: unread mail + pending friend requests
+    onValue(ref(db, `userMailIndex/${user.uid}/inbox`), async idxSnap => {
+      const ids = idxSnap.exists() ? Object.keys(idxSnap.val()) : [];
+      if (!ids.length) {
+        const b = $('mailBadge'); if (b){ b.style.display='none'; b.textContent=''; }
+        return;
+      }
+      const rows = (await Promise.all(
+        ids.slice(0, 120).map(id => get(ref(db, `mail/${id}`)).then(s => s.exists()? s.val(): null))
+      )).filter(Boolean);
+      let count = 0;
+      rows.forEach(m => {
+        if (m.type === 'friend_request' && (m.status || 'pending') === 'pending') count++;
+        if (m.type === 'mail' && (m.status || 'unread') !== 'read') count++;
+      });
+      const b = $('mailBadge');
+      if (b){
+        if (count>0){ b.style.display='inline-block'; b.textContent = String(count); }
+        else { b.style.display='none'; b.textContent=''; }
+      }
+    });
+
+    // Logout
+    const logout = $('btnLogout');
+    if (logout) logout.onclick = () => signOut(auth).then(()=>location.href='login.html');
   });
 
-  // logout
-  const logout = el('btnLogout');
-  if (logout) logout.onclick = () => signOut(auth).then(()=>location.href='login.html');
-});
+  // 6) In-game clock
+  updateClockUI();
+  setInterval(updateClockUI, 60000);
+}
 
-// game clock
-updateClockUI();
-setInterval(updateClockUI, 60000);
-
-// minimal styles if not present in your CSS
-const style = document.createElement('style');
-style.textContent = `
-  #topbar { position:sticky; top:0; z-index:5; background:#eaf8ea; border-bottom:1px solid #c0e8c0; }
-  .topbar-inner { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 12px; }
-  .left-pack { display:flex; align-items:center; gap:10px; }
-  .mail-link { position:relative; text-decoration:none; font-size:20px; }
-  .badge { position:relative; top:-8px; left:-8px; background:#c62828; color:#fff; border-radius:10px; padding:0 6px; font-size:12px; }
-`;
-document.head.appendChild(style);
-
-console.log('[chrome] ready');
