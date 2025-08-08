@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Public Stable</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    /* grid for this page */
+    #publicStableGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .pager { display:flex; gap:8px; align-items:center; margin:10px 0; flex-wrap:wrap; }
+    .pager button { padding:6px 10px; }
+  </style>
+</head>
+<body>
+  <div id="mainContainer">
+    <!-- Left Sidebar -->
+    <div class="sidebar left-sidebar">
+      <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
+      <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
+      <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
+      <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <h1 id="stableTitle">Public Stable</h1>
+      <p><a id="ownerRanchLink" href="#">← Back to Ranch</a></p>
+      <p><strong>Total Horses:</strong> <span id="horseTotal">0</span></p>
+
+      <div class="pager">
+        <button id="prevPage">◀ Prev</button>
+        <span id="pageInfo">Page 1 / 1</span>
+        <button id="nextPage">Next ▶</button>
+      </div>
+
+      <div id="publicStableGrid"></div>
+
+      <div class="pager" style="margin-top:12px;">
+        <button id="prevPage2">◀ Prev</button>
+        <span id="pageInfo2">Page 1 / 1</span>
+        <button id="nextPage2">Next ▶</button>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar right-sidebar">
+      <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
+      <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
+      <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
+    </div>
+  </div>
+
+  <script type="module" src="stable-public.js"></script>
+</body>
+</html>
