@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .section { background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:14px; margin-bottom:14px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .row > * { flex:1 1 220px; }
+    .section h3 { margin-top:0; }
+    .muted { opacity:.85; }
+    .inline { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .ok { color:#2e7d32; }
+    .warn { color:#a33; }
+  </style>
+</head>
+<body>
+  <!-- Top bar & sidebars provided by app-chrome -->
+  <div id="topbar"></div>
+
+  <div id="mainContainer">
+    <div class="sidebar left-sidebar" id="leftSidebar"></div>
+
+    <div class="main-content">
+      <h1>Settings</h1>
+
+      <!-- Display name -->
+      <div class="section">
+        <h3>Profile</h3>
+        <div class="row">
+          <div>
+            <label><strong>Display name</strong></label>
+            <input id="usernameInput" placeholder="Your display name"/>
+          </div>
+          <div class="inline">
+            <button id="saveUsernameBtn">Save</button>
+            <span id="usernameStatus" class="muted"></span>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:6px;">This is what others see on your public ranch, mail, friends, etc.</p>
+      </div>
+
+      <!-- Auth: email -->
+      <div class="section">
+        <h3>Account — Email</h3>
+        <div class="row">
+          <div>
+            <label><strong>New email</strong></label>
+            <input id="emailInput" type="email" placeholder="you@example.com"/>
+          </div>
+          <div>
+            <label><strong>Current password (for verification)</strong></label>
+            <input id="emailCurrentPw" type="password" placeholder="Current password"/>
+          </div>
+        </div>
+        <div class="inline" style="margin-top:8px;">
+          <button id="saveEmailBtn">Update Email</button>
+          <span id="emailStatus" class="muted"></span>
+        </div>
+      </div>
+
+      <!-- Auth: password -->
+      <div class="section">
+        <h3>Account — Password</h3>
+        <div class="row">
+          <div>
+            <label><strong>Current password</strong></label>
+            <input id="pwCurrent" type="password" placeholder="Current password"/>
+          </div>
+          <div>
+            <label><strong>New password</strong></label>
+            <input id="pwNew" type="password" placeholder="New password"/>
+          </div>
+          <div>
+            <label><strong>Confirm new password</strong></label>
+            <input id="pwNew2" type="password" placeholder="Confirm new password"/>
+          </div>
+        </div>
+        <div class="inline" style="margin-top:8px;">
+          <button id="savePasswordBtn">Change Password</button>
+          <span id="passwordStatus" class="muted"></span>
+        </div>
+      </div>
+
+      <!-- Freeze -->
+      <div class="section">
+        <h3>Account Freeze</h3>
+        <p class="muted">
+          Freezing pauses your game state: your horses won’t age, but global time keeps ticking.
+          You can unfreeze anytime, but after unfreezing there’s a <strong>7 real-day</strong> cooldown before you can freeze again.
+        </p>
+        <p>Status: <strong id="freezeStatus">Loading…</strong></p>
+        <div class="inline">
+          <button id="freezeBtn">Freeze Account</button>
+          <button id="unfreezeBtn">Unfreeze Account</button>
+          <span id="freezeMsg" class="muted"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar right-sidebar" id="rightSidebar"></div>
+  </div>
+
+  <script type="module" src="app-chrome.js"></script>
+  <script type="module" src="settings.js"></script>
+</body>
+</html>
