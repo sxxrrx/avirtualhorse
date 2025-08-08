@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Post Office</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+    .tabs button { padding:8px 14px; }
+    .mail-card { background:#fff; border:1px solid #c0e8c0; border-radius:6px; padding:10px; margin-bottom:10px; }
+    .mail-meta { font-size:13px; opacity:0.8; margin-bottom:6px; }
+    .compose { background:#fff; border:1px solid #c0e8c0; border-radius:6px; padding:12px; }
+    .compose input, .compose textarea { width:100%; padding:8px; margin:6px 0; border:1px solid #ccc; border-radius:4px; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .row > * { flex:1; }
+  </style>
+</head>
+<body>
+  <!-- Left Sidebar -->
+  <div class="sidebar left-sidebar">
+    <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
+    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
+    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
+    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1>Post Office</h1>
+
+    <div class="tabs">
+      <button id="tabInbox"  class="tabButton">📥 Inbox</button>
+      <button id="tabSent"   class="tabButton">📤 Sent</button>
+      <button id="tabCompose" class="tabButton">✍️ Compose</button>
+    </div>
+
+    <!-- Inbox -->
+    <div id="viewInbox" class="content" style="display:block;">
+      <div id="inboxList"></div>
+    </div>
+
+    <!-- Sent -->
+    <div id="viewSent" class="content" style="display:none;">
+      <div id="sentList"></div>
+    </div>
+
+    <!-- Compose -->
+    <div id="viewCompose" class="content" style="display:none;">
+      <div class="compose">
+        <div class="row">
+          <div>
+            <label><strong>To (username or UID)</strong></label>
+            <input id="toInput" placeholder="e.g. StarRider or 7B2hK..."/>
+          </div>
+          <div>
+            <label><strong>Resolved recipient</strong></label>
+            <input id="resolvedTo" disabled placeholder="(will resolve when sending)"/>
+          </div>
+        </div>
+        <label><strong>Subject</strong></label>
+        <input id="subjectInput" placeholder="Subject"/>
+        <label><strong>Message</strong></label>
+        <textarea id="bodyInput" rows="6" placeholder="Write your message…"></textarea>
+        <button id="sendBtn">Send</button>
+        <div id="composeStatus" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Sidebar -->
+  <div class="sidebar right-sidebar">
+    <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
+    <button class="tabButton" onclick="window.location.href='friends.html'">👥<br>My Friends</button>
+    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
+  </div>
+
+  <script type="module" src="post-office.js"></script>
+</body>
+</html>
