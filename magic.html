@@ -27,6 +27,18 @@
     <div id="passesHeader">🪙 Passes: <strong id="passesCount">0</strong></div>
 
     <div class="section">
+  <h2>Convert Coins → Passes</h2>
+  <p class="muted">Rate: <strong>100 passes = 8,000 coins</strong> · One-way only</p>
+  <div class="row">
+    <label>Coins to convert:</label>
+    <input id="coinsToConvert" type="number" min="0" step="8000" placeholder="8000, 16000, …" style="width:160px;">
+    <button id="btnConvert">Convert</button>
+  </div>
+  <div id="convertMsg" class="muted" style="margin-top:6px;"></div>
+  <div class="muted" id="convertLimit"></div>
+</div>
+
+    <div class="section">
       <h2>Items for Sale</h2>
       <div id="storeGrid" class="grid"></div>
     </div>
