@@ -25,7 +25,7 @@ const FEED_PACKS = [
   {id:'adult_basic', label:'Adult Basic (1500 lbs)',         lbs:1500, price: 75,  minM:29,  maxM:300, bonus:0},
   {id:'adult_prem',  label:'Adult Premium (1500 lbs)',       lbs:1500, price:125,  minM:29,  maxM:300, bonus:5},
   {id:'adult_elite', label:'Adult Elite (2500 lbs)',         lbs:2500, price:200,  minM:29,  maxM:300, bonus:10},
-  {id:'senior',      label:'Senior (1000 lbs)',              lbs:1000, price: 40,  minM:300, maxM:1200, bonus:20}, // tuned a bit
+  {id:'senior',      label:'Senior (1000 lbs)',              lbs:1000, price: 40,  minM:300, maxM:1200, bonus:20}
 ];
 
 const TREAT_PACKS = [
@@ -40,7 +40,7 @@ const TREAT_PACKS = [
   {id:'sug_125',  kind:'sugarCubes', label:'Sugar Cubes ×125',  qty:125,  price:200},
   {id:'sug_250',  kind:'sugarCubes', label:'Sugar Cubes ×250',  qty:250,  price:360},
   {id:'sug_500',  kind:'sugarCubes', label:'Sugar Cubes ×500',  qty:500,  price:675},
-  {id:'sug_1000', kind:'sugarCubes', label:'Sugar Cubes ×1000', qty:1000, price:1250},
+  {id:'sug_1000', kind:'sugarCubes', label:'Sugar Cubes ×1000', qty:1000, price:1250}
 ];
 
 // ---------- safe event wiring ----------
@@ -74,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
   on('linkSellTack',     'click', e => { e.preventDefault(); openSell('soon'); });
   on('linkSellFeed',     'click', e => { e.preventDefault(); openSell('soon'); });
   on('linkSellTreats',   'click', e => { e.preventDefault(); openSell('soon'); });
-  on('linkSellMaterials','click', e => { e.preventDefault(); openSell('soon'); });
 
   // sell back links
   on('backFromSellHorses','click', e => { e.preventDefault(); openSell(null); });
@@ -125,7 +124,10 @@ onAuthStateChanged(auth, async user => {
   userData = us.val();
 
   myHorses = toArray(userData.horses);
-  $('coinCounter').textContent = userData.coins ?? 0;
+
+  // update topbar coin readout
+  const coinEl = $('coinCounter');
+  if (coinEl) coinEl.textContent = `Coins: ${Number(userData.coins||0).toLocaleString()}`;
 
   // land on Buy tab
   showTop('buy');
@@ -176,7 +178,10 @@ async function buyStore(index){
   userData.store = storeHorses;
 
   await update(ref(db, `users/${uid}`), { coins:userData.coins, horses: myHorses, store: storeHorses });
-  $('coinCounter').textContent = userData.coins;
+
+  const coinEl = $('coinCounter');
+  if (coinEl) coinEl.textContent = `Coins: ${Number(userData.coins||0).toLocaleString()}`;
+
   renderStore();
 }
 
@@ -233,7 +238,10 @@ async function buyRescue(key, price){
 
   const us = await get(ref(db, `users/${uid}`));
   userData = us.val(); myHorses = toArray(userData.horses);
-  $('coinCounter').textContent = userData.coins;
+
+  const coinEl = $('coinCounter');
+  if (coinEl) coinEl.textContent = `Coins: ${Number(userData.coins||0).toLocaleString()}`;
+
   loadRescue();
 }
 
@@ -293,7 +301,10 @@ async function buyFeed(id){
 
   await update(ref(db, `users/${uid}`), { coins:userData.coins, inventory: inv });
   userData.inventory = inv;
-  $('coinCounter').textContent = userData.coins;
+
+  const coinEl = $('coinCounter');
+  if (coinEl) coinEl.textContent = `Coins: ${Number(userData.coins||0).toLocaleString()}`;
+
   alert('Purchased!');
 }
 
@@ -323,7 +334,10 @@ async function buyTreat(id){
 
   await update(ref(db, `users/${uid}`), { coins:userData.coins, inventory: inv });
   userData.inventory = inv;
-  $('coinCounter').textContent = userData.coins;
+
+  const coinEl = $('coinCounter');
+  if (coinEl) coinEl.textContent = `Coins: ${Number(userData.coins||0).toLocaleString()}`;
+
   alert('Purchased!');
 }
 
@@ -346,4 +360,3 @@ function genStoreHorse(){
   const breed=pick(Object.keys(breeds)), coat=pick(breeds[breed]), gender=pick(genders);
   return { id:newHorseId(), name:'Unnamed Horse', breed, coatColor:coat, gender, age:{years:2,months:0}, level:1, exp:0, price:1000 };
 }
-
