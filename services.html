@@ -24,6 +24,19 @@
       <button id="btnJobVet">Become Vet Assistant</button>
     </div>
     <p>Current job: <strong id="currentJob">Loading…</strong></p>
+<!-- somewhere in main content -->
+<h2>Stablehand Tasks</h2>
+<div id="stablehandQueue" style="display:none;">
+  <div id="stableList"></div>
+</div>
+
+<h2>Vet Queue</h2>
+<div id="vetQueue" style="display:none;">
+  <div id="requestList"></div>
+</div>
+
+<!-- Optional: job cooldown message -->
+<p id="jobCooldownMsg" class="muted"></p>
 
     <div id="vetQueue" style="display:none; margin-top:20px;">
       <h3>Vet Assistant Queue (Pending Requests)</h3>
