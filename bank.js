@@ -1,200 +1,102 @@
-// bank.js
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, get, update, push, set } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, get, set, update, push, onValue } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
 const $ = id => document.getElementById(id);
-
 let uid = null;
-let userData = null;
-let ledger = [];   // local cache of transactions
-let filter = 'all'; // 'all' | 'deposit' | 'withdraw'
+let user = null;
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return location.href = 'login.html';
-  uid = user.uid;
+onAuthStateChanged(auth, async (u) => {
+  if (!u) return location.href = 'login.html';
+  uid = u.uid;
 
-  await loadUser();
-  await loadLedger();
-  wireControls();
-  render();
-  renderLedger();
-});
+  const us = await get(ref(db, `users/${uid}`));
+  if (!us.exists()) return;
+  user = us.val();
+  if (user.bank == null) {
+    await update(ref(db, `users/${uid}`), { bank: 0 });
+    user.bank = 0;
+  }
 
-async function loadUser() {
-  const snap = await get(ref(db, `users/${uid}`));
-  userData = snap.exists() ? snap.val() : {};
-  // ensure fields
-  userData.coins = Number(userData.coins || 0);
-  userData.bank = userData.bank || {};
-  userData.bank.balance = Number(userData.bank.balance || 0);
-}
+  renderBalances();
 
-async function loadLedger() {
-  const s = await get(ref(db, `users/${uid}/bank/ledger`));
-  if (!s.exists()) { ledger = []; return; }
-  const obj = s.val();
-  ledger = Object.entries(obj).map(([id, v]) => ({ id, ...v }))
-           .sort((a,b) => (b.at||0) - (a.at||0));
-}
+  // live tx list
+  onValue(ref(db, `bankTx/${uid}`), snap => {
+    const rows = snap.exists() ? Object.values(snap.val()) : [];
+    renderTx(rows.sort((a,b)=>(b.at||0)-(a.at||0)));
+  });
 
-function render() {
-  const wallet = userData.coins;
-  const bank   = userData.bank.balance;
-  const total  = wallet + bank;
-
-  $('walletCoins').textContent = wallet.toLocaleString();
-  $('bankCoins').textContent   = bank.toLocaleString();
-  $('totalCoins').textContent  = total.toLocaleString();
-
-  const pct = total > 0 ? Math.round((bank / total) * 100) : 0;
-  $('bankBar').style.width = pct + '%';
-  $('bankPct').textContent = `${pct}% of your coins are in the bank.`;
-
-  // keep topbar in sync if present
-  const top = document.getElementById('coinCounter');
-  if (top) top.textContent = `Coins: ${wallet}`;
-}
-
-function wireControls() {
+  // wire buttons
   $('btnDeposit').onclick  = deposit;
   $('btnWithdraw').onclick = withdraw;
+});
 
-  $('btnDep25').onclick = () => setAmount('depositAmount', Math.floor(userData.coins * 0.25));
-  $('btnDep50').onclick = () => setAmount('depositAmount', Math.floor(userData.coins * 0.50));
-  $('btnDepAll').onclick = () => setAmount('depositAmount', userData.coins);
-
-  $('btnWdr25').onclick = () => setAmount('withdrawAmount', Math.floor(userData.bank.balance * 0.25));
-  $('btnWdr50').onclick = () => setAmount('withdrawAmount', Math.floor(userData.bank.balance * 0.50));
-  $('btnWdrAll').onclick = () => setAmount('withdrawAmount', userData.bank.balance);
-
-  $('fAll').onclick = () => { filter='all'; renderLedger(); };
-  $('fDeposits').onclick = () => { filter='deposit'; renderLedger(); };
-  $('fWithdrawals').onclick = () => { filter='withdraw'; renderLedger(); };
+function renderBalances(){
+  $('coinsOnHand').textContent = Number(user.coins||0).toLocaleString();
+  $('bankBalance').textContent = Number(user.bank||0).toLocaleString();
 }
 
-function setAmount(inputId, amt){
-  const el = $(inputId);
-  el.value = Math.max(0, Math.floor(amt || 0));
+function msg(elId, text){ const el=$(elId); if(el) el.textContent=text; }
+
+async function deposit(){
+  const amt = Math.max(0, Math.floor(Number($('depAmount').value||0)));
+  msg('depMsg','');
+  if (!amt) return msg('depMsg','Enter a valid amount.');
+  if ((user.coins||0) < amt) return msg('depMsg','Not enough coins on hand.');
+
+  user.coins -= amt;
+  user.bank  += amt;
+
+  await update(ref(db, `users/${uid}`), { coins:user.coins, bank:user.bank });
+  await addTx('deposit', amt);
+
+  $('depAmount').value = '';
+  renderBalances();
+  msg('depMsg','Deposited.');
 }
 
-async function deposit() {
-  const amt = Math.floor(Number(($('depositAmount').value || '0').trim()));
-  if (!amt || amt <= 0) return msg('Enter a valid amount to deposit.');
-  if (amt > userData.coins) return msg("You don't have that many coins in your wallet.");
+async function withdraw(){
+  const amt = Math.max(0, Math.floor(Number($('wdAmount').value||0)));
+  msg('wdMsg','');
+  if (!amt) return msg('wdMsg','Enter a valid amount.');
+  if ((user.bank||0) < amt) return msg('wdMsg','Not enough in bank.');
 
-  const before = snapshotBalances();
-  userData.coins -= amt;
-  userData.bank.balance += amt;
+  user.bank  -= amt;
+  user.coins += amt;
 
-  await persist();
-  await recordLedger('deposit', amt, before, snapshotBalances());
+  await update(ref(db, `users/${uid}`), { coins:user.coins, bank:user.bank });
+  await addTx('withdraw', amt);
 
-  $('depositAmount').value = '';
-  msg(`Deposited ${amt} coin(s).`);
-  render();
-  renderLedger();
+  $('wdAmount').value = '';
+  renderBalances();
+  msg('wdMsg','Withdrawn.');
 }
 
-async function withdraw() {
-  const amt = Math.floor(Number(($('withdrawAmount').value || '0').trim()));
-  if (!amt || amt <= 0) return msg('Enter a valid amount to withdraw.');
-  if (amt > userData.bank.balance) return msg("You don't have that many coins in the bank.");
-
-  const before = snapshotBalances();
-  userData.bank.balance -= amt;
-  userData.coins += amt;
-
-  await persist();
-  await recordLedger('withdraw', amt, before, snapshotBalances());
-
-  $('withdrawAmount').value = '';
-  msg(`Withdrew ${amt} coin(s).`);
-  render();
-  renderLedger();
-}
-
-function snapshotBalances(){
-  return {
-    wallet: Number(userData.coins || 0),
-    bank:   Number(userData.bank?.balance || 0)
-  };
-}
-
-async function persist() {
-  await update(ref(db, `users/${uid}`), {
-    coins: userData.coins,
-    bank: { balance: userData.bank.balance, lastUpdated: Date.now() }
-  });
-}
-
-async function recordLedger(kind, amount, before, after){
-  const entry = {
+async function addTx(kind, amount){
+  const txRef = push(ref(db, `bankTx/${uid}`));
+  const row = {
+    id: txRef.key,
+    at: Date.now(),
     type: kind,                 // 'deposit' | 'withdraw'
     amount: Number(amount||0),
-    walletBefore: before.wallet,
-    bankBefore: before.bank,
-    walletAfter: after.wallet,
-    bankAfter: after.bank,
-    at: Date.now()
+    coinsAfter: Number(user.coins||0),
+    bankAfter:  Number(user.bank||0),
   };
-  const r = push(ref(db, `users/${uid}/bank/ledger`));
-  await set(r, entry);
-  // update local cache at top
-  ledger.unshift({ id: r.key, ...entry });
+  await set(txRef, row);
 }
 
-function renderLedger(){
-  const list = $('ledgerList');
-  const empty = $('ledgerEmpty');
-
-  const rows = ledger.filter(e => {
-    if (filter === 'deposit') return e.type === 'deposit';
-    if (filter === 'withdraw') return e.type === 'withdraw';
-    return true;
-  });
-
-  if (!rows.length) {
-    list.innerHTML = '';
-    empty.style.display = '';
-    return;
-  }
-  empty.style.display = 'none';
-  list.innerHTML = '';
-
-  rows.forEach(e => {
-    const div = document.createElement('div');
-    div.className = 'ledger-item';
-
-    const tagClass = e.type === 'deposit' ? 'deposit' : 'withdraw';
-    const sign = e.type === 'deposit' ? '+' : '−';
-    const amtClass = e.type === 'deposit' ? 'positive' : 'negative';
-
-    div.innerHTML = `
-      <div class="ledger-left">
-        <div>
-          <span class="tag ${tagClass}">${e.type === 'deposit' ? 'Deposit' : 'Withdrawal'}</span>
-          <span class="amt ${amtClass}">${sign}${e.amount}</span>
-        </div>
-        <div class="balances-mini">
-          Wallet: ${e.walletBefore} → ${e.walletAfter} &nbsp;|&nbsp;
-          Bank: ${e.bankBefore} → ${e.bankAfter}
-        </div>
-      </div>
-      <div class="hint">${formatTime(e.at)}</div>
+function renderTx(rows){
+  const list = $('txList'); list.innerHTML = '';
+  if (!rows.length) { list.innerHTML = '<div class="muted">No transactions yet.</div>'; return; }
+  rows.forEach(r=>{
+    const when = new Date(r.at).toLocaleString();
+    const line = document.createElement('div');
+    line.innerHTML = `
+      <strong>${r.type === 'deposit' ? 'Deposit' : 'Withdraw'}</strong>
+      — ${r.amount.toLocaleString()} coins
+      <span class="muted">(${when})</span><br/>
+      <span class="muted">After: on-hand ${r.coinsAfter.toLocaleString()}, bank ${r.bankAfter.toLocaleString()}</span>
     `;
-    list.appendChild(div);
+    list.appendChild(line);
   });
 }
-
-function formatTime(ts){
-  try {
-    const d = new Date(ts);
-    return d.toLocaleString();
-  } catch { return ''; }
-}
-
-function msg(text){
-  $('bankMsg').textContent = text;
-}
-
