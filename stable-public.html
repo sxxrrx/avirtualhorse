@@ -17,14 +17,12 @@
   </style>
 </head>
 <body>
+  <!-- shared chrome -->
+  <div id="topbar"></div>
+
   <div id="mainContainer">
-    <!-- Left Sidebar -->
-    <div class="sidebar left-sidebar">
-      <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
-      <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-      <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
-      <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
-    </div>
+    <!-- Left Sidebar (filled by app-chrome) -->
+    <div id="leftSidebar" class="sidebar left-sidebar"></div>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -47,14 +45,11 @@
       </div>
     </div>
 
-    <!-- Right Sidebar -->
-    <div class="sidebar right-sidebar">
-      <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
-      <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
-      <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
-    </div>
+    <!-- Right Sidebar (filled by app-chrome) -->
+    <div id="rightSidebar" class="sidebar right-sidebar"></div>
   </div>
 
+  <script type="module" src="app-chrome.js"></script>
   <script type="module" src="stable-public.js"></script>
 </body>
 </html>
