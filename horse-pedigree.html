@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Horse Pedigree</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .ped-head { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+    .ped-wrap  { position:relative; }
+    .ped-grid  {
+      display:grid;
+      gap:10px 14px;          /* row / column gaps */
+      align-items:center;
+    }
+    .ped-node {
+      background:#fff;
+      border:1px solid #c0e8c0;
+      border-radius:8px;
+      padding:8px 10px;
+      min-width:220px;
+      max-width:260px;
+      box-shadow:0 1px 2px rgba(0,0,0,.05);
+    }
+    .ped-node .nm { font-weight:700; }
+    .ped-node .meta { font-size:12px; opacity:.85; margin-top:2px; }
+    /* Make the clickable name look like a link without being loud */
+    .ped-node a { text-decoration:none; color:#2e402d; border-bottom:1px dotted #2e402d; }
+    .ped-node a:hover { border-bottom-style:solid; }
+
+    /* SVG goes on top to draw the connectors */
+    #pedLines {
+      position:absolute; inset:0;
+      pointer-events:none;
+    }
+
+    /* Small helper */
+    .muted { opacity:.85; }
+  </style>
+</head>
+<body>
+  <!-- content-only; chrome will wrap -->
+  <div id="pageMain" class="main-content">
+    <div class="ped-head">
+      <h1 id="pedTitle">Pedigree</h1>
+      <label style="margin-left:auto">Generations:
+        <select id="genSelect">
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="ped-wrap">
+      <svg id="pedLines"></svg>
+      <div id="pedGrid" class="ped-grid"></div>
+    </div>
+
+    <p id="pedMsg" class="muted" style="margin-top:10px;"></p>
+  </div>
+
+  <!-- shared chrome -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ leftActive: 'stables' });
+  </script>
+
+  <!-- logic -->
+  <script type="module" src="horse-pedigree.js"></script>
+</body>
+</html>
 
