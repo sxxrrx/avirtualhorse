@@ -1,73 +1,254 @@
-// horse-history-log.js
-import { db } from './firebase-init.js';
-import { ref, push, set, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
-import { currentGameHour, yearsToHours } from './time.js';
+// horse-history.js
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
+import { ref, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { GAME_EPOCH_UTC } from './time.js';
 
-/**
- * Core logger. Writes one record under /horseEvents/{horseId}
- * kind: 'born' | 'purchased' | 'sold' | 'bred' | 'foaled'
- * details: freeform object (seller/buyer/parents/partner/etc)
- * meta: { byUid?, byName?, atGh? }  (atGh is optional override)
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const horseId = params.get('id');
+
+let uid = null;
+let me = null;
+let horse = null;
+let events = [];   // normalized timeline
+let page = 1, pageSize = 15;
+let filter = 'all';
+
+onAuthStateChanged(auth, async user => {
+  if (!user) return location.href = 'login.html';
+  uid = user.uid;
+
+  if (!horseId) { setStatus('No horse specified.'); return; }
+
+  const uSnap = await get(ref(db, `users/${uid}`));
+  if (!uSnap.exists()) { setStatus('User not found.'); return; }
+  me = uSnap.val();
+
+  horse = findHorse(me, horseId);
+  if (!horse) { setStatus('Horse not found.'); return; }
+
+  // header
+  $('#pageTitle').textContent = `${horse.name || 'Horse'} — History`;
+  $('#horseImage').src = horse.image || 'horse-placeholder.png';
+  $('#ownerLinks').innerHTML =
+    `Owner: You • <a class="tabButton" href="horse.html?id=${encodeURIComponent(horseId)}">Open horse</a>`;
+
+  // load timeline (global preferred, then local)
+  events = await loadTimeline(horse.id, uid, me);
+
+  wireUI();
+  render();
+});
+
+function wireUI(){
+  $('#fAll').onclick       = () => { filter='all';       setActive('fAll');       render(); };
+  $('#fBreeding').onclick  = () => { filter='breeding';  setActive('fBreeding');  render(); };
+  $('#fOwnership').onclick = () => { filter='ownership'; setActive('fOwnership'); render(); };
+  $('#fHealth').onclick    = () => { filter='health';    setActive('fHealth');    render(); };
+  $('#fShows').onclick     = () => { filter='shows';     setActive('fShows');     render(); };
+  $('#fMisc').onclick      = () => { filter='misc';      setActive('fMisc');      render(); };
+
+  $('#prevPage').onclick   = () => { page=Math.max(1,page-1); render(); };
+  $('#nextPage').onclick   = () => { page=Math.min(totalPages(),page+1); render(); };
+}
+function setActive(id){ ['fAll','fBreeding','fOwnership','fHealth','fShows','fMisc'].forEach(x => $(x).classList.toggle('active', x===id)); }
+
+async function loadTimeline(horseId, ownerUid, ownerObj){
+  // 1) Global per-horse log (preferred)
+  const gSnap = await get(ref(db, `horseEvents/${horseId}`));
+  const list = gSnap.exists()
+    ? Object.entries(gSnap.val()).map(([id, e]) => normalizeEvent({ id, ...e }))
+    : [];
+
+  // 2) Fallback: legacy per-user history if any
+  const legacySnap = await get(ref(db, `users/${ownerUid}/horseHistory/${horseId}`));
+  if (legacySnap.exists()){
+    const legacy = Object.entries(legacySnap.val()).map(([id, e]) => normalizeEvent({ id, ...e }));
+    list.push(...legacy);
+  }
+
+  // 3) Fallback: embedded on the horse object (old builds)
+  if (ownerObj && ownerObj.horsesHistory && ownerObj.horsesHistory[horseId]){
+    const embedded = Object.entries(ownerObj.horsesHistory[horseId]).map(([id, e]) => normalizeEvent({ id, ...e }));
+    list.push(...embedded);
+  } else if (horse.history){
+    const embedded = toArray(horse.history).map(e => normalizeEvent(e));
+    list.push(...embedded);
+  }
+
+  // de-dupe + sort newest first
+  const seen = new Set();
+  const out = [];
+  for (const e of list){
+    const key = `${e.atGh||e.atMs}:${e.kind}:${e.note||''}`;
+    if (seen.has(key)) continue;
+    seen.add(key); out.push(e);
+  }
+  out.sort((a,b) => (b.atGh??0) - (a.atGh??0) || (b.atMs??0) - (a.atMs??0));
+  return out;
+}
+
+/* ---------- render ---------- */
+function filtered(){
+  if (filter==='all') return events;
+  return events.filter(e => e.category === filter);
+}
+function totalPages(){
+  return Math.max(1, Math.ceil(filtered().length / pageSize));
+}
+function render(){
+  const list = filtered();
+  const tl = $('#timeline'); tl.innerHTML = '';
+
+  if (list.length === 0){
+    tl.innerHTML = '<p class="muted">No history yet.</p>';
+    $('#pageInfo').textContent = 'Page 1 / 1';
+    $('#prevPage').disabled = $('#nextPage').disabled = true;
+    return;
+  }
+
+  page = Math.min(page, totalPages());
+  const start = (page-1)*pageSize;
+  const slice = list.slice(start, start+pageSize);
+
+  slice.forEach(e => tl.appendChild(renderEvent(e)));
+
+  $('#pageInfo').textContent = `Page ${page} / ${totalPages()}`;
+  $('#prevPage').disabled = page<=1;
+  $('#nextPage').disabled = page>=totalPages();
+}
+
+function renderEvent(e){
+  const div = document.createElement('div');
+  div.className = 'event';
+  const when = formatGameDate(e.atGh, e.atMs);
+
+  div.innerHTML = `
+    <div class="when">${when}</div>
+    <div class="body">${eventText(e)}</div>
+  `;
+  return div;
+}
+
+/* ---------- event formatting ---------- */
+function eventText(e){
+  const who = e.byName ? escape(e.byName) : (e.byUid ? shortUid(e.byUid) : 'System');
+  const d = e.details || {};
+
+  switch (e.kind) {
+    case 'born':
+      return `<p>Foaled ${escape(d.place||'in the ranch')}.</p>${parentLine(d)}`;
+
+    // NEW: logger emits 'bred' (keep backward 'bred_with' too)
+    case 'bred':
+    case 'bred_with': {
+      const name = d.partnerName || 'Horse';
+      const id   = d.partnerId;
+      const ouid = d.partnerOwnerUid;
+      const role = d.role || d.partnerRole || 'partner';
+      const link = id ? `<a href="${horseLink(ouid, id)}">${escape(name)}</a>` : escape(name);
+      return `<p>Bred with ${link} (${escape(role)}).</p>`;
+    }
+
+    // NEW: logger emits 'foaled' on the dam (keep backward 'foal_born' too)
+    case 'foaled':
+    case 'foal_born': {
+      const name = d.foalName || d.childName || 'Foal';
+      const id   = d.foalId   || d.childId;
+      const ouid = d.childOwnerUid || d.foalOwnerUid;
+      const gender = d.childGender || d.foalGender || '—';
+      const link = id ? `<a href="${horseLink(ouid, id)}">${escape(name)}</a>` : escape(name);
+      return `<p>Foal born: ${link} (${escape(gender)}).</p>`;
+    }
+
+    case 'listed_for_sale':
+      return `<p>Listed for rescue/market for ${Number(d.price||0).toLocaleString()} coins.</p>`;
+
+    case 'sold':
+      return `<p>Sold to <a href="ranch-public.html?uid=${encodeURIComponent(d.buyerUid)}">${escape(d.buyerName || shortUid(d.buyerUid))}</a> for ${Number(d.price||0).toLocaleString()} coins.</p>`;
+
+    case 'purchased':
+      return `<p>Purchased from ${sellerSpan(d)} for ${Number(d.price||0).toLocaleString()} coins.</p>`;
+
+    default:
+      // Show categories you care about; hide noise by keeping this minimal
+      if (e.kind === 'transferred') {
+        return `<p>Ownership transferred to <a href="ranch-public.html?uid=${encodeURIComponent(d.toUid)}">${shortUid(d.toUid)}</a>.</p>`;
+      }
+      // If you later add shows/vet events, you can add cases back
+      return `<p>${escape(e.note || 'Activity recorded.')}</p>`;
+  }
+}
+
+function sellerSpan(d){
+  // store purchases have sellerUid: 'store'
+  if (d.sellerUid === 'store' || d.sellerName === 'Town Store') return '<strong>Town Store</strong>';
+  if (d.sellerUid) {
+    const name = d.sellerName || shortUid(d.sellerUid);
+    return `<a href="ranch-public.html?uid=${encodeURIComponent(d.sellerUid)}">${escape(name)}</a>`;
+  }
+  return escape(d.sellerName || 'Seller');
+}
+
+function parentLine(d){
+  const parts = [];
+  if (d.sireId) parts.push(`Sire: <a href="${horseLink(d.sireOwnerUid, d.sireId)}">${escape(d.sireName||'—')}</a>`);
+  if (d.damId)  parts.push(`Dam: <a href="${horseLink(d.damOwnerUid, d.damId)}">${escape(d.damName||'—')}</a>`);
+  return parts.length ? `<p class="muted">${parts.join(' • ')}</p>` : '';
+}
+
+/* ---------- helpers ---------- */
+function formatGameDate(atGh, atMs){
+  if (typeof atGh === 'number') {
+    const day = Math.floor(atGh/24), hour = atGh%24;
+    const d = new Date(GAME_EPOCH_UTC + day*86400000);
+    return `${d.toLocaleDateString()} — ${String(hour).padStart(2,'0')}:00`;
+  }
+  if (atMs) return new Date(atMs).toLocaleString();
+  return '—';
+}
+function horseLink(ownerUid, horseId){
+  if (!ownerUid || ownerUid===uid) return `horse.html?id=${encodeURIComponent(horseId||'')}`;
+  return `horse-public.html?uid=${encodeURIComponent(ownerUid)}&id=${encodeURIComponent(horseId||'')}`;
+}
+function toArray(v){ return Array.isArray(v) ? v.filter(Boolean) : Object.values(v||{}); }
+function findHorse(u, id){
+  const arr = toArray(u.horses);
+  return arr.find(h => h?.id === id) || null;
+}
+function shortUid(u){ return (u||'').slice(0,6)+'…'; }
+function setStatus(t){ const el=$('#status'); if (el) el.textContent = t; }
+function escape(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ---------- normalizer ---------- */
+/** Normalize to:
+ * { id, kind, category, atGh?, atMs?, byUid?, byName?, details?, note? }
  */
-export async function logHorseEvent(horseId, kind, details = {}, meta = {}) {
-  if (!horseId || !kind) return;
-  const atGh = typeof meta.atGh === 'number' ? meta.atGh : currentGameHour();
-  const rec = {
-    kind, details,
-    byUid: meta.byUid || null,
-    byName: meta.byName || null,
-    atGh,
-    atMs: Date.now()
+function normalizeEvent(src){
+  const e = { ...src };
+  const k0 = (e.kind || e.type || 'misc').toLowerCase();
+
+  // map synonyms -> canonical keys we handle
+  const map = {
+    bred_with: 'bred',
+    foal_born: 'foaled'
   };
-  const evRef = push(ref(db, `horseEvents/${horseId}`));
-  await set(evRef, rec);
+  const k = map[k0] || k0;
+
+  // category
+  let cat = 'misc';
+  if (['born','bred','foaled'].includes(k)) cat = 'breeding';
+  else if (['listed_for_sale','sold','purchased','transferred'].includes(k)) cat = 'ownership';
+  e.kind = k; e.category = cat;
+
+  // timestamps
+  if (typeof e.atGh !== 'number' && typeof e.atGameHour === 'number') e.atGh = e.atGameHour;
+  if (!e.atGh && e.gameHour) e.atGh = e.gameHour;
+  if (!e.atMs && e.timeMs) e.atMs = e.timeMs;
+
+  // details container
+  e.details = e.details || e.data || {};
+  return e;
 }
 
-/** Convenience: log both sides of a transfer (sold + purchased). */
-export async function logTransfer(horseId, { sellerUid=null, sellerName=null, buyerUid=null, buyerName=null, price=0 } = {}) {
-  const gh = currentGameHour();
-  await Promise.all([
-    logHorseEvent(horseId, 'sold',      { buyerUid,  buyerName,  price }, { atGh: gh }),
-    logHorseEvent(horseId, 'purchased', { sellerUid, sellerName, price }, { atGh: gh }),
-  ]);
-}
-
-/** Breeding: log onto BOTH parents with a partner reference. */
-export async function logBreedingPair({ sireId, sireOwnerUid, sireName }, { damId, damOwnerUid, damName }) {
-  const gh = currentGameHour();
-  const sireDetails = { partnerId: damId, partnerOwnerUid: damOwnerUid, partnerName: damName, role: 'dam' };
-  const damDetails  = { partnerId: sireId, partnerOwnerUid: sireOwnerUid, partnerName: sireName, role: 'sire' };
-  await Promise.all([
-    logHorseEvent(sireId, 'bred', sireDetails, { atGh: gh }),
-    logHorseEvent(damId,  'bred', damDetails,  { atGh: gh }),
-  ]);
-}
-
-/** Foaling: add 'born' on foal with parents, and 'foaled' on the dam. */
-export async function logFoalBirth({ foalId, foalName }, { sireId, sireOwnerUid, sireName }, { damId, damOwnerUid, damName }) {
-  const gh = currentGameHour();
-  await Promise.all([
-    logHorseEvent(foalId, 'born',   {
-      sireId, sireOwnerUid, sireName,
-      damId,  damOwnerUid,  damName
-    }, { atGh: gh }),
-    logHorseEvent(damId,  'foaled', {
-      foalId, foalName
-    }, { atGh: gh })
-  ]);
-}
-
-/**
- * Backfill a birth record for “origin horses” (e.g., Town Store) who
- * arrive without parents. Writes one 'born' entry dated N years ago.
- */
-export async function logStoreBirthIfMissing(horseId, approxYears = 2) {
-  if (!horseId) return;
-  const snap = await get(ref(db, `horseEvents/${horseId}`));
-  const hasBorn = snap.exists() &&
-    Object.values(snap.val()).some(e => String(e?.kind).toLowerCase() === 'born');
-  if (hasBorn) return;
-
-  const atGh = currentGameHour() - yearsToHours(approxYears);
-  await logHorseEvent(horseId, 'born', { origin: 'Town Store' }, { atGh });
-}
