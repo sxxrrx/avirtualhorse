@@ -1,28 +1,24 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, set, update, push } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { currentGameHour, hoursToDays } from './time.js'; // ✅ centralized time
 
 const $ = id => document.getElementById(id);
 
-// In-game clock: 1 real min = 1 game hour (matches your project)
-function currentGameHour(){
-  const start = new Date(Date.UTC(2025,0,1)).getTime();
-  return Math.floor((Date.now() - start) / (60 * 1000));
-}
-function hoursToDays(h){ return Math.max(0, Math.ceil(h/24)); }
-
 let uid = null;
-let me  = null;
 let horseId = null;
 let userData = null;
 let horse = null;
 let horses = [];
 
-const FEED_COST  = 300;      // 8 RL days
-const GROOM_COST = 150;      // 7 RL days
+// Costs stay the same
+const FEED_COST  = 300; // ~8 real days
+const GROOM_COST = 150; // ~7 real days
 
-const FEED_DAYS  = 8;
-const GROOM_DAYS = 7;
+// NEW: to actually be ~8/7 REAL DAYS with your 12h-per-game-day pacing,
+// we need 16/14 GAME DAYS, not 8/7.
+const FEED_DAYS  = 16; // ≈ 8 real days
+const GROOM_DAYS = 14; // ≈ 7 real days
 
 onAuthStateChanged(auth, async user => {
   if (!user) return location.href = 'login.html';
@@ -35,7 +31,6 @@ onAuthStateChanged(auth, async user => {
     return;
   }
 
-  // Load user + horses
   const us = await get(ref(db, `users/${uid}`));
   if (!us.exists()) { alert('User not found.'); return; }
   userData = us.val();
@@ -49,7 +44,6 @@ onAuthStateChanged(auth, async user => {
   renderHead();
   await renderPlans();
 
-  // Button hooks
   $('#btnStartFeed').onclick  = startFeedPlan;
   $('#btnStartGroom').onclick = startGroomPlan;
   $('#btnShots').onclick      = () => scheduleVet('vet_shots', 15);
@@ -68,9 +62,8 @@ function renderHead(){
   });
 }
 
-function planId(kind){ return `${uid}_${horse.id}_${kind}`; } // unique per (owner,horse,kind)
+function planId(kind){ return `${uid}_${horse.id}_${kind}`; }
 
-// Read plan docs and show status
 async function renderPlans(){
   await renderFeedPlan();
   await renderGroomPlan();
@@ -114,7 +107,6 @@ async function renderGroomPlan(){
   $('#groomPlanStatus').textContent = `Active — ${leftDays} day(s) remaining. Next due at game hour ${plan.nextDueGameHour}.`;
 }
 
-// ------ Actions: start plans ------
 async function startFeedPlan(){
   if (horse.retired) return;
   if ((userData.coins || 0) < FEED_COST) return alert('Not enough coins (300).');
@@ -127,7 +119,7 @@ async function startFeedPlan(){
     horseName: horse.name || 'Horse',
     startedAtGameHour: nowH,
     expiresAtGameHour: nowH + FEED_DAYS * 24,
-    nextDueGameHour: nowH,     // first task can be done anytime after now
+    nextDueGameHour: nowH,
     remainingDays: FEED_DAYS,
     status: 'active'
   };
@@ -140,7 +132,7 @@ async function startFeedPlan(){
 
   alert('Feeding plan started!');
   await renderFeedPlan();
-  $('#coinCounter')?.textContent = userData.coins; // if present in layout
+  $('#coinCounter')?.textContent = `Coins: ${Number(userData.coins||0).toLocaleString()}`;
 }
 
 async function startGroomPlan(){
@@ -168,15 +160,13 @@ async function startGroomPlan(){
 
   alert('Grooming plan started!');
   await renderGroomPlan();
-  $('#coinCounter')?.textContent = userData.coins;
+  $('#coinCounter')?.textContent = `Coins: ${Number(userData.coins||0).toLocaleString()}`;
 }
 
-// Create a stablehand-visible request
 async function enqueueStablehandTask(kind, plan){
-  // We push a task under serviceRequests with role='stablehand'
   const req = {
-    role: 'stablehand',                  // so Services page can filter
-    type: kind,                          // 'feed_daily' | 'groom_daily'
+    role: 'stablehand',
+    type: kind,
     ownerUid: plan.ownerUid,
     horseId: plan.horseId,
     horseName: plan.horseName,
@@ -189,7 +179,6 @@ async function enqueueStablehandTask(kind, plan){
   await set(r, req);
 }
 
-// ------ Vet scheduling (charges owner now; Vet Assistant gets paid on completion) ------
 async function scheduleVet(type, cost){
   if (horse.retired) return;
   if ((userData.coins || 0) < cost) { $('#vetMsg').textContent = 'Not enough coins.'; return; }
@@ -199,14 +188,13 @@ async function scheduleVet(type, cost){
 
   const req = {
     role: 'vet',
-    type,                                  // 'vet_shots' | 'vet_check' | 'breeding_check'
+    type,
     ownerUid: uid,
     horseId: horse.id,
     horseName: horse.name || 'Horse',
     status: 'pending',
     postedAtGameHour: currentGameHour(),
-    // For gelding you wanted auto in 12h; not used here
-    dueAtGameHour: currentGameHour() + 24   // give 1 in-game day window
+    dueAtGameHour: currentGameHour() + 24
   };
   const r = push(ref(db, 'serviceRequests'));
   await set(r, req);
