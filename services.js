@@ -4,6 +4,10 @@ import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1
 
 let uid = null;
 
+// --- helpers for owner display ---
+function escapeHtml(str){ return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
+function shortUid(id){ return id ? id.slice(0,6) + '…' : '(unknown)'; }
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) return window.location.href = 'login.html';
   uid = user.uid;
@@ -61,17 +65,32 @@ async function loadQueue() {
       updates[r.id] = true;
     }
   }
+
   // refetch if anything changed
+  let toRender = requests;
   if (Object.keys(updates).length) {
     const s2 = await get(ref(db, 'serviceRequests'));
     const all2 = s2.exists() ? s2.val() : {};
-    renderQueue(Object.entries(all2).map(([id, r]) => ({ id, ...r })));
-  } else {
-    renderQueue(requests);
+    toRender = Object.entries(all2).map(([id, r]) => ({ id, ...r }));
   }
+
+  // --- NEW: fetch display names for owners ---
+  const ownerUids = [...new Set(toRender.map(r => r.ownerUid).filter(Boolean))];
+  const ownerMap = {};
+  await Promise.all(ownerUids.map(async (u) => {
+    const us = await get(ref(db, `users/${u}`));
+    if (us.exists()) {
+      const ud = us.val();
+      ownerMap[u] = ud.username || ud.loginName || shortUid(u);
+    } else {
+      ownerMap[u] = shortUid(u);
+    }
+  }));
+
+  renderQueue(toRender, ownerMap);
 }
 
-function renderQueue(reqs) {
+function renderQueue(reqs, ownerMap = {}) {
   const list = document.getElementById('requestList');
   const pending = reqs.filter(r => r.status === 'pending');
   if (pending.length === 0) {
@@ -80,12 +99,15 @@ function renderQueue(reqs) {
   }
   list.innerHTML = '';
   pending.forEach((r) => {
+    const ownerName = ownerMap[r.ownerUid] || shortUid(r.ownerUid);
+    const ownerLink = `<a href="ranch-public.html?uid=${encodeURIComponent(r.ownerUid)}">${escapeHtml(ownerName)}</a>`;
+
     const div = document.createElement('div');
     div.className = 'horse-card';
     div.innerHTML = `
-      <p><strong>Type:</strong> ${r.type}</p>
-      <p><strong>Horse:</strong> ${r.horseName || r.horseId}</p>
-      <p><strong>Owner:</strong> ${r.ownerUid.slice(0,6)}…</p>
+      <p><strong>Type:</strong> ${escapeHtml(r.type)}</p>
+      <p><strong>Horse:</strong> ${escapeHtml(r.horseName || r.horseId)}</p>
+      <p><strong>Owner:</strong> ${ownerLink}</p>
       <p><strong>Due in:</strong> ${Math.max(0, r.dueAtGameHour - currentGameHour())} in-game hours</p>
       <button>Complete Now</button>
     `;
