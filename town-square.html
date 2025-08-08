@@ -7,21 +7,12 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <!-- Top bar -->
-  <div id="topbar">
-    <div id="coinCounter">Coins: 0</div>
-    <div id="gameClock"></div>
-    <button id="btnLogout">Logout</button>
-  </div>
+  <!-- Shared top bar -->
+  <div id="topbar"></div>
 
   <div id="mainContainer">
-    <!-- Left Sidebar -->
-    <div class="sidebar left-sidebar">
-      <button class="tabButton active">🏙️<br>Town Square</button>
-      <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-      <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>Stables</button>
-      <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
-    </div>
+    <!-- Sidebars are filled by app-chrome.js -->
+    <div id="leftSidebar" class="sidebar left-sidebar"></div>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -32,14 +23,10 @@
       <div id="newsList" class="grid"></div>
     </div>
 
-    <!-- Right Sidebar -->
-    <div class="sidebar right-sidebar">
-      <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
-      <button class="tabButton" onclick="window.location.href='services.html'">🧰<br>Services</button>
-      <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
-    </div>
+    <div id="rightSidebar" class="sidebar right-sidebar"></div>
   </div>
 
+  <script type="module" src="app-chrome.js"></script>
   <script type="module" src="town-square.js"></script>
 </body>
 </html>
