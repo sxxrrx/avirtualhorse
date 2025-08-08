@@ -1,199 +1,105 @@
-// bank.js
-import { auth, db } from './firebase-init.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, get, update, push, set } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Clubhouse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .grid-1 { display:grid; grid-template-columns:1fr; gap:14px; }
+    .card { background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:14px; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .hint { font-size:13px; opacity:.85; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#e7f7e7; border:1px solid #c0e8c0; }
+    select, input[type="number"] { padding:8px; border:1px solid #cbdacb; border-radius:6px; }
+    .list { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px; }
+  </style>
+</head>
+<body>
+  <div id="pageMain" class="main-content">
+    <h1>Clubhouse</h1>
+    <p class="hint">Train yourself as a rider, hire NPC riders, train them, and assign riders to your horses.</p>
 
-const $ = id => document.getElementById(id);
-
-let uid = null;
-let userData = null;
-let ledger = [];   // local cache of transactions
-let filter = 'all'; // 'all' | 'deposit' | 'withdraw'
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return location.href = 'login.html';
-  uid = user.uid;
-
-  await loadUser();
-  await loadLedger();
-  wireControls();
-  render();
-  renderLedger();
-});
-
-async function loadUser() {
-  const snap = await get(ref(db, `users/${uid}`));
-  userData = snap.exists() ? snap.val() : {};
-  // ensure fields
-  userData.coins = Number(userData.coins || 0);
-  userData.bank = userData.bank || {};
-  userData.bank.balance = Number(userData.bank.balance || 0);
-}
-
-async function loadLedger() {
-  const s = await get(ref(db, `users/${uid}/bank/ledger`));
-  if (!s.exists()) { ledger = []; return; }
-  const obj = s.val();
-  ledger = Object.entries(obj).map(([id, v]) => ({ id, ...v }))
-           .sort((a,b) => (b.at||0) - (a.at||0));
-}
-
-function render() {
-  const wallet = userData.coins;
-  const bank   = userData.bank.balance;
-  const total  = wallet + bank;
-
-  $('walletCoins').textContent = wallet.toLocaleString();
-  $('bankCoins').textContent   = bank.toLocaleString();
-  $('totalCoins').textContent  = total.toLocaleString();
-
-  const pct = total > 0 ? Math.round((bank / total) * 100) : 0;
-  $('bankBar').style.width = pct + '%';
-  $('bankPct').textContent = `${pct}% of your coins are in the bank.`;
-
-  // keep topbar in sync if present
-  const top = document.getElementById('coinCounter');
-  if (top) top.textContent = `Coins: ${wallet}`;
-}
-
-function wireControls() {
-  $('btnDeposit').onclick  = deposit;
-  $('btnWithdraw').onclick = withdraw;
-
-  $('btnDep25').onclick = () => setAmount('depositAmount', Math.floor(userData.coins * 0.25));
-  $('btnDep50').onclick = () => setAmount('depositAmount', Math.floor(userData.coins * 0.50));
-  $('btnDepAll').onclick = () => setAmount('depositAmount', userData.coins);
-
-  $('btnWdr25').onclick = () => setAmount('withdrawAmount', Math.floor(userData.bank.balance * 0.25));
-  $('btnWdr50').onclick = () => setAmount('withdrawAmount', Math.floor(userData.bank.balance * 0.50));
-  $('btnWdrAll').onclick = () => setAmount('withdrawAmount', userData.bank.balance);
-
-  $('fAll').onclick = () => { filter='all'; renderLedger(); };
-  $('fDeposits').onclick = () => { filter='deposit'; renderLedger(); };
-  $('fWithdrawals').onclick = () => { filter='withdraw'; renderLedger(); };
-}
-
-function setAmount(inputId, amt){
-  const el = $(inputId);
-  el.value = Math.max(0, Math.floor(amt || 0));
-}
-
-async function deposit() {
-  const amt = Math.floor(Number(($('depositAmount').value || '0').trim()));
-  if (!amt || amt <= 0) return msg('Enter a valid amount to deposit.');
-  if (amt > userData.coins) return msg("You don't have that many coins in your wallet.");
-
-  const before = snapshotBalances();
-  userData.coins -= amt;
-  userData.bank.balance += amt;
-
-  await persist();
-  await recordLedger('deposit', amt, before, snapshotBalances());
-
-  $('depositAmount').value = '';
-  msg(`Deposited ${amt} coin(s).`);
-  render();
-  renderLedger();
-}
-
-async function withdraw() {
-  const amt = Math.floor(Number(($('withdrawAmount').value || '0').trim()));
-  if (!amt || amt <= 0) return msg('Enter a valid amount to withdraw.');
-  if (amt > userData.bank.balance) return msg("You don't have that many coins in the bank.");
-
-  const before = snapshotBalances();
-  userData.bank.balance -= amt;
-  userData.coins += amt;
-
-  await persist();
-  await recordLedger('withdraw', amt, before, snapshotBalances());
-
-  $('withdrawAmount').value = '';
-  msg(`Withdrew ${amt} coin(s).`);
-  render();
-  renderLedger();
-}
-
-function snapshotBalances(){
-  return {
-    wallet: Number(userData.coins || 0),
-    bank:   Number(userData.bank?.balance || 0)
-  };
-}
-
-async function persist() {
-  await update(ref(db, `users/${uid}`), {
-    coins: userData.coins,
-    bank: { balance: userData.bank.balance, lastUpdated: Date.now() }
-  });
-}
-
-async function recordLedger(kind, amount, before, after){
-  const entry = {
-    type: kind,                 // 'deposit' | 'withdraw'
-    amount: Number(amount||0),
-    walletBefore: before.wallet,
-    bankBefore: before.bank,
-    walletAfter: after.wallet,
-    bankAfter: after.bank,
-    at: Date.now()
-  };
-  const r = push(ref(db, `users/${uid}/bank/ledger`));
-  await set(r, entry);
-  // update local cache at top
-  ledger.unshift({ id: r.key, ...entry });
-}
-
-function renderLedger(){
-  const list = $('ledgerList');
-  const empty = $('ledgerEmpty');
-
-  const rows = ledger.filter(e => {
-    if (filter === 'deposit') return e.type === 'deposit';
-    if (filter === 'withdraw') return e.type === 'withdraw';
-    return true;
-  });
-
-  if (!rows.length) {
-    list.innerHTML = '';
-    empty.style.display = '';
-    return;
-  }
-  empty.style.display = 'none';
-  list.innerHTML = '';
-
-  rows.forEach(e => {
-    const div = document.createElement('div');
-    div.className = 'ledger-item';
-
-    const tagClass = e.type === 'deposit' ? 'deposit' : 'withdraw';
-    const sign = e.type === 'deposit' ? '+' : '−';
-    const amtClass = e.type === 'deposit' ? 'positive' : 'negative';
-
-    div.innerHTML = `
-      <div class="ledger-left">
-        <div>
-          <span class="tag ${tagClass}">${e.type === 'deposit' ? 'Deposit' : 'Withdrawal'}</span>
-          <span class="amt ${amtClass}">${sign}${e.amount}</span>
+    <div class="grid-1">
+      <!-- Profile snapshot -->
+      <div class="card">
+        <h3>Your Rider Profile</h3>
+        <div class="row">
+          <div><strong>Level:</strong> <span id="playerLevel">1</span></div>
+          <div><strong>EXP:</strong> <span id="playerExp">0</span></div>
+          <div><strong>Coins:</strong> <span id="playerCoins">0</span></div>
         </div>
-        <div class="balances-mini">
-          Wallet: ${e.walletBefore} → ${e.walletAfter} &nbsp;|&nbsp;
-          Bank: ${e.bankBefore} → ${e.bankAfter}
-        </div>
+        <p class="hint">Leveling curve: next level requires (current level × 100) EXP.</p>
       </div>
-      <div class="hint">${formatTime(e.at)}</div>
-    `;
-    list.appendChild(div);
-  });
-}
 
-function formatTime(ts){
-  try {
-    const d = new Date(ts);
-    return d.toLocaleString();
-  } catch { return ''; }
-}
+      <!-- Train yourself -->
+      <div class="card">
+        <h3>Train Yourself</h3>
+        <p class="hint">Gain <strong>25–100 EXP</strong> per session. (Free for now.)</p>
+        <button id="btnTrainSelf">Start Training Session</button>
+        <p id="msgSelf" class="hint"></p>
+      </div>
 
-function msg(text){
-  $('bankMsg').textContent = text;
-}
+      <!-- Hire NPC Rider -->
+      <div class="card">
+        <h3>Hire an NPC Rider</h3>
+        <p class="hint">
+          Cost: <strong id="hireCostLabel">1,000,000</strong> coins. Rider level depends on your level:
+          <br/>L1→10, L20→40, L50→100, L100→175, L200→250, L300→300 (L300 rider costs 10,000,000 and requires L300).
+        </p>
+        <div class="row">
+          <button id="btnPreviewHire">Preview Offer</button>
+          <button id="btnConfirmHire" disabled>Hire Rider</button>
+        </div>
+        <p id="msgHire" class="hint"></p>
+      </div>
+
+      <!-- Train hired rider -->
+      <div class="card">
+        <h3>Train a Hired Rider</h3>
+        <p class="hint">You gain <strong>5–15 EXP</strong>; the rider gains <strong>25–50 EXP</strong> per session.</p>
+        <div class="row">
+          <label for="riderSelect"><strong>Select Rider</strong></label>
+          <select id="riderSelect"><option value="">— No riders —</option></select>
+          <button id="btnTrainRider">Train Rider</button>
+        </div>
+        <p id="msgTrainRider" class="hint"></p>
+      </div>
+
+      <!-- Your riders -->
+      <div class="card">
+        <h3>Your Riders</h3>
+        <div id="riderList" class="list"></div>
+        <p id="riderEmpty" class="hint" style="display:none;">You haven’t hired any riders yet.</p>
+      </div>
+
+      <!-- Assign riders to horses -->
+      <div class="card">
+        <h3>Assign Riders to Horses</h3>
+        <div class="row">
+          <label for="horseSelect"><strong>Horse</strong></label>
+          <select id="horseSelect"><option value="">— No horses —</option></select>
+          <label for="assignSelect"><strong>Rider</strong></label>
+          <select id="assignSelect">
+            <option value="player">Player (you)</option>
+          </select>
+          <button id="btnAssign">Assign</button>
+        </div>
+        <div id="assignments" class="list" style="margin-top:10px;"></div>
+        <p class="hint">One NPC rider can ride <em>one</em> horse at a time. The player can ride many.</p>
+        <p id="msgAssign" class="hint"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared chrome -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ rightActive: 'clubhouse' });
+  </script>
+
+  <!-- Page logic -->
+  <script type="module" src="clubhouse.js"></script>
+</body>
+</html>
+
