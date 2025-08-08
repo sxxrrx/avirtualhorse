@@ -17,65 +17,61 @@
   </style>
 </head>
 <body>
+  <!-- Shared top bar -->
+  <div id="topbar"></div>
+
   <div id="mainContainer">
-  <!-- Left Sidebar -->
-  <div class="sidebar left-sidebar">
-    <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
-    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
-    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
-  </div>
+    <!-- Sidebars injected by app-chrome.js -->
+    <div class="sidebar left-sidebar" id="leftSidebar"></div>
 
-  <!-- Main Content -->
-  <div class="main-content">
-    <h1>Post Office</h1>
+    <!-- Main Content -->
+    <div class="main-content">
+      <h1>Post Office</h1>
 
-    <div class="tabs">
-      <button id="tabInbox"  class="tabButton">📥 Inbox</button>
-      <button id="tabSent"   class="tabButton">📤 Sent</button>
-      <button id="tabCompose" class="tabButton">✍️ Compose</button>
-    </div>
+      <div class="tabs">
+        <button id="tabInbox"  class="tabButton">📥 Inbox</button>
+        <button id="tabSent"   class="tabButton">📤 Sent</button>
+        <button id="tabCompose" class="tabButton">✍️ Compose</button>
+      </div>
 
-    <!-- Inbox -->
-    <div id="viewInbox" class="content" style="display:block;">
-      <div id="inboxList"></div>
-    </div>
+      <!-- Inbox -->
+      <div id="viewInbox" class="content" style="display:block;">
+        <div id="inboxList"></div>
+      </div>
 
-    <!-- Sent -->
-    <div id="viewSent" class="content" style="display:none;">
-      <div id="sentList"></div>
-    </div>
+      <!-- Sent -->
+      <div id="viewSent" class="content" style="display:none;">
+        <div id="sentList"></div>
+      </div>
 
-    <!-- Compose -->
-    <div id="viewCompose" class="content" style="display:none;">
-      <div class="compose">
-        <div class="row">
-          <div>
-            <label><strong>To (username or UID)</strong></label>
-            <input id="toInput" placeholder="e.g. StarRider or 7B2hK..."/>
+      <!-- Compose -->
+      <div id="viewCompose" class="content" style="display:none;">
+        <div class="compose">
+          <div class="row">
+            <div>
+              <label><strong>To (username or UID)</strong></label>
+              <input id="toInput" placeholder="e.g. StarRider or 7B2hK..."/>
+            </div>
+            <div>
+              <label><strong>Resolved recipient</strong></label>
+              <input id="resolvedTo" disabled placeholder="(will resolve when sending)"/>
+            </div>
           </div>
-          <div>
-            <label><strong>Resolved recipient</strong></label>
-            <input id="resolvedTo" disabled placeholder="(will resolve when sending)"/>
-          </div>
+          <label><strong>Subject</strong></label>
+          <input id="subjectInput" placeholder="Subject"/>
+          <label><strong>Message</strong></label>
+          <textarea id="bodyInput" rows="6" placeholder="Write your message…"></textarea>
+          <button id="sendBtn">Send</button>
+          <div id="composeStatus" style="margin-top:8px;"></div>
         </div>
-        <label><strong>Subject</strong></label>
-        <input id="subjectInput" placeholder="Subject"/>
-        <label><strong>Message</strong></label>
-        <textarea id="bodyInput" rows="6" placeholder="Write your message…"></textarea>
-        <button id="sendBtn">Send</button>
-        <div id="composeStatus" style="margin-top:8px;"></div>
       </div>
     </div>
+
+    <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
 
-  <!-- Right Sidebar -->
-  <div class="sidebar right-sidebar">
-    <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
-    <button class="tabButton" onclick="window.location.href='friends.html'">👥<br>My Friends</button>
-    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
-  </div>
-
+  <!-- Shared chrome, then page script -->
+  <script type="module" src="app-chrome.js"></script>
   <script type="module" src="post-office.js"></script>
 </body>
 </html>
