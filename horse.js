@@ -16,6 +16,11 @@ onAuthStateChanged(auth, async (user) => {
     document.querySelector('.main-content').innerHTML = '<p>Horse not specified.</p>';
     return;
   }
+const linkTarget = `horse-services.html?id=${encodeURIComponent(horse.id)}`;
+document.getElementById('fedStatusLink').href = linkTarget;
+document.getElementById('vetShotsStatusLink').href = linkTarget;
+document.getElementById('vetChecksStatusLink').href = linkTarget;
+document.getElementById('breedCheckStatusLink').href = linkTarget;
 
   const snap = await get(ref(db, `users/${uid}`));
   if (!snap.exists()) {
