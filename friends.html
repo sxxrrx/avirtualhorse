@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css"/>
   <style>
     .tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
-    .tabs button { padding:8px 14px; }
+    .tabs .tabButton { padding:8px 14px; }
     .section-title { margin:10px 0 6px; font-weight:600; }
     .friend-card, .mail-card {
       background:#fff; border:1px solid #c0e8c0; border-radius:6px;
@@ -17,21 +17,12 @@
   </style>
 </head>
 <body>
-<div id="mainContainer">
-  <!-- Left Sidebar -->
-  <div class="sidebar left-sidebar">
-    <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
-    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
-    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
-  </div>
-
-  <!-- Main Content -->
-  <div class="main-content">
+  <!-- Page content only; shared chrome will wrap this -->
+  <div id="pageMain" class="main-content">
     <h1>My Friends</h1>
 
     <div class="tabs">
-      <button id="tabFriends" class="tabButton">👥 Friends <span id="friendsCount"></span></button>
+      <button id="tabFriends" class="tabButton active">👥 Friends <span id="friendsCount"></span></button>
       <button id="tabPending" class="tabButton">⏳ Pending Requests <span id="pendingCount"></span></button>
     </div>
 
@@ -49,13 +40,15 @@
     </div>
   </div>
 
-  <!-- Right Sidebar -->
-  <div class="sidebar right-sidebar">
-    <button class="tabButton" onclick="window.location.href='post-office.html'">📬<br>Post Office</button>
-    <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
-    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
-  </div>
+  <!-- Shared chrome -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    // Highlight Ranch on the left since Friends lives off your personal ranch
+    mountChrome({ leftActive: 'ranch' });
+  </script>
 
+  <!-- Page logic -->
   <script type="module" src="friends.js"></script>
 </body>
 </html>
+
