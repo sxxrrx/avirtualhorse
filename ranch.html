@@ -1,49 +1,62 @@
-<!-- ranch.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>My Ranch</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .profile-card { background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:16px; }
+    .ctaRow { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+    .ctaButton {
+      background:#3b5d3b; color:#fff; border:none; border-radius:6px;
+      padding:10px 16px; font-size:15px; cursor:pointer;
+      text-decoration:none; display:inline-block;
+      transition:transform .05s ease, background .2s ease;
+    }
+    .ctaButton:hover { background:#567d46; }
+    .ctaButton:active { transform:translateY(1px); }
+    .expRow { margin-top:8px; }
+    .expRow small { opacity:.85; }
+  </style>
 </head>
 <body>
-<div id="mainContainer">
-  <!-- Left Sidebar -->
-  <div class="sidebar left-sidebar">
-    <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
-    <button class="tabButton active">🌾<br>My Ranch</button>
-    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>Stables</button>
-    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
-  </div>
+  <!-- Top bar injected by app-chrome -->
+  <div id="topbar"></div>
 
-  <!-- Main Content -->
-  <div class="main-content">
-    <h1>My Ranch</h1>
-    <div id="profile" class="content" style="display:block;">
-      <p><strong>Display Name:</strong> <span id="profileDisplayName"></span></p>
-      <p><strong>Joined:</strong> <span id="profileJoinDate"></span></p>
-      <p><strong>Horses Owned:</strong> <span id="profileHorseCount"></span></p>
-      <p><strong>Level:</strong> <span id="profileLevel"></span></p>
-      <p><strong>EXP:</strong> <span id="profileExp"></span></p>
+  <div id="mainContainer">
+    <!-- Sidebars injected by app-chrome -->
+    <div class="sidebar left-sidebar" id="leftSidebar"></div>
 
-      <div class="profile-buttons" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="tabButton" style="width:auto; padding:8px 14px;"
-                onclick="window.location.href='friends.html'">👥 Friends List</button>
-        <button class="tabButton" style="width:auto; padding:8px 14px;"
-                onclick="window.location.href='my-stables.html'">🐴 My Horses</button>
+    <!-- Main Content -->
+    <div class="main-content">
+      <h1>My Ranch</h1>
+
+      <div id="profile" class="profile-card">
+        <p><strong>Display Name:</strong> <span id="profileDisplayName">—</span></p>
+        <p><strong>Joined:</strong> <span id="profileJoinDate">—</span></p>
+        <p><strong>Horses Owned:</strong> <span id="profileHorseCount">0</span></p>
+        <p><strong>Level:</strong> <span id="profileLevel">1</span></p>
+
+        <div class="expRow">
+          <p><strong>EXP:</strong> <span id="profileExp">0</span> <small>(to next level)</small></p>
+          <div id="profileExpBarContainer">
+            <div id="profileExpBar"></div>
+          </div>
+        </div>
+
+        <div class="ctaRow">
+          <a class="ctaButton" href="friends.html">👥 Friends List</a>
+          <a class="ctaButton" href="my-stable.html">🐴 My Horses</a>
+        </div>
       </div>
     </div>
+
+    <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
 
-  <!-- Right Sidebar -->
-  <div class="sidebar right-sidebar">
-    <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
-    <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
-    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
-  </div>
-
+  <!-- Shared chrome then page logic -->
+  <script type="module" src="app-chrome.js"></script>
   <script type="module" src="ranch.js"></script>
 </body>
 </html>
-
