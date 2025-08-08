@@ -9,57 +9,26 @@
     .head { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
     .head img { width:96px; height:96px; object-fit:cover; border-radius:8px; border:1px solid #c0e8c0; background:#fff; }
     .muted { opacity:.85; }
-    .filters { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 14px; }
-    .filters .tabButton { width:auto; padding:6px 10px; }
-    .timeline { display:flex; flex-direction:column; gap:8px; }
-    .event {
-      background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:10px;
-      display:grid; grid-template-columns: 120px 1fr; gap:10px; align-items:start;
-    }
-    .event .when { font-weight:600; color:#2e402d; }
-    .event .body p { margin:2px 0; }
-    .pager { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; }
-    a { text-decoration:none; }
   </style>
 </head>
 <body>
+  <!-- Content-only wrapper; app-chrome will create top/side bars -->
   <div id="pageMain" class="main-content">
     <div class="head">
-      <img id="horseImage" src="horse-placeholder.png" alt="">
-      <div>
-        <h1 id="pageTitle">Horse — History</h1>
-        <div class="muted" id="ownerLinks"></div>
-      </div>
+      <img id="historyImg" src="horse-placeholder.png" alt="">
+      <h1 id="historyTitle">Horse — History</h1>
     </div>
 
-    <div class="filters">
-      <button id="fAll" class="tabButton active">All</button>
-      <button id="fBreeding" class="tabButton">Breeding</button>
-      <button id="fOwnership" class="tabButton">Ownership</button>
-      <button id="fHealth" class="tabButton">Vet & Care</button>
-      <button id="fShows" class="tabButton">Shows</button>
-      <button id="fMisc" class="tabButton">Other</button>
-    </div>
-
-    <div id="timeline" class="timeline"></div>
-
-    <div class="pager">
-      <button id="prevPage">◀ Prev</button>
-      <span id="pageInfo">Page 1 / 1</span>
-      <button id="nextPage">Next ▶</button>
-    </div>
-
-    <p id="status" class="muted" style="margin-top:8px;"></p>
+    <div id="historyList"></div>
   </div>
 
-  <!-- shared chrome -->
+  <!-- Shared chrome -->
   <script type="module">
     import { mountChrome } from './app-chrome.js';
     mountChrome({ leftActive: 'stables' });
   </script>
 
-  <!-- page logic -->
+  <!-- Page logic -->
   <script type="module" src="horse-history.js"></script>
 </body>
 </html>
-
