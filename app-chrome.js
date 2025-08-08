@@ -5,6 +5,79 @@ import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.8.1/fir
 
 console.log('[chrome] loaded');
 
+// --- add this near the top of app-chrome.js ---
+function ensureChromeContainers() {
+  // If the page already has placeholders, just make sure sidebars exist and bail
+  let top = document.getElementById('topbar');
+  let mc  = document.getElementById('mainContainer');
+  let left = document.getElementById('leftSidebar');
+  let right = document.getElementById('rightSidebar');
+
+  // Mode A: content-only page provided <div id="pageMain" class="main-content">…</div>
+  const pageMain = document.getElementById('pageMain');
+
+  if (!mc && pageMain) {
+    // Create topbar (insert before pageMain)
+    if (!top) {
+      top = document.createElement('div');
+      top.id = 'topbar';
+      document.body.insertBefore(top, pageMain);
+    }
+
+    // Build container
+    mc = document.createElement('div');
+    mc.id = 'mainContainer';
+
+    left = document.createElement('div');
+    left.id = 'leftSidebar';
+    left.className = 'sidebar left-sidebar';
+
+    // new main-content wrapper
+    const mainWrap = document.createElement('div');
+    mainWrap.className = 'main-content';
+    // move children out of #pageMain into the new wrapper
+    while (pageMain.firstChild) mainWrap.appendChild(pageMain.firstChild);
+
+    right = document.createElement('div');
+    right.id = 'rightSidebar';
+    right.className = 'sidebar right-sidebar';
+
+    // Replace #pageMain with the full layout
+    pageMain.replaceWith(mc);
+    mc.appendChild(left);
+    mc.appendChild(mainWrap);
+    mc.appendChild(right);
+  } else {
+    // Mode B: page already has #mainContainer — ensure sidebars exist
+    if (mc) {
+      if (!left) {
+        left = document.createElement('div');
+        left.id = 'leftSidebar';
+        left.className = 'sidebar left-sidebar';
+        mc.insertBefore(left, mc.firstChild);
+      }
+      if (!right) {
+        right = document.createElement('div');
+        right.id = 'rightSidebar';
+        right.className = 'sidebar right-sidebar';
+        mc.appendChild(right);
+      }
+      if (!top) {
+        // Add a topbar at the top of body if missing
+        top = document.createElement('div');
+        top.id = 'topbar';
+        document.body.insertBefore(top, mc);
+      }
+    }
+  }
+}
+
+// make mountChrome resilient
+export async function mountChrome(opts = {}) {
+  ensureChromeContainers();
+  // ...existing mountChrome logic that renders topbar & sidebars...
+}
+
 // ---------- helpers ----------
 function el(id){ return document.getElementById(id); }
 function ensureEl(id, tag, parent=document.body){
