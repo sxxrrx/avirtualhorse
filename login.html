@@ -84,7 +84,8 @@
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = "game.html";
+       window.location.href = "town-square.html";
+
       } catch (error) {
         alert("Login failed: " + error.message);
       }
