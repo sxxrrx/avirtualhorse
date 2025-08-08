@@ -34,7 +34,7 @@ onAuthStateChanged(auth, async user => {
     showView('Compose');
     const name = await getDisplayName(prefillTo);
     q('toInput').value = prefillTo;          // keep uid in To input (works for send)
-    q('resolvedTo').value = name + ` (${prefillTo.slice(0,6)}…)`;
+    q('resolvedTo').value = `${name} (${shortUid(prefillTo)})`;
   } else {
     showView('Inbox');
   }
@@ -144,6 +144,12 @@ function replySubject(s) {
 }
 
 // ---- Compose sending ----
+
+// Minimal content moderation (expand this list later if you want)
+const BANNED = [
+  'sex','fuck','shit','bitch','cunt','asshole','dick','pussy','nigger','faggot'
+];
+
 q('sendBtn').onclick = async () => {
   const toRaw = (q('toInput').value || '').trim();
   const subject = (q('subjectInput').value || '').trim();
@@ -152,6 +158,13 @@ q('sendBtn').onclick = async () => {
   q('composeStatus').textContent = '';
 
   if (!toRaw) return (q('composeStatus').textContent = 'Please enter a recipient (username or UID).');
+
+  // content filter (case-insensitive, simple)
+  const lower = (subject + ' ' + body).toLowerCase();
+  if (BANNED.some(w => lower.includes(w))) {
+    q('composeStatus').textContent = 'Your message contains inappropriate language.';
+    return;
+  }
 
   const toUid = await resolveRecipient(toRaw);
   if (!toUid) return (q('composeStatus').textContent = 'No user found with that username/UID.');
@@ -184,16 +197,11 @@ q('sendBtn').onclick = async () => {
 
 // ---- Friend request actions ----
 async function acceptFriend(mailId, peerUid) {
-  // 1) mark request accepted
   await update(ref(db, `mail/${mailId}`), { status: 'accepted' });
-
-  // 2) add to each other's friends lists
   await Promise.all([
     set(ref(db, `users/${meUid}/friends/${peerUid}`), true),
     set(ref(db, `users/${peerUid}/friends/${meUid}`), true),
   ]);
-
-  // 3) refresh inbox
   loadInbox();
 }
 
