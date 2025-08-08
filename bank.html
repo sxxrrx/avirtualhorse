@@ -1,72 +1,103 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Bank</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="stylesheet" href="style.css"/>
-  <style>
-    .bank-cards { display:grid; grid-template-columns: 1fr; gap:14px; }
-    .bank-card { background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:14px; }
-    .balances { display:flex; gap:18px; flex-wrap:wrap; }
-    .balances div { background:#f0fff0; border:1px solid #c0e8c0; border-radius:6px; padding:10px 12px; }
-    .bar { width:100%; height:14px; background:#ddd; border-radius:7px; overflow:hidden; margin-top:6px; }
-    .bar > div { height:100%; width:0%; background:#4caf50; }
-    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    input[type="number"] { width:160px; padding:8px; border:1px solid #cbdacb; border-radius:6px; }
-    .hint { font-size:13px; opacity:.85; }
-  </style>
-</head>
-<body>
-  <div id="pageMain" class="main-content">
-    <h1>Bank</h1>
-    <p class="hint">Deposit coins for safekeeping and withdraw them anytime.</p>
+// bank.js
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
+import { ref, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
-    <div class="bank-cards">
-      <div class="bank-card">
-        <h3>Your Balances</h3>
-        <div class="balances">
-          <div><strong>Wallet:</strong> <span id="walletCoins">0</span> coins</div>
-          <div><strong>Bank:</strong> <span id="bankCoins">0</span> coins</div>
-          <div><strong>Total:</strong> <span id="totalCoins">0</span> coins</div>
-        </div>
-        <div class="bar"><div id="bankBar"></div></div>
-        <p id="bankPct" class="hint">0% of your coins are in the bank.</p>
-      </div>
+const $ = id => document.getElementById(id);
 
-      <div class="bank-card">
-        <h3>Deposit</h3>
-        <div class="row">
-          <input type="number" id="depositAmount" placeholder="Amount" min="1" step="1">
-          <button id="btnDeposit">Deposit</button>
-          <button id="btnDep25">25%</button>
-          <button id="btnDep50">50%</button>
-          <button id="btnDepAll">Max</button>
-        </div>
-      </div>
+let uid = null;
+let userData = null;
 
-      <div class="bank-card">
-        <h3>Withdraw</h3>
-        <div class="row">
-          <input type="number" id="withdrawAmount" placeholder="Amount" min="1" step="1">
-          <button id="btnWithdraw">Withdraw</button>
-          <button id="btnWdr25">25%</button>
-          <button id="btnWdr50">50%</button>
-          <button id="btnWdrAll">Max</button>
-        </div>
-      </div>
-    </div>
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return location.href = 'login.html';
+  uid = user.uid;
 
-    <p id="bankMsg" class="hint"></p>
-  </div>
+  await loadUser();
+  wireControls();
+  render();
+});
 
-  <!-- Shared chrome -->
-  <script type="module">
-    import { mountChrome } from './app-chrome.js';
-    mountChrome({ leftActive: 'bank' });
-  </script>
+async function loadUser() {
+  const snap = await get(ref(db, `users/${uid}`));
+  userData = snap.exists() ? snap.val() : {};
+  // ensure fields
+  userData.coins = Number(userData.coins || 0);
+  userData.bank = userData.bank || {};
+  userData.bank.balance = Number(userData.bank.balance || 0);
+}
 
-  <!-- Page logic -->
-  <script type="module" src="bank.js"></script>
-</body>
-</html>
+function render() {
+  const wallet = userData.coins;
+  const bank   = userData.bank.balance;
+  const total  = wallet + bank;
+
+  $('walletCoins').textContent = wallet.toLocaleString();
+  $('bankCoins').textContent   = bank.toLocaleString();
+  $('totalCoins').textContent  = total.toLocaleString();
+
+  const pct = total > 0 ? Math.round((bank / total) * 100) : 0;
+  $('bankBar').style.width = pct + '%';
+  $('bankPct').textContent = `${pct}% of your coins are in the bank.`;
+
+  // keep topbar in sync if present
+  const top = document.getElementById('coinCounter');
+  if (top) top.textContent = `Coins: ${wallet}`;
+}
+
+function wireControls() {
+  $('btnDeposit').onclick  = deposit;
+  $('btnWithdraw').onclick = withdraw;
+
+  $('btnDep25').onclick = () => setAmount('depositAmount', Math.floor(userData.coins * 0.25));
+  $('btnDep50').onclick = () => setAmount('depositAmount', Math.floor(userData.coins * 0.50));
+  $('btnDepAll').onclick = () => setAmount('depositAmount', userData.coins);
+
+  $('btnWdr25').onclick = () => setAmount('withdrawAmount', Math.floor(userData.bank.balance * 0.25));
+  $('btnWdr50').onclick = () => setAmount('withdrawAmount', Math.floor(userData.bank.balance * 0.50));
+  $('btnWdrAll').onclick = () => setAmount('withdrawAmount', userData.bank.balance);
+}
+
+function setAmount(inputId, amt){
+  const el = $(inputId);
+  el.value = Math.max(0, Math.floor(amt || 0));
+}
+
+async function deposit() {
+  const amt = Math.floor(Number(($('depositAmount').value || '0').trim()));
+  if (!amt || amt <= 0) return msg('Enter a valid amount to deposit.');
+  if (amt > userData.coins) return msg("You don't have that many coins in your wallet.");
+
+  userData.coins -= amt;
+  userData.bank.balance += amt;
+
+  await persist();
+  $('depositAmount').value = '';
+  msg(`Deposited ${amt} coin(s).`);
+  render();
+}
+
+async function withdraw() {
+  const amt = Math.floor(Number(($('withdrawAmount').value || '0').trim()));
+  if (!amt || amt <= 0) return msg('Enter a valid amount to withdraw.');
+  if (amt > userData.bank.balance) return msg("You don't have that many coins in the bank.");
+
+  userData.bank.balance -= amt;
+  userData.coins += amt;
+
+  await persist();
+  $('withdrawAmount').value = '';
+  msg(`Withdrew ${amt} coin(s).`);
+  render();
+}
+
+async function persist() {
+  // write minimal fields
+  await update(ref(db, `users/${uid}`), {
+    coins: userData.coins,
+    bank: { balance: userData.bank.balance, lastUpdated: Date.now() }
+  });
+}
+
+function msg(text){
+  $('bankMsg').textContent = text;
+}
