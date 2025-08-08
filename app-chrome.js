@@ -3,39 +3,16 @@ import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
+// NEW: centralized game-time helpers
+import { gameDateParts, seasonForDate } from './time.js';
+
 const $ = (id) => document.getElementById(id);
 
-// ---------- helpers ----------
-function currentGameHour(){
-  const start = new Date(Date.UTC(2025,0,1)).getTime();
-  return Math.floor((Date.now() - start) / (60 * 1000)); // 1 real min = 1 in-game hour
-}
-
-function updateClockUI(){
-  const h = currentGameHour();
-  const day = Math.floor(h/24), hour = h%24;
-  const start = new Date(Date.UTC(2025,0,1));
-  const d = new Date(start.getTime() + day*86400000);
-
-  const seasons = [
-    {s:[3,20], e:[6,19], name:"Verdant's Bloom"},
-    {s:[6,20], e:[9,21], name:"Summer's Height"},
-    {s:[9,22], e:[12,20], name:"Harvest's Embrace"},
-  ];
-  let season = "Winter's Hold";
-  const m = d.getUTCMonth()+1, dd = d.getUTCDate();
-  const inRange = (sm,sd,em,ed)=> (m>sm || (m===sm && dd>=sd)) && (m<em || (m===em && dd<=ed));
-  for (const x of seasons){ if (inRange(x.s[0],x.s[1],x.e[0],x.e[1])) { season = x.name; break; } }
-
-  const target = $('gameClock');
-  if (target) target.innerHTML = `<strong>${season}</strong> — ${d.toLocaleDateString()} — <strong>${hour}:00</strong>`;
-}
-
+// ---------- internal helpers ----------
 function injectOnce(id, css){
   if (document.getElementById(id)) return;
   const s = document.createElement('style');
-  s.id = id;
-  s.textContent = css;
+  s.id = id; s.textContent = css;
   document.head.appendChild(s);
 }
 
@@ -49,9 +26,16 @@ function badge(count){
     : `<span id="mailBadge" class="badge" style="display:none"></span>`;
 }
 
+function updateClockUI(){
+  const { hour, date } = gameDateParts();
+  const season = seasonForDate(date);
+  const el = $('gameClock');
+  if (el) el.innerHTML = `<strong>${season}</strong> — ${date.toLocaleDateString()} — <strong>${hour}:00</strong>`;
+}
+
 // Build/normalize layout without fighting existing markup
 function ensureChromeContainers() {
-  // Ensure #topbar exists and is the FIRST child of <body>
+  // Ensure #topbar exists and is the FIRST child of <body> so it never sits under content
   let top = document.getElementById('topbar');
   if (!top) {
     top = document.createElement('div');
@@ -60,7 +44,7 @@ function ensureChromeContainers() {
     if (first) document.body.insertBefore(top, first);
     else document.body.appendChild(top);
   } else if (document.body.firstElementChild !== top) {
-    document.body.insertBefore(top, document.body.firstChild);
+    document.body.insertBefore(top, document.body.firstElementChild);
   }
 
   // If page provided #pageMain, wrap it inside our 3-col chrome
@@ -110,7 +94,7 @@ export async function mountChrome(opts = {}) {
   // 1) Make sure the structural containers exist in the right order
   ensureChromeContainers();
 
-  // 2) Force dark, legible topbar (defensive — still respects your site CSS)
+  // 2) Force a dark, legible topbar regardless of stray page styles
   injectOnce('chrome-dark-style', `
     #topbar{background:#2e402d!important;color:#fff!important;position:sticky;top:0;z-index:1000}
     #topbar a,#topbar button,#topbar span{color:#fff!important}
@@ -122,7 +106,7 @@ export async function mountChrome(opts = {}) {
     #mainContainer{margin-top:8px}
   `);
 
-  // 3) Inject chrome markup (fill placeholders only — no extra nodes)
+  // 3) Inject chrome markup (fill placeholders only)
   const topbar = $('topbar');
   const left   = $('leftSidebar');
   const right  = $('rightSidebar');
@@ -162,7 +146,7 @@ export async function mountChrome(opts = {}) {
 
   // 5) Live data wiring (coins, mail badge, logout)
   onAuthStateChanged(auth, async (user) => {
-    if (!user) return; // let the page handle redirects if needed
+    if (!user) return; // page-level auth guards can redirect
 
     // Coins live
     onValue(ref(db, `users/${user.uid}/coins`), snap => {
@@ -198,8 +182,8 @@ export async function mountChrome(opts = {}) {
     if (logout) logout.onclick = () => signOut(auth).then(()=>location.href='login.html');
   });
 
-  // 6) In-game clock
+  // 6) In-game clock (driven by time.js)
   updateClockUI();
-  setInterval(updateClockUI, 60000);
+  setInterval(updateClockUI, 60000); // refresh once a minute is plenty
 }
 
