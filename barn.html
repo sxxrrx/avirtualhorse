@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Barn</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .tabs { display:flex; gap:8px; margin:10px 0 16px; flex-wrap: wrap; }
+    .tabs button { padding:8px 14px; }
+    .section { display:none; }
+    .section.active { display:block; }
+    .form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:8px 0; }
+    .hint { font-size: 13px; opacity:.85; }
+    .result { margin-top:10px; }
+    .inv-grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#e7f7e7; border:1px solid #c0e8c0; }
+  </style>
+</head>
+<body>
+  <!-- Your page content (will be wrapped by shared chrome) -->
+  <div id="pageMain" class="main-content">
+    <h1>Barn</h1>
+    <p class="hint">Craft tack in the Workshop and manage it in your Inventory.</p>
+
+    <div class="tabs">
+      <button id="tabWorkshop" class="button primary">Workshop</button>
+      <button id="tabInventory">Inventory</button>
+    </div>
+
+    <!-- Workshop -->
+    <div id="secWorkshop" class="section active">
+      <div class="horse-card" style="text-align:left;">
+        <h3>Craft Tack</h3>
+        <div class="form-row">
+          <label for="tackType"><strong>Type</strong></label>
+          <select id="tackType">
+            <option value="">Select type…</option>
+            <option value="bridle">Bridle</option>
+            <option value="saddle">Saddle</option>
+            <option value="horse_boots">Horse Boots</option>
+            <option value="horse_shoes">Horse Shoes</option>
+          </select>
+          <label for="tackSpec"><strong>Specialty</strong></label>
+          <select id="tackSpec">
+            <option value="">Select specialty…</option>
+            <option>Standard</option>
+            <option>English</option>
+            <option>Jumper</option>
+            <option>Racing</option>
+            <option>Western</option>
+          </select>
+          <button id="btnCraft">Craft</button>
+        </div>
+        <p id="chanceLine" class="hint">Your level affects quality chances. (Loaded…)</p>
+        <div id="craftResult" class="result"></div>
+      </div>
+    </div>
+
+    <!-- Inventory -->
+    <div id="secInventory" class="section">
+      <h3>Your Tack</h3>
+      <div id="invList" class="inv-grid"></div>
+      <p id="invEmpty" class="hint" style="display:none;">No tack yet. Craft items in the Workshop tab.</p>
+    </div>
+  </div>
+
+  <!-- Mount shared chrome, then page script -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ leftActive: 'barn' });
+  </script>
+  <script type="module" src="barn.js"></script>
+</body>
+</html>
