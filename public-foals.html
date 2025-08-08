@@ -1,1 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Horse — Children (Public)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:8px 0 14px; }
+    .filters .tabButton { width:auto; padding:6px 10px; }
+    #foalGrid { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:12px; }
+    .pager { display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap; }
+    .muted { opacity:.85; }
+  </style>
+</head>
+<body>
+  <div id="pageMain" class="main-content">
+    <h1 id="pageTitle">Children</h1>
+    <p class="muted" id="ownerLinks"></p>
+
+    <div class="toolbar">
+      <div id="counts" class="muted">Loading…</div>
+      <div class="filters" style="margin-left:auto">
+        <button id="fAll"  class="tabButton active">All</button>
+        <button id="fDam"  class="tabButton">As Dam</button>
+        <button id="fSire" class="tabButton">As Sire</button>
+      </div>
+    </div>
+
+    <div id="foalGrid"></div>
+
+    <div class="pager">
+      <button id="prevPage">◀ Prev</button>
+      <span id="pageInfo">Page 1 / 1</span>
+      <button id="nextPage">Next ▶</button>
+    </div>
+
+    <p id="status" class="muted" style="margin-top:8px;"></p>
+  </div>
+
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ leftActive: 'stables' });
+  </script>
+  <script type="module" src="public-foals.js"></script>
+</body>
+</html>
 
