@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Magic Shop</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .section { margin-bottom:18px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+    .item-card, .inv-card {
+      background:#fff; border:1px solid #c0e8c0; border-radius:8px;
+      padding:12px; display:flex; flex-direction:column; gap:8px;
+    }
+    .item-card h3 { margin:0; font-size:18px; }
+    .muted { opacity:.85; }
+    .price { font-weight:600; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    #passesHeader { font-size:16px; margin-bottom:10px; }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:#eef7ee; border:1px solid #c0e8c0; font-size:12px; }
+  </style>
+</head>
+<body>
+  <!-- Page content only; app-chrome wraps this -->
+  <div id="pageMain" class="main-content">
+    <h1>Magic Shop</h1>
+    <div id="passesHeader">🪙 Passes: <strong id="passesCount">0</strong></div>
+
+    <div class="section">
+      <h2>Items for Sale</h2>
+      <div id="storeGrid" class="grid"></div>
+    </div>
+
+    <div class="section">
+      <h2>My Magical Items</h2>
+      <div id="inventoryGrid" class="grid"></div>
+    </div>
+  </div>
+
+  <!-- Shared chrome -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ rightActive: 'magic' });
+  </script>
+
+  <!-- Page logic -->
+  <script type="module" src="magic.js"></script>
+</body>
+</html>
