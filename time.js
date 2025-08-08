@@ -1,7 +1,7 @@
 // time.js
 // ---------- Game clock ----------
 export const GAME_EPOCH_UTC = Date.UTC(2025, 0, 1);
-// 1 game hour = 30 real minutes (so 24 game hours = 12 real hours)
+// 1 game hour = 30 real minutes  → 24 game hours = 12 real hours
 export const REAL_MS_PER_GAME_HOUR = 30 * 60 * 1000;
 
 export function currentGameHour(now = Date.now()) {
@@ -44,18 +44,18 @@ export function daysToYMD(days) {
   return { years, months, days: d };
 }
 export function formatAgeDisplay(ageDays) {
-  if (ageDays < 30) return `${ageDays} day(s)`; // foal view
+  if (ageDays < 30) return `${ageDays} day(s)`;       // foal view
   const {years, months} = daysToYMD(ageDays);
-  if (years === 0) return `${months} month(s)`;
+  if (years === 0) return `${months} month(s)`;       // < 1 year shows months
   return `${years} year(s) ${months} month(s)`;
 }
 
-// ---------- Aging pace: 7 age-days per 1 real day ----------
-export const AGE_DAYS_PER_REAL_DAY = 7;
+// ---------- Aging pace: 16 age-days per 1 real day ----------
+// ~22.8 real days per in-game year; ~45.6 real days to age from 0 → 2 years.
+export const AGE_DAYS_PER_REAL_DAY = 16;
 const REAL_DAY_MS = 24 * 60 * 60 * 1000;
 
 export function calcAgeDaysDelta(lastRealMs, now = Date.now()) {
-  // If we don't have a last timestamp, no delta yet.
   if (!lastRealMs) return 0;
   const realDays = (now - lastRealMs) / REAL_DAY_MS;
   return Math.floor(realDays * AGE_DAYS_PER_REAL_DAY);
@@ -73,31 +73,25 @@ export function calcAgeDaysDelta(lastRealMs, now = Date.now()) {
 export function updateHorseAgeByRealTime(horse, now = Date.now()) {
   if (!horse) return 0;
 
-  // Initialize storage
   horse.age ||= { years: 0, months: 0, days: 0 };
   horse.ageMeta ||= {};
 
-  // If no ageDays yet, derive from legacy Y/M/D once
   if (typeof horse.ageDays !== 'number') {
     horse.ageDays = ymdToDays(horse.age);
   }
 
-  // If we've never recorded a baseline, set it now and bail (no instant aging)
   if (!horse.ageMeta.lastAgeRealMs) {
     horse.ageMeta.lastAgeRealMs = now;
     return 0;
   }
 
-  // Compute delta
   const addDays = calcAgeDaysDelta(horse.ageMeta.lastAgeRealMs, now);
   if (addDays <= 0) return 0;
 
-  // Apply aging
   horse.ageDays += addDays;
   horse.age = daysToYMD(horse.ageDays);
 
-  // Advance the baseline by exactly the real time "consumed" by the applied delta
-  // so we don't double-count on the next call.
+  // Move baseline forward by the exact consumed real time to avoid double-counting.
   const consumedMs = Math.floor((addDays / AGE_DAYS_PER_REAL_DAY) * REAL_DAY_MS);
   horse.ageMeta.lastAgeRealMs += consumedMs;
 
@@ -128,23 +122,16 @@ export function updateHorsesAgesIfNeeded(userData, now = Date.now()) {
     }
 
     if (frozen) {
-      // Pause aging and also move the baseline to "now"
-      // so time spent frozen doesn't dump a backlog later.
-      h.ageMeta.lastAgeRealMs = now;
+      h.ageMeta.lastAgeRealMs = now; // pause and prevent backlog
       continue;
     }
 
-    // If no baseline yet, set it and continue.
     if (!h.ageMeta.lastAgeRealMs) {
       h.ageMeta.lastAgeRealMs = now;
       continue;
     }
 
-    const added = updateHorseAgeByRealTime(h, now);
-    if (added > 0) {
-      // h.age & h.ageDays already updated
-    }
+    updateHorseAgeByRealTime(h, now);
   }
   return userData;
 }
-
