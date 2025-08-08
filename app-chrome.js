@@ -3,108 +3,135 @@ import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
-export function mountChrome(opts = {}) {
-  const { leftActive = '', rightActive = '' } = opts;
-  const pageMain = document.getElementById('pageMain');
-  if (!pageMain) {
-    console.error('app-chrome: #pageMain not found on this page.');
-    return;
-  }
+console.log('[chrome] loaded');
 
-  // Detach page content
-  pageMain.parentNode.removeChild(pageMain);
-
-  // Build topbar
-  const topbar = document.createElement('div');
-  topbar.id = 'topbar';
-  topbar.innerHTML = `
-    <div id="coinCounter">Coins: 0</div>
-    <div id="gameClock"></div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <a id="mailLink" href="post-office.html" title="Mailbox" style="position:relative;text-decoration:none;">
-        📬
-        <span id="mailBadge" style="
-          position:absolute;top:-6px;right:-10px;
-          background:#e53935;color:#fff;font-size:11px;
-          padding:2px 5px;border-radius:10px;display:none;">0</span>
-      </a>
-      <button id="logoutBtn">Logout</button>
-    </div>
-  `;
-
-  // Build sidebars
-  const left = document.createElement('div');
-  left.className = 'sidebar left-sidebar';
-  left.innerHTML = `
-    <a class="tabButton ${leftActive==='town'?'active':''}"   href="home.html">🏙️<br>Town Square</a>
-    <a class="tabButton ${leftActive==='ranch'?'active':''}"  href="ranch.html">🌾<br>My Ranch</a>
-    <a class="tabButton ${leftActive==='stables'?'active':''}" href="my-stable.html">🐴<br>Stables</a>
-    <a class="tabButton ${leftActive==='barn'?'active':''}"   href="barn.html">🏠<br>Barn</a>
-    <a class="tabButton ${leftActive==='bank'?'active':''}"   href="bank.html">🏦<br>Bank</a>
-  `;
-
-  const right = document.createElement('div');
-  right.className = 'sidebar right-sidebar';
-  right.innerHTML = `
-    <a class="tabButton ${rightActive==='clubhouse'?'active':''}" href="clubhouse.html">👤<br>Clubhouse</a>
-    <a class="tabButton ${rightActive==='services'?'active':''}"  href="services.html">🔧<br>Services</a>
-    <a class="tabButton ${rightActive==='market'?'active':''}"    href="market.html">💰<br>Market</a>
-    <a class="tabButton ${rightActive==='magic'?'active':''}"     href="magic.html">🪄<br>Magic Shop</a>
-    <a class="tabButton ${rightActive==='settings'?'active':''}"  href="settings.html">⚙️<br>Settings</a>
-  `;
-
-  // Build main container and insert the actual page content in the center
-  const container = document.createElement('div');
-  container.id = 'mainContainer';
-  container.appendChild(left);
-  container.appendChild(pageMain);   // <-- your page content in the center
-  container.appendChild(right);
-
-  // Replace body with chrome + page content
-  document.body.innerHTML = '';
-  document.body.appendChild(topbar);
-  document.body.appendChild(container);
-
-  // Wire logout
-  document.getElementById('logoutBtn').onclick = () => signOut(auth).then(() => location.href='login.html');
-
-  // Start in-game clock (1 real min = 1 in-game hour)
-  const updateClock = () => {
-    const start = Date.UTC(2025,0,1);
-    const ms = Date.now() - start;
-    const hours = Math.floor(ms / (60*1000));
-    const day = Math.floor(hours/24);
-    const hour = hours % 24;
-    const date = new Date(start + day*24*60*60*1000);
-    document.getElementById('gameClock').textContent =
-      `${date.toLocaleDateString()} — ${hour.toString().padStart(2,'0')}:00`;
-  };
-  updateClock();
-  setInterval(updateClock, 60*1000);
-
-  // Auth-driven topbar values
-  onAuthStateChanged(auth, async user => {
-    if (!user) return; // page-level scripts handle redirect if needed
-
-    // Coins
-    onValue(ref(db, `users/${user.uid}/coins`), snap => {
-      const coins = Number(snap.val() || 0);
-      const coinEl = document.getElementById('coinCounter');
-      if (coinEl) coinEl.textContent = `Coins: ${coins.toLocaleString()}`;
-    });
-
-    // Mail badge (count inbox items; if you track read flags, swap this to unread count)
-    onValue(ref(db, `userMailIndex/${user.uid}/inbox`), async snap => {
-      const idx = snap.exists() ? Object.keys(snap.val()) : [];
-      // If you later track read flags, fetch mail/* and filter. For now, show total inbox count.
-      const badge = document.getElementById('mailBadge');
-      if (!badge) return;
-      if (idx.length > 0) {
-        badge.textContent = String(idx.length);
-        badge.style.display = '';
-      } else {
-        badge.style.display = 'none';
-      }
-    });
-  });
+// ---------- helpers ----------
+function el(id){ return document.getElementById(id); }
+function ensureEl(id, tag, parent=document.body){
+  let n = el(id);
+  if (!n) { n = document.createElement(tag); n.id = id; parent.appendChild(n); }
+  return n;
 }
+function currentGameHour(){
+  const start = new Date(Date.UTC(2025,0,1)).getTime();
+  return Math.floor((Date.now() - start) / (60 * 1000)); // 1 real min = 1 in-game hour
+}
+function updateClockUI(){
+  const h = currentGameHour();
+  const day = Math.floor(h/24), hour = h%24;
+  const start = new Date(Date.UTC(2025,0,1));
+  const d = new Date(start.getTime() + day*86400000);
+  const seasons = [
+    {s:[3,20], e:[6,19], name:"Verdant's Bloom"},
+    {s:[6,20], e:[9,21], name:"Summer's Height"},
+    {s:[9,22], e:[12,20], name:"Harvest's Embrace"},
+  ];
+  let season = "Winter's Hold";
+  for (const x of seasons){
+    const m = d.getUTCMonth()+1, dd = d.getUTCDate();
+    const inRange = (sm,sd,em,ed)=> (m>sm || (m===sm && dd>=sd)) && (m<em || (m===em && dd<=ed));
+    if (inRange(x.s[0],x.s[1],x.e[0],x.e[1])) { season = x.name; break; }
+  }
+  const target = el('gameClock');
+  if (target) target.innerHTML = `<strong>${season}</strong> — ${d.toLocaleDateString()} — <strong>${hour}:00</strong>`;
+}
+function navBtn(href, icon, label){
+  return `<button class="tabButton" onclick="window.location.href='${href}'">${icon}<br>${label}</button>`;
+}
+function badge(count){ return count>0 ? `<span id="mailBadge" class="badge">${count}</span>` : `<span id="mailBadge" class="badge" style="display:none"></span>`; }
+function shortUid(u){ return (u||'').slice(0,6)+'…'; }
+
+// ---------- ensure containers exist ----------
+const topbar = ensureEl('topbar', 'div');
+const main   = ensureEl('mainContainer', 'div');
+const left   = ensureEl('leftSidebar', 'div', main);
+const right  = ensureEl('rightSidebar', 'div', main);
+
+// apply required classes if missing
+left.classList.add('sidebar','left-sidebar');
+right.classList.add('sidebar','right-sidebar');
+
+// ---------- inject chrome ----------
+topbar.innerHTML = `
+  <div class="topbar-inner">
+    <div class="left-pack">
+      <div id="coinCounter">0</div>
+      <a id="mailLink" class="mail-link" href="post-office.html" title="Inbox">📬</a>${badge(0)}
+    </div>
+    <div id="gameClock"></div>
+    <div class="right-pack">
+      <button id="btnLogout">Logout</button>
+    </div>
+  </div>
+`;
+
+left.innerHTML = `
+  ${navBtn('town-square.html','🏙️','Town Square')}
+  ${navBtn('ranch.html','🌾','My Ranch')}
+  ${navBtn('my-stable.html','🐴','Stables')}
+  ${navBtn('barn.html','🧰','Barn')}
+  ${navBtn('bank.html','🏦','Bank')}
+`;
+
+right.innerHTML = `
+  ${navBtn('clubhouse.html','🏇','Clubhouse')}
+  ${navBtn('services.html','🔧','Services')}
+  ${navBtn('market.html','💰','Market')}
+  ${navBtn('magic.html','✨','Magic Shop')}
+  ${navBtn('settings.html','⚙️','Settings')}
+`;
+
+// ---------- behavior ----------
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return; // let page-level auth guards handle redirects
+
+  // coins live
+  onValue(ref(db, `users/${user.uid}/coins`), snap => {
+    const c = Number(snap.val() || 0);
+    const cc = el('coinCounter');
+    if (cc) cc.textContent = `Coins: ${c.toLocaleString()}`;
+  });
+
+  // unread/pending mail badge
+  // Count: regular mail with status !== 'read' + friend_request with status === 'pending'
+  onValue(ref(db, `userMailIndex/${user.uid}/inbox`), async idxSnap => {
+    const idx = idxSnap.exists() ? Object.keys(idxSnap.val()) : [];
+    if (idx.length === 0) {
+      const b = el('mailBadge'); if (b){ b.style.display='none'; b.textContent=''; }
+      return;
+    }
+    const gets = idx.slice(0,100).map(id => get(ref(db, `mail/${id}`)).then(s => s.exists()? s.val(): null));
+    const rows = (await Promise.all(gets)).filter(Boolean);
+    let count = 0;
+    rows.forEach(m => {
+      if (m.type === 'friend_request' && (m.status || 'pending') === 'pending') count++;
+      if (m.type === 'mail' && (m.status || 'unread') !== 'read') count++;
+    });
+    const b = el('mailBadge');
+    if (b){
+      if (count>0){ b.style.display='inline-block'; b.textContent = String(count); }
+      else { b.style.display='none'; b.textContent=''; }
+    }
+  });
+
+  // logout
+  const logout = el('btnLogout');
+  if (logout) logout.onclick = () => signOut(auth).then(()=>location.href='login.html');
+});
+
+// game clock
+updateClockUI();
+setInterval(updateClockUI, 60000);
+
+// minimal styles if not present in your CSS
+const style = document.createElement('style');
+style.textContent = `
+  #topbar { position:sticky; top:0; z-index:5; background:#eaf8ea; border-bottom:1px solid #c0e8c0; }
+  .topbar-inner { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 12px; }
+  .left-pack { display:flex; align-items:center; gap:10px; }
+  .mail-link { position:relative; text-decoration:none; font-size:20px; }
+  .badge { position:relative; top:-8px; left:-8px; background:#c62828; color:#fff; border-radius:10px; padding:0 6px; font-size:12px; }
+`;
+document.head.appendChild(style);
+
+console.log('[chrome] ready');
