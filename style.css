@@ -1,258 +1,209 @@
-/* Reset and Base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* =========================
+   Reset & Base
+   ========================= */
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root{
+  --c-bg:#e5fbe5;
+  --c-text:#2e402d;
+  --c-panel:#f9fff9;
+  --c-card:#f0fff0;
+  --c-card-border:#c0e8c0;
+  --c-accent:#3b5d3b;
+  --c-accent-2:#567d46;
+  --c-accent-3:#4a774a;
+  --c-top:#2e402d;
 }
 
+html, body { height:100%; }
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #e5fbe5;
-  color: #2e402d;
-  height: 100vh;
-  overflow: hidden;
+  background:var(--c-bg);
+  color:var(--c-text);
+  min-height:100vh;
+  overflow-y:auto; /* allow scrolling globally */
 }
 
-h1, h2, h3 {
-  color: #2e402d;
-}
+/* Headings */
+h1, h2, h3 { color:var(--c-text); }
 
-/* Topbar */
-#topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #2f4f2f;
-  color: #ffffff;
-  padding: 10px 20px;
-  font-size: 16px;
-}
+/* Utilities */
+.muted { opacity:.85; }
+.hidden { display:none !important; }
 
-/* Main Grid Layout */
-#mainContainer {
-  display: grid;
-  grid-template-columns: 80px 1fr 80px;
-  height: calc(100vh - 50px);
-}
-
-/* Sidebars */
-.sidebar {
-  background-color: #3b5d3b;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 10px;
-  gap: 8px;
-}
-
-.left-sidebar {
-  border-right: 2px solid #2e402d;
-}
-
-.right-sidebar {
-  border-left: 2px solid #2e402d;
-}
-
-/* Tab Buttons */
-.tabButton {
-  background: none;
-  color: #ffffff;
-  border: none;
-  padding: 10px 0;
-  width: 100%;
-  text-align: center;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.tabButton:hover,
-.tabButton.active {
-  background-color: #4a774a;
-}
-
-/* Main Content Area */
-.main-content {
-  background-color: #f9fff9;
-  padding: 20px;
-  overflow-y: auto;
-}
-
-/* Content Sections */
-.content {
-  display: none;
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
-}
-
-/* Stable Grid */
-#stableGrid, #salesGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-/* Horse Cards */
-.stall, .horse-card {
-  background-color: #f0fff0;
-  border: 1px solid #c0e8c0;
-  border-radius: 6px;
-  padding: 10px;
-  text-align: center;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.stall:hover, .horse-card:hover {
-  background-color: #e0ffe0;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  cursor: pointer;
-}
-
-.stall img, .horse-card img {
-  width: 100%;
-  max-height: 120px;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-/* Buttons */
-button {
-  background-color: #3b5d3b;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 5px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #567d46;
-}
-
-/* EXP Bar */
-#profileExpBarContainer {
-  width: 100%;
-  background-color: #ccc;
-  height: 12px;
-  border-radius: 6px;
-  margin-top: 5px;
-}
-
-#profileExpBar {
-  height: 100%;
-  background-color: #4caf50;
-  border-radius: 6px;
-  width: 0%;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  #mainContainer {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-  }
-
-  .sidebar {
-    flex-direction: row;
-    justify-content: space-around;
-    width: 100%;
-    height: auto;
-    padding: 10px;
-  }
-
-  .main-content {
-    padding: 10px;
-  }
-}
-.market-buttons {
-  margin-bottom: 15px;
-  display: flex;
-  gap: 10px;
-}
-
-.market-section {
-  display: none;
-}
-
-.market-section.active {
-  display: block;
-}
-/* allow the horse page to scroll */
-body { height: auto !important; overflow-y: auto !important; }
-/* make sure the main content can scroll if it needs to */
-.main-content { overflow-y: auto; max-height: none; }
-/* Center page content nicely */
-.main-content {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-/* Topbar mail icon + badge */
-.topbar-right {
-  display: flex; align-items: center; gap: 12px;
-}
-.icon-btn {
-  background: none; border: none; cursor: pointer; font-size: 18px;
-  display: inline-flex; align-items: center; position: relative;
-}
-.badge {
-  position: absolute; top: -6px; right: -8px;
-  min-width: 16px; height: 16px; padding: 0 4px;
-  background: #d33; color: #fff; border-radius: 8px;
-  font-size: 11px; line-height: 16px; text-align: center;
-}
-/* ===== App Chrome overrides (safe to paste at end) ===== */
-#topbar {
-  background:#2e402d;
+/* =========================
+   Topbar (sticky)
+   ========================= */
+#topbar{
+  background:var(--c-top);
   color:#fff;
   display:flex;
   align-items:center;
   justify-content:space-between;
   padding:10px 14px;
   gap:12px;
-  position:sticky;
-  top:0;
-  z-index:1000;
+  position:sticky; top:0; z-index:1000;
 }
 #topbar .tb-left,
 #topbar .tb-center,
-#topbar .tb-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-#topbar a, #topbar span { color:#fff; text-decoration:none; }
-#topbar .brand { font-weight:700; letter-spacing:.3px; }
-#topbar .badge {
-  display:inline-block;
-  min-width:16px;
-  padding:0 6px;
-  border-radius:10px;
-  background:#ff4d4d;
-  color:#fff;
-  font-size:12px;
-  line-height:18px;
-  text-align:center;
-  vertical-align:middle;
-  margin-left:4px;
+#topbar .tb-right{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
-#topbar .tb-logout {
-  background:#3b5d3b; color:#fff; border:none; border-radius:6px;
+#topbar a, #topbar span { color:#fff; text-decoration:none; }
+#topbar .brand{ font-weight:700; letter-spacing:.3px; }
+#topbar .tb-logout{
+  background:var(--c-accent); color:#fff; border:none; border-radius:6px;
   padding:6px 10px; cursor:pointer;
 }
-#topbar .tb-logout:hover { background:#567d46; }
+#topbar .tb-logout:hover{ background:var(--c-accent-2); }
 
-/* Sidebars still use your existing styles; ensure good contrast */
-.sidebar button.tabButton.active {
-  background:#3b5d3b; color:#fff;
+/* Mail badge */
+#topbar .badge{
+  display:inline-block;
+  min-width:16px; padding:0 6px;
+  border-radius:10px;
+  background:#ff4d4d; color:#fff;
+  font-size:12px; line-height:18px;
+  text-align:center; vertical-align:middle;
+  margin-left:4px;
 }
 
-/* Ensure main layout breathes under the sticky topbar */
-#mainContainer { margin-top:8px; }
+/* =========================
+   Main Grid Layout
+   ========================= */
+#mainContainer{
+  display:grid;
+  grid-template-columns: 90px 1fr 90px; /* sidebars – content – sidebars */
+  gap:0;
+  min-height:calc(100vh - 48px); /* leave space under sticky topbar */
+  margin-top:8px;
+}
 
-/* (Optional) generic exp bar shell if needed elsewhere */
-.exp-bar { height:12px; background:#dfe7df; border-radius:6px; overflow:hidden; }
-.exp-bar > div { height:100%; background:#4caf50; width:0%; }
+/* =========================
+   Sidebars
+   ========================= */
+.sidebar{
+  background:var(--c-accent);
+  display:flex; flex-direction:column; align-items:center;
+  padding-top:10px; gap:8px;
+}
+.left-sidebar{ border-right:2px solid var(--c-text); }
+.right-sidebar{ border-left:2px solid var(--c-text); }
+
+/* Sidebar buttons */
+.tabButton{
+  background:none;
+  color:#fff;
+  border:none;
+  padding:10px 0;
+  width:100%;
+  text-align:center;
+  font-size:13px;
+  cursor:pointer;
+  transition:background .2s ease;
+}
+.tabButton:hover,
+.tabButton.active{ background:var(--c-accent-3); }
+
+/* =========================
+   Main Content Area
+   ========================= */
+.main-content{
+  background:var(--c-panel);
+  padding:20px;
+  overflow-y:auto;
+  max-width:1000px;
+  margin:0 auto;
+}
+
+/* Generic content card/section */
+.content{
+  background:#fff;
+  border-radius:8px;
+  padding:20px;
+  margin-bottom:20px;
+  border:1px solid rgba(0,0,0,0.05);
+  box-shadow:0 0 10px rgba(0,0,0,0.05);
+}
+
+/* =========================
+   Cards & Grids
+   ========================= */
+.grid{ display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+
+.stall, .horse-card{
+  background:var(--c-card);
+  border:1px solid var(--c-card-border);
+  border-radius:6px;
+  padding:10px;
+  text-align:center;
+  transition: all .15s ease-in-out;
+  box-shadow:0 2px 4px rgba(0,0,0,0.08);
+}
+.stall:hover, .horse-card:hover{
+  background:#e0ffe0;
+  box-shadow:0 4px 8px rgba(0,0,0,0.12);
+  cursor:pointer;
+}
+.stall img, .horse-card img{
+  width:100%; max-height:120px; object-fit:cover; border-radius:4px;
+}
+
+/* =========================
+   Buttons (global)
+   ========================= */
+button{
+  background:var(--c-accent);
+  color:#fff;
+  padding:8px 16px;
+  border:none; border-radius:5px;
+  font-size:14px; cursor:pointer;
+  transition:background .2s ease, transform .05s ease;
+}
+button:hover{ background:var(--c-accent-2); }
+button:active{ transform: translateY(1px); }
+
+/* Links styled like buttons (e.g., CTA) */
+a.btn, .ctaButton{
+  background:var(--c-accent); color:#fff !important;
+  border:none; border-radius:6px;
+  padding:10px 16px; font-size:15px; cursor:pointer;
+  text-decoration:none; display:inline-block;
+  transition:background .2s ease, transform .05s ease;
+}
+a.btn:hover, .ctaButton:hover{ background:var(--c-accent-2); }
+a.btn:active, .ctaButton:active{ transform:translateY(1px); }
+
+/* =========================
+   XP / Progress Bars
+   ========================= */
+#profileExpBarContainer, .exp-bar{
+  width:100%; height:12px; background:#dfe7df; border-radius:6px; overflow:hidden;
+}
+#profileExpBar, .exp-bar > div{
+  height:100%; width:0%; background:#4caf50;
+}
+
+/* =========================
+   Market helpers
+   ========================= */
+.market-buttons{ margin-bottom:15px; display:flex; gap:10px; }
+.market-section{ display:none; }
+.market-section.active{ display:block; }
+
+/* =========================
+   Responsive
+   ========================= */
+@media (max-width: 900px){
+  #mainContainer{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  .sidebar{
+    flex-direction:row; justify-content:space-around;
+    width:100%; height:auto; padding:10px;
+  }
+  .left-sidebar{ border-right:none; border-bottom:2px solid var(--c-text); }
+  .right-sidebar{ border-left:none; border-top:2px solid var(--c-text); }
+}
 
