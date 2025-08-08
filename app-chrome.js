@@ -1,10 +1,10 @@
 // app-chrome.js
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, onValue, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
-// NEW: centralized game-time helpers
-import { gameDateParts, seasonForDate } from './time.js';
+// Game time + aging helpers
+import { gameDateParts, seasonForDate, updateHorsesAgesIfNeeded } from './time.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -89,6 +89,37 @@ function ensureChromeContainers() {
   }
 }
 
+// ---------- one-time aging sync ----------
+async function syncAgesOnce(uid){
+  try {
+    const userSnap = await get(ref(db, `users/${uid}`));
+    if (!userSnap.exists()) return;
+
+    const user = userSnap.val();
+    const before = JSON.stringify(user.horses ?? null);
+
+    // Mutates horses in-place, respects freeze, seeds baselines
+    updateHorsesAgesIfNeeded(user);
+
+    const after = JSON.stringify(user.horses ?? null);
+    if (before === after) return; // nothing changed
+
+    // Write back while preserving array/object shape
+    const updates = {};
+    if (Array.isArray(user.horses)) {
+      user.horses.forEach((h, i) => { updates[`users/${uid}/horses/${i}`] = h ?? null; });
+    } else {
+      const obj = user.horses || {};
+      Object.keys(obj).forEach(k => { updates[`users/${uid}/horses/${k}`] = obj[k]; });
+    }
+    if (Object.keys(updates).length) {
+      await update(ref(db), updates);
+    }
+  } catch (e) {
+    console.warn('[chrome] syncAgesOnce failed:', e);
+  }
+}
+
 // ---------- PUBLIC API ----------
 export async function mountChrome(opts = {}) {
   // 1) Make sure the structural containers exist in the right order
@@ -144,9 +175,12 @@ export async function mountChrome(opts = {}) {
   if (opts.leftActive)  left.querySelector(`[data-key="${opts.leftActive}"]`)?.classList.add('active');
   if (opts.rightActive) right.querySelector(`[data-key="${opts.rightActive}"]`)?.classList.add('active');
 
-  // 5) Live data wiring (coins, mail badge, logout)
+  // 5) Live data wiring (coins, mail badge, logout) + one-time age sync
   onAuthStateChanged(auth, async (user) => {
     if (!user) return; // page-level auth guards can redirect
+
+    // One-time age reconciliation on mount
+    await syncAgesOnce(user.uid);
 
     // Coins live
     onValue(ref(db, `users/${user.uid}/coins`), snap => {
