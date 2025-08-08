@@ -67,10 +67,20 @@
         <h3 style="margin-top:10px;">Health, Feeding & Happiness</h3>
         <p><strong>Happiness:</strong> <span id="happinessPct">0%</span></p>
         <div class="bar-container"><div id="happinessBar" class="bar-fill"></div></div>
-        <p><strong>Fed Properly (4 real days):</strong> <span id="fedStatus">❌</span></p>
-        <p><strong>Vet shots (every 3 in-game years, start 8mo):</strong> <span id="vetShotsStatus">❌</span></p>
-        <p><strong>Vet checks (yearly, start 6mo):</strong> <span id="vetChecksStatus">❌</span></p>
-        <p><strong>Breeding check (every 3 in-game years, start 2y5m):</strong> <span id="breedCheckStatus">❌</span></p>
+
+        <!-- These four status lines are now clickable -->
+        <p><strong>Fed Properly (4 real days):</strong>
+          <a id="fedStatusLink"><span id="fedStatus">❌</span></a>
+        </p>
+        <p><strong>Vet shots (every 3 in-game years, start 8mo):</strong>
+          <a id="vetShotsStatusLink"><span id="vetShotsStatus">❌</span></a>
+        </p>
+        <p><strong>Vet checks (yearly, start 6mo):</strong>
+          <a id="vetChecksStatusLink"><span id="vetChecksStatus">❌</span></a>
+        </p>
+        <p><strong>Breeding check (every 3 in-game years, start 2y5m):</strong>
+          <a id="breedCheckStatusLink"><span id="breedCheckStatus">❌</span></a>
+        </p>
       </div>
     </div>
   </div>
