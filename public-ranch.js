@@ -10,11 +10,11 @@ let me = null;            // current user (viewer)
 let targetUser = null;    // profile owner
 
 if (!targetUid) {
-  document.querySelector('.main-content').innerHTML = '<p>No user specified.</p>';
+  const mc = document.querySelector('.main-content');
+  if (mc) mc.innerHTML = '<p>No user specified.</p>';
 } else {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      // You could allow anonymous view if you want. For now, require login.
       window.location.href = 'login.html';
       return;
     }
@@ -23,25 +23,29 @@ if (!targetUid) {
     // Load the target user’s profile
     const snap = await get(ref(db, `users/${targetUid}`));
     if (!snap.exists()) {
-      document.querySelector('.main-content').innerHTML = '<p>Ranch not found.</p>';
+      const mc = document.querySelector('.main-content');
+      if (mc) mc.innerHTML = '<p>Ranch not found.</p>';
       return;
     }
     targetUser = snap.val();
 
     // Fill header + fields
     const name = targetUser.username || targetUser.loginName || '(unnamed)';
-    byId('ranchTitle').textContent = `${name} — Ranch`;
-    byId('profileUsername').textContent = name;
-    byId('profileJoinDate').textContent = targetUser.joinDate || '—';
-    byId('profileLastSeen').textContent = formatDateTime(targetUser.lastSeen) || '—';
-    byId('profileLevel').textContent = targetUser.level ?? '—';
+    byId('ranchTitle')?.appendChild(document.createTextNode(`${name} — Ranch`));
+    setText('profileUsername', name);
+    setText('profileJoinDate', targetUser.joinDate || '—');
+    setText('profileLastSeen', formatDateTime(targetUser.lastSeen) || '—');
+    setText('profileLevel', targetUser.level ?? '—');
 
     const horses = toArray(targetUser.horses);
-    byId('profileHorseCount').textContent = horses.length;
+    setText('profileHorseCount', horses.length);
 
-    // Wire buttons
-    byId('btnMail').href = `post-office.html?to=${encodeURIComponent(targetUid)}`;
-    byId('btnViewStable').href = `stable-public.html?uid=${encodeURIComponent(targetUid)}`;
+    // Wire buttons (guard if elements missing)
+    const toEnc = encodeURIComponent(targetUid);
+    const mail = byId('btnMail');
+    const viewStable = byId('btnViewStable');
+    if (mail) mail.href = `post-office.html?to=${toEnc}`;
+    if (viewStable) viewStable.href = `stable-public.html?uid=${toEnc}`;
 
     // Add Friend button logic
     setupFriendButton();
@@ -52,11 +56,12 @@ if (!targetUid) {
 async function setupFriendButton() {
   const btn = byId('btnAddFriend');
   const status = byId('statusMsg');
+  if (!btn) return;
 
   // Hide if this is your own ranch
   if (me.uid === targetUid) {
     btn.style.display = 'none';
-    status.textContent = '';
+    if (status) status.textContent = '';
     return;
   }
 
@@ -65,7 +70,7 @@ async function setupFriendButton() {
   if (mySnap.exists() && mySnap.val() === true) {
     btn.disabled = true;
     btn.textContent = '✅ Friends';
-    status.textContent = '';
+    if (status) status.textContent = '';
     return;
   }
 
@@ -74,7 +79,7 @@ async function setupFriendButton() {
   if (outPending) {
     btn.disabled = true;
     btn.textContent = '⏳ Request Sent';
-    status.textContent = 'Your friend request is pending in their mailbox.';
+    if (status) status.textContent = 'Your friend request is pending in their mailbox.';
     return;
   }
 
@@ -83,15 +88,16 @@ async function setupFriendButton() {
   if (inPending) {
     btn.disabled = true;
     btn.textContent = '📬 Check Your Mail';
-    status.textContent = 'They sent you a request. Open your mailbox to accept or deny.';
-    byId('btnMail').href = `post-office.html`;
+    if (status) status.textContent = 'They sent you a request. Open your mailbox to accept or deny.';
+    const mail = byId('btnMail');
+    if (mail) mail.href = 'post-office.html';
     return;
   }
 
   // Otherwise, allow sending
   btn.disabled = false;
   btn.textContent = '🤝 Add Friend';
-  status.textContent = '';
+  if (status) status.textContent = '';
 
   btn.onclick = async () => {
     btn.disabled = true;
@@ -99,12 +105,12 @@ async function setupFriendButton() {
     try {
       await sendFriendRequest(me.uid, targetUid);
       btn.textContent = '⏳ Request Sent';
-      status.textContent = 'Your friend request has been sent.';
+      if (status) status.textContent = 'Your friend request has been sent.';
     } catch (e) {
       console.error('sendFriendRequest failed', e);
       btn.disabled = false;
       btn.textContent = '🤝 Add Friend';
-      status.textContent = 'Failed to send request. Try again.';
+      if (status) status.textContent = 'Failed to send request. Try again.';
     }
   };
 }
@@ -157,19 +163,6 @@ async function hasPendingFriendRequest(fromUid, toUid) {
 
 // --------------- helpers ---------------
 function byId(id){ return document.getElementById(id); }
-
-function toArray(val) {
-  if (!val) return [];
-  return Array.isArray(val) ? val : Object.values(val);
-}
-
-function formatDateTime(ts) {
-  if (!ts) return null;
-  try {
-    const d = new Date(ts);
-    return d.toLocaleString();
-  } catch {
-    return null;
-  }
-}
-,'"':"&quot;"}[s]));}
+function setText(id, val){ const el = byId(id); if (el) el.textContent = String(val); }
+function toArray(val){ return Array.isArray(val) ? val : Object.values(val || {}); }
+function formatDateTime(ts){ if(!ts) return null; try { return new Date(ts).toLocaleString(); } catch { return null; } }
