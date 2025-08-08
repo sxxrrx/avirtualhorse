@@ -207,4 +207,52 @@ body { height: auto !important; overflow-y: auto !important; }
   background: #d33; color: #fff; border-radius: 8px;
   font-size: 11px; line-height: 16px; text-align: center;
 }
+/* ===== App Chrome overrides (safe to paste at end) ===== */
+#topbar {
+  background:#2e402d;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:10px 14px;
+  gap:12px;
+  position:sticky;
+  top:0;
+  z-index:1000;
+}
+#topbar .tb-left,
+#topbar .tb-center,
+#topbar .tb-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+#topbar a, #topbar span { color:#fff; text-decoration:none; }
+#topbar .brand { font-weight:700; letter-spacing:.3px; }
+#topbar .badge {
+  display:inline-block;
+  min-width:16px;
+  padding:0 6px;
+  border-radius:10px;
+  background:#ff4d4d;
+  color:#fff;
+  font-size:12px;
+  line-height:18px;
+  text-align:center;
+  vertical-align:middle;
+  margin-left:4px;
+}
+#topbar .tb-logout {
+  background:#3b5d3b; color:#fff; border:none; border-radius:6px;
+  padding:6px 10px; cursor:pointer;
+}
+#topbar .tb-logout:hover { background:#567d46; }
+
+/* Sidebars still use your existing styles; ensure good contrast */
+.sidebar button.tabButton.active {
+  background:#3b5d3b; color:#fff;
+}
+
+/* Ensure main layout breathes under the sticky topbar */
+#mainContainer { margin-top:8px; }
+
+/* (Optional) generic exp bar shell if needed elsewhere */
+.exp-bar { height:12px; background:#dfe7df; border-radius:6px; overflow:hidden; }
+.exp-bar > div { height:100%; background:#4caf50; width:0%; }
 
