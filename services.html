@@ -2,54 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>A Virtual Horse — Services</title>
+  <title>Services</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div id="mainContainer">
-  <div class="sidebar left-sidebar">
-    <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Town Square</button>
-    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>Stables</button>
-    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
-  </div>
+  <!-- Top bar injected by app-chrome -->
+  <div id="topbar"></div>
 
-  <div class="main-content">
-    <h1>Services</h1>
+  <div id="mainContainer">
+    <!-- Sidebars injected by app-chrome -->
+    <div class="sidebar left-sidebar" id="leftSidebar"></div>
 
-    <h3>Pick a Job</h3>
-    <div style="display:flex; gap:8px; margin-bottom:16px;">
-      <button id="btnJobStablehand">Become Stablehand</button>
-      <button id="btnJobVet">Become Vet Assistant</button>
+    <div class="main-content">
+      <h1>Services</h1>
+
+      <h3>Pick a Job</h3>
+      <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+        <button id="btnJobStablehand">Become Stablehand</button>
+        <button id="btnJobVet">Become Vet Assistant</button>
+      </div>
+      <p>Current job: <strong id="currentJob">Loading…</strong></p>
+      <p id="jobCooldownMsg" class="muted"></p>
+
+      <h2>Stablehand Tasks</h2>
+      <div id="stablehandQueue" style="display:none;">
+        <div id="stableList"></div>
+      </div>
+
+      <h2>Vet Queue</h2>
+      <div id="vetQueue" style="display:none;">
+        <div id="requestList"></div>
+      </div>
     </div>
-    <p>Current job: <strong id="currentJob">Loading…</strong></p>
-<!-- somewhere in main content -->
-<h2>Stablehand Tasks</h2>
-<div id="stablehandQueue" style="display:none;">
-  <div id="stableList"></div>
-</div>
 
-<h2>Vet Queue</h2>
-<div id="vetQueue" style="display:none;">
-  <div id="requestList"></div>
-</div>
-
-<!-- Optional: job cooldown message -->
-<p id="jobCooldownMsg" class="muted"></p>
-
-    <div id="vetQueue" style="display:none; margin-top:20px;">
-      <h3>Vet Assistant Queue (Pending Requests)</h3>
-      <div id="requestList"></div>
-    </div>
+    <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
 
-  <div class="sidebar right-sidebar">
-    <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
-    <button class="tabButton active">🔧<br>Services</button>
-    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
-  </div>
-
+  <!-- Shared chrome then page logic -->
+  <script type="module" src="app-chrome.js"></script>
   <script type="module" src="services.js"></script>
 </body>
 </html>
