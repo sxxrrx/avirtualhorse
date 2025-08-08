@@ -7,45 +7,42 @@ let page = 1;
 const pageSize = 10;
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) return window.location.href = 'login.html';
+  if (!user) return (window.location.href = 'login.html');
   const uid = user.uid;
 
-  // Try main user node first
-  let snap = await get(ref(db, `users/${uid}`));
+  // Load user
+  const snap = await get(ref(db, `users/${uid}`));
   let data = snap.exists() ? snap.val() : null;
 
-  // Fallback to gameData shape if needed
+  // Fallback if someone still has gameData shape
   if (data && !data.horses && data.gameData) {
     console.warn('No horses at users/{uid}. Using users/{uid}/gameData instead.');
     data = data.gameData;
   }
 
-  console.log('my-stable: loaded user data:', data);
-
-  // Normalize horses to an array
-  let rawHorses = data?.horses ?? [];
-  if (!Array.isArray(rawHorses)) {
-    // convert object -> array
-    rawHorses = Object.values(rawHorses);
+  // Update coins in topbar if present
+  const coinEl = document.getElementById('coinCounter');
+  if (coinEl && snap.exists()) {
+    const coins = Number((snap.val() || {}).coins || 0);
+    coinEl.textContent = `Coins: ${coins.toLocaleString()}`;
   }
 
-  // Ensure each horse has an id
+  // Normalize horses
+  let rawHorses = data?.horses ?? [];
+  if (!Array.isArray(rawHorses)) rawHorses = Object.values(rawHorses || {});
+
+  // Ensure IDs + defaults
   let changed = false;
   horses = rawHorses.map((h, idx) => {
-    if (!h.id) {
-      h.id = `horse_${Date.now()}_${idx}`;
-      changed = true;
-    }
-    // Safe defaults so rendering never explodes
-    h.name = h.name || 'Unnamed Horse';
-    h.level = Number(h.level || 1);
+    if (!h.id) { h.id = `horse_${Date.now()}_${idx}`; changed = true; }
+    h.name   = h.name   || 'Unnamed Horse';
+    h.level  = Number(h.level || 1);
     h.gender = h.gender || '—';
-    h.breed = h.breed || '—';
-    h.age = h.age || { years: 0, months: 0, days: 0 };
+    h.breed  = h.breed  || '—';
+    h.age    = h.age    || { years: 0, months: 0, days: 0 };
     return h;
   });
 
-  // If we generated IDs, write back once so links work
   if (changed) {
     try {
       await set(ref(db, `users/${uid}/horses`), horses);
@@ -55,9 +52,8 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
+  // Render + wire pagination
   renderPage();
-
-  // Pagination buttons
   document.getElementById('prevPage').addEventListener('click', () => {
     if (page > 1) { page--; renderPage(); }
   });
@@ -70,6 +66,7 @@ onAuthStateChanged(auth, async (user) => {
 function renderPage() {
   const list = document.getElementById('stableList');
   list.innerHTML = '';
+
   const start = (page - 1) * pageSize;
   const pageHorses = horses.slice(start, start + pageSize);
 
