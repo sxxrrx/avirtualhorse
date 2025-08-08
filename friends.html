@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>My Friends</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+    .tabs button { padding:8px 14px; }
+    .section-title { margin:10px 0 6px; font-weight:600; }
+    .friend-card, .mail-card {
+      background:#fff; border:1px solid #c0e8c0; border-radius:6px;
+      padding:10px; margin-bottom:10px;
+    }
+    .friend-card .actions { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <!-- Left Sidebar -->
+  <div class="sidebar left-sidebar">
+    <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
+    <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
+    <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
+    <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1>My Friends</h1>
+
+    <div class="tabs">
+      <button id="tabFriends" class="tabButton">👥 Friends <span id="friendsCount"></span></button>
+      <button id="tabPending" class="tabButton">⏳ Pending Requests <span id="pendingCount"></span></button>
+    </div>
+
+    <!-- Friends list -->
+    <div id="viewFriends" class="content" style="display:block;">
+      <div id="friendsList"></div>
+    </div>
+
+    <!-- Pending list -->
+    <div id="viewPending" class="content" style="display:none;">
+      <div class="section-title">Incoming</div>
+      <div id="pendingIncomingList"></div>
+      <div class="section-title">Outgoing</div>
+      <div id="pendingOutgoingList"></div>
+    </div>
+  </div>
+
+  <!-- Right Sidebar -->
+  <div class="sidebar right-sidebar">
+    <button class="tabButton" onclick="window.location.href='post-office.html'">📬<br>Post Office</button>
+    <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
+    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
+  </div>
+
+  <script type="module" src="friends.js"></script>
+</body>
+</html>
