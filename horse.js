@@ -1,302 +1,322 @@
 // horse.js
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, get, set } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { daysToYMD, ymdToDays } from './time.js';
+
+const $ = id => document.getElementById(id);
+const escapeHtml = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+
+// ---------- Tunables (adjust anytime) ----------
+const TREAT_LIMITS_PER_DAY = { carrots: 5, apples: 3, sugarCubes: 1 };
+const TREAT_EFFECTS = { carrots: 2, apples: 5, sugarCubes: 10 }; // happiness %
+const FEED_SERVING_LBS = 50;                                     // pounds consumed per feed
+const FEED_COOLDOWN_MS = 4 * 24 * 60 * 60 * 1000;                // 4 real days
+const FEED_BUFF_DUR_MS = 4 * 24 * 60 * 60 * 1000;                // show a “fed” buff for 4 real days
+
+// Same catalogue as market.js (age gates + bonus)
+const FEED_PACKS = [
+  {id:'ado_basic',   label:'Adolescent Basic (1000 lbs)',    lbs:1000, price: 50,  minM:12,  maxM:29,  bonus:0},
+  {id:'ado_premium', label:'Adolescent Premium (1000 lbs)',  lbs:1000, price: 75,  minM:12,  maxM:29,  bonus:5},
+  {id:'adult_basic', label:'Adult Basic (1500 lbs)',         lbs:1500, price: 75,  minM:29,  maxM:300, bonus:0},
+  {id:'adult_prem',  label:'Adult Premium (1500 lbs)',       lbs:1500, price:125,  minM:29,  maxM:300, bonus:5},
+  {id:'adult_elite', label:'Adult Elite (2500 lbs)',         lbs:2500, price:200,  minM:29,  maxM:300, bonus:10},
+  {id:'senior',      label:'Senior (1000 lbs)',              lbs:1000, price: 40,  minM:300, maxM:1200, bonus:20}
+];
 
 let uid = null;
+let userData = null;
 let horseId = null;
 let horse = null;
 
-// Support both array/object storage for users/{uid}/horses
-let horsesContainer = null;
-let horsesIsArray = true;
+// ---------- utils ----------
+function yyyymmddUTC(d = new Date()){
+  const y=d.getUTCFullYear(), m=String(d.getUTCMonth()+1).padStart(2,'0'), day=String(d.getUTCDate()).padStart(2,'0');
+  return `${y}${m}${day}`;
+}
+function monthsFromAge(age){
+  const days = typeof age.ageDays === 'number' ? age.ageDays : ymdToDays(age.age);
+  return Math.floor(days / 30);
+}
+function formatAge(h){
+  // supports ageDays or {years,months,days}
+  const days = typeof h.ageDays === 'number' ? h.ageDays : ymdToDays(h.age);
+  const ymd = daysToYMD(days);
+  if (days < 30) return `${days} day(s)`;
+  if (ymd.years === 0) return `${ymd.months} month(s)`;
+  return `${ymd.years} year(s) ${ymd.months} month(s)`;
+}
+// find array index or object key to write horse back
+function getHorseWritePath(u, id){
+  if (Array.isArray(u.horses)) {
+    const idx = u.horses.findIndex(h => h?.id === id);
+    return { kind:'array', idx };
+  }
+  const obj = u.horses || {};
+  const key = Object.keys(obj).find(k => obj[k]?.id === id);
+  return { kind:'object', key };
+}
+async function saveHorse(){
+  // keep age object in sync if we used ageDays
+  if (typeof horse.ageDays === 'number') horse.age = daysToYMD(horse.ageDays);
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return (window.location.href = 'login.html');
+  const path = getHorseWritePath(userData, horse.id);
+  if (path.kind === 'array' && path.idx >= 0) {
+    await set(ref(db, `users/${uid}/horses/${path.idx}`), horse);
+  } else if (path.kind === 'object' && path.key) {
+    await set(ref(db, `users/${uid}/horses/${path.key}`), horse);
+  } else {
+    console.warn('Could not locate horse write path; skipping save.');
+  }
+}
+function invEnsure(){
+  userData.inventory ||= {};
+  userData.inventory.treats ||= {};
+  userData.inventory.feed ||= {};
+}
+async function saveInventory(){
+  invEnsure();
+  await update(ref(db, `users/${uid}/inventory`), userData.inventory);
+}
+
+// ---------- boot ----------
+onAuthStateChanged(auth, async user => {
+  if (!user) return location.href = 'login.html';
   uid = user.uid;
 
   const params = new URLSearchParams(location.search);
   horseId = params.get('id');
-  if (!horseId) {
-    document.querySelector('.main-content').innerHTML = '<p>Horse not specified.</p>';
-    return;
-  }
 
-  // Load full user data
-  const snap = await get(ref(db, `users/${uid}`));
-  if (!snap.exists()) {
-    document.querySelector('.main-content').innerHTML = '<p>No user data found.</p>';
-    return;
-  }
-  const data = snap.val();
+  const us = await get(ref(db, `users/${uid}`));
+  if (!us.exists()) { $('pageMain').innerHTML = '<p>User not found.</p>'; return; }
+  userData = us.val();
+  const list = Array.isArray(userData.horses) ? userData.horses : Object.values(userData.horses || {});
+  horse = list.find(h => h?.id === horseId);
+  if (!horse) { $('pageMain').innerHTML = '<p>Horse not found.</p>'; return; }
 
-  horsesContainer = data.horses || [];
-  horsesIsArray = Array.isArray(horsesContainer);
+  // ensure stable fields
+  horse.happiness = Number(horse.happiness || 0);
+  horse.treatsMeta ||= { dayKey:null, carrots:0, apples:0, sugarCubes:0 };
+  horse.feedMeta ||= { lastFedRealMs:0, buffBonus:0, buffExpires:0 };
 
-  // Find horse
-  if (horsesIsArray) {
-    horse = (horsesContainer || []).find(h => h && h.id === horseId) || null;
-  } else {
-    for (const k in (horsesContainer || {})) {
-      if (horsesContainer[k] && horsesContainer[k].id === horseId) {
-        horse = horsesContainer[k];
-        break;
-      }
-    }
-  }
-
-  if (!horse) {
-    document.querySelector('.main-content').innerHTML = '<p>Horse not found.</p>';
-    return;
-  }
-
-  // Ensure an ID exists (older data safety)
-  if (!horse.id) {
-    horse.id = `horse_${Date.now()}`;
-    await saveHorseInternal(horse);
-  }
-
-  // Make sure the four status rows exist in the DOM, right under happiness bar
-  ensureStatusRows();
-
-  // Wire the status rows to horse-services.html
-  setServiceLinks(horse.id);
-
-  // Defaults + render
-  ensureHorseDefaults();
-  renderHorse();
-
-  // UI buttons
-  byId('btnRename')?.addEventListener('click', renameHorse);
-  byId('btnDescription')?.addEventListener('click', changeDescription);
-  byId('btnTreatCarrot')?.addEventListener('click', () => giveTreat('carrot', 2));
-  byId('btnTreatApple')?.addEventListener('click', () => giveTreat('apple', 5));
-  byId('btnTreatSugar')?.addEventListener('click', () => giveTreat('sugar', 10));
-  byId('btnShowResults')?.addEventListener('click', toggleResults);
+  renderAll();
+  wireActions();
 });
 
-// ---------- DOM helpers ----------
-function byId(id) { return document.getElementById(id); }
+// ---------- UI render ----------
+function renderAll(){
+  // heading
+  $('horseNameHeading').textContent = horse.name || 'Horse';
 
-function ensureStatusRows() {
-  // Insert after the happiness bar if missing
-  const container = document.querySelector('.right-panel');
-  if (!container) return;
+  // image / desc (we’ll keep placeholder path for now)
+  if (horse.image) $('horseImage').src = horse.image;
+  $('horseDescription').textContent = horse.description || 'No description yet.';
 
-  const rows = [
-    { id: 'fedStatus', label: 'Fed Properly (4 real days):', linkId: 'fedStatusLink' },
-    { id: 'vetShotsStatus', label: "Vet shots (every 3 in-game years, start 8mo):", linkId: 'vetShotsStatusLink' },
-    { id: 'vetChecksStatus', label: "Vet checks (yearly, start 6mo):", linkId: 'vetChecksStatusLink' },
-    { id: 'breedCheckStatus', label: "Breeding check (every 3 in-game years, start 2y5m):", linkId: 'breedCheckStatusLink' },
+  // facts
+  $('horseColor').textContent   = horse.coatColor || horse.color || '—';
+  $('horseBreed').textContent   = horse.breed || '—';
+  $('horseGender').textContent  = horse.gender || '—';
+  $('horseAge').textContent     = formatAge(horse);
+  $('horseLevel').textContent   = Number(horse.level || 1);
+  $('horseFoals').textContent   = Number(horse.foals || 0);
+  $('horseEarnings').textContent= Number(horse.earnings || 0);
+  $('horseShows').textContent   = Number(horse.showsEntered || 0);
+
+  // XP & Happiness bars
+  const xpPct = Math.max(0, Math.min(100, Number(horse.xpPct || 0)));
+  $('xpBar').style.width = xpPct + '%';
+
+  const happy = clamp(Number(horse.happiness || 0), 0, 100);
+  $('happinessPct').textContent = happy.toFixed(0) + '%';
+  $('happinessBar').style.width = happy + '%';
+
+  // feed buff line
+  const now = Date.now();
+  if ((horse.feedMeta?.buffExpires || 0) > now && (horse.feedMeta?.buffBonus || 0) > 0) {
+    const leftMs = horse.feedMeta.buffExpires - now;
+    const hrs = Math.ceil(leftMs / 3600000);
+    $('feedBuffLine').textContent = `Feed bonus active: +${horse.feedMeta.buffBonus}% happiness (ends in ~${hrs}h)`;
+  } else {
+    $('feedBuffLine').textContent = '';
+  }
+
+  // feeding status / next time
+  const canFeedAt = (horse.feedMeta?.lastFedRealMs || 0) + FEED_COOLDOWN_MS;
+  if (Date.now() >= canFeedAt) {
+    $('fedStatus').textContent = '✅';
+    $('nextFeedLine').textContent = 'Feeding available now.';
+  } else {
+    $('fedStatus').textContent = '⏳';
+    const left = canFeedAt - Date.now();
+    const leftDays = Math.floor(left / (24*3600000));
+    const leftHrs  = Math.ceil((left % (24*3600000)) / 3600000);
+    $('nextFeedLine').textContent = `Next feed in ~${leftDays}d ${leftHrs}h.`;
+  }
+
+  // build selects
+  buildTreatSelect();
+  buildFeedSelect();
+
+  // link routes (need horse id)
+  const hid = encodeURIComponent(horse.id);
+  $('#linkPedigree').href     = `horse-pedigree.html?id=${hid}`;
+  $('#linkFoals').href        = `horse-foals.html?id=${hid}`;
+  $('#linkHistory').href      = `horse-history.html?id=${hid}`;
+  $('#linkEnterShows').href   = `horse-shows.html?id=${hid}`;
+  $('#linkShowResults').href  = `horse-show-results.html?id=${hid}`;
+  $('#linkTack').href         = `horse-tack.html?id=${hid}`;
+}
+
+function buildTreatSelect(){
+  invEnsure();
+  const inv = userData.inventory.treats;
+  const dayKey = yyyymmddUTC();
+  const meta = horse.treatsMeta || { dayKey:null, carrots:0, apples:0, sugarCubes:0 };
+
+  // reset per-day counters if day rolled
+  if (meta.dayKey !== dayKey){
+    meta.dayKey = dayKey;
+    meta.carrots = meta.apples = meta.sugarCubes = 0;
+    horse.treatsMeta = meta;
+  }
+
+  const items = [
+    {key:'carrots',    label:'Carrots',    have:Number(inv.carrots||0),    used:meta.carrots,    cap:TREAT_LIMITS_PER_DAY.carrots,    effect:TREAT_EFFECTS.carrots},
+    {key:'apples',     label:'Apples',     have:Number(inv.apples||0),     used:meta.apples,     cap:TREAT_LIMITS_PER_DAY.apples,     effect:TREAT_EFFECTS.apples},
+    {key:'sugarCubes', label:'Sugar Cubes',have:Number(inv.sugarCubes||0), used:meta.sugarCubes, cap:TREAT_LIMITS_PER_DAY.sugarCubes, effect:TREAT_EFFECTS.sugarCubes},
   ];
 
-  // If fedStatus already exists, we assume the block is present
-  if (byId('fedStatus')) return;
+  const sel = $('#treatSelect');
+  sel.innerHTML = `<option value="">Select treat…</option>` +
+    items.map(i=>{
+      const left = Math.max(0, i.cap - i.used);
+      const disabled = (i.have<=0 || left<=0) ? 'disabled' : '';
+      return `<option value="${i.key}" ${disabled}>
+        ${i.label} (+${i.effect}%) — inv:${i.have} • left today:${left}
+      </option>`;
+    }).join('');
+}
 
-  // Find the happiness bar to insert after
-  const anchor = byId('happinessBar')?.parentElement || container;
-
-  rows.forEach(({ id, label, linkId }) => {
-    const p = document.createElement('p');
-    p.innerHTML = `<strong>${label}</strong> <a id="${linkId}"><span id="${id}">❌</span></a>`;
-    anchor.insertAdjacentElement('afterend', p);
+function buildFeedSelect(){
+  invEnsure();
+  const inv = userData.inventory.feed;
+  const months = monthsFromAge(horse);
+  const sel = $('#feedSelect');
+  const opts = FEED_PACKS.map(p=>{
+    const have = Number(inv[p.id]||0);
+    const gated = (months < p.minM || months > p.maxM);
+    const dis = (have < FEED_SERVING_LBS || gated) ? 'disabled' : '';
+    const gateTxt = gated ? ' (age gated)' : '';
+    return `<option value="${p.id}" ${dis}>
+      ${p.label} — inv:${have} lbs${gateTxt}
+    </option>`;
   });
+  sel.innerHTML = `<option value="">Select feed…</option>${opts.join('')}`;
 }
 
-function setServiceLinks(id) {
-  const linkTarget = `horse-services.html?id=${encodeURIComponent(id)}`;
-  ['fedStatusLink','vetShotsStatusLink','vetChecksStatusLink','breedCheckStatusLink']
-    .forEach(elId => { const a = byId(elId); if (a) a.href = linkTarget; });
+// ---------- actions ----------
+function wireActions(){
+  $('#btnRename').onclick = async ()=>{
+    const name = prompt('New name for your horse?', horse.name || '');
+    if (!name) return;
+    horse.name = name.slice(0,60);
+    await saveHorse();
+    renderAll();
+  };
+
+  $('#btnDescription').onclick = async ()=>{
+    const txt = prompt('Write a description for your horse (Markdown/plain OK):', horse.description || '');
+    if (txt == null) return;
+    horse.description = txt.slice(0, 5000);
+    await saveHorse();
+    renderAll();
+  };
+
+  $('#btnGiveTreat').onclick = doGiveTreat;
+  $('#btnFeed').onclick = doFeed;
+  $('#btnGroom').onclick = doGroom;
 }
 
-// ---------- Defaults ----------
-function ensureHorseDefaults() {
-  horse.name = horse.name || 'Unnamed Horse';
-  horse.description = horse.description || '';
-  horse.happiness = typeof horse.happiness === 'number' ? horse.happiness : 0;
+async function doGiveTreat(){
+  const kind = $('#treatSelect').value;
+  if (!kind) { msg('Pick a treat first.'); return; }
+  invEnsure();
 
-  horse.level = Number(horse.level || 1);
-  horse.exp = Number(horse.exp || 0);
-  horse.foals = Number(horse.foals || 0);
-  horse.earnings = Number(horse.earnings || 0);
-  horse.showsEntered = Number(horse.showsEntered || 0);
-  horse.showResults = Array.isArray(horse.showResults) ? horse.showResults : [];
+  const inv = userData.inventory.treats;
+  const have = Number(inv[kind] || 0);
+  if (have <= 0) { msg('You have none of that treat.'); return; }
 
-  horse.coatColor = horse.coatColor || '—';
-  horse.breed = horse.breed || '—';
-  horse.gender = horse.gender || '—';
-  horse.age = horse.age || { years: 0, months: 0, days: 0 };
-
-  // Health timestamps
-  horse.lastFedAt = horse.lastFedAt || 0; // real ms
-  horse.lastVetShotsDay = horse.lastVetShotsDay || 0;
-  horse.lastVetCheckDay = horse.lastVetCheckDay || 0;
-  horse.lastBreedingCheckDay = horse.lastBreedingCheckDay || 0;
-
-  // Treat limits per 24 real hours
-  // { windowStartMs, carrot, apple, sugar }
-  if (!horse.treats || typeof horse.treats !== 'object') {
-    horse.treats = { windowStartMs: 0, carrot: 0, apple: 0, sugar: 0 };
+  const dayKey = yyyymmddUTC();
+  const meta = horse.treatsMeta || { dayKey:null, carrots:0, apples:0, sugarCubes:0 };
+  if (meta.dayKey !== dayKey){
+    meta.dayKey = dayKey; meta.carrots = meta.apples = meta.sugarCubes = 0;
   }
+
+  const cap = TREAT_LIMITS_PER_DAY[kind] || 0;
+  if ((meta[kind] || 0) >= cap) { msg(`Daily limit reached for ${kind}.`); return; }
+
+  // apply
+  const effect = TREAT_EFFECTS[kind] || 0;
+  horse.happiness = clamp(Number(horse.happiness||0) + effect, 0, 100);
+  meta[kind] = (meta[kind]||0) + 1;
+  horse.treatsMeta = meta;
+
+  inv[kind] = have - 1;
+
+  await Promise.all([ saveHorse(), saveInventory() ]);
+  msg(`Gave ${kind}. Happiness +${effect}%`);
+  renderAll();
 }
 
-// ---------- Render ----------
-function renderHorse() {
-  byId('horseNameHeading').textContent = horse.name;
-  byId('horseDescription').textContent = horse.description || 'No description yet.';
-  byId('horseColor').textContent = horse.coatColor;
-  byId('horseBreed').textContent = horse.breed;
-  byId('horseGender').textContent = horse.gender;
-  byId('horseAge').textContent = formatAge(horse.age);
-  byId('horseLevel').textContent = horse.level;
-  byId('horseFoals').textContent = horse.foals;
-  byId('horseEarnings').textContent = horse.earnings;
-  byId('horseShows').textContent = horse.showsEntered;
+async function doFeed(){
+  const packId = $('#feedSelect').value;
+  if (!packId) { msg('Pick a feed first.'); return; }
 
-  // XP
-  const xpPct = Math.max(0, Math.min(100, (horse.exp / (horse.level * 100)) * 100));
-  byId('xpBar').style.width = xpPct + '%';
-
-  // Happiness
-  byId('happinessPct').textContent = Math.round(horse.happiness) + '%';
-  byId('happinessBar').style.width = Math.max(0, Math.min(100, horse.happiness)) + '%';
-
-  // Status checks
-  const today = currentGameDay();
-  setStatusIcon('fedStatus',       isFedProperly(horse.lastFedAt));
-  setStatusIcon('vetShotsStatus',  isVetShotsCurrent(today, horse));
-  setStatusIcon('vetChecksStatus', isVetCheckCurrent(today, horse));
-  setStatusIcon('breedCheckStatus',isBreedingCheckCurrent(today, horse));
-}
-
-function setStatusIcon(id, ok) {
-  const el = byId(id);
-  if (el) el.textContent = ok ? '✅' : '❌';
-}
-
-// ---------- Actions ----------
-function renameHorse() {
-  const newName = prompt('Enter a new name for your horse:', horse.name || '');
-  if (!newName) return;
-  horse.name = newName.trim();
-  saveHorse();
-}
-
-function changeDescription() {
-  const desc = prompt('Write a short description for your horse:', horse.description || '');
-  if (desc === null) return;
-  horse.description = desc.trim();
-  saveHorse();
-}
-
-function giveTreat(kind, percent) {
-  // Reset treat window if > 24h old
   const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
-  if (!horse.treats.windowStartMs || now - horse.treats.windowStartMs >= dayMs) {
-    horse.treats.windowStartMs = now;
-    horse.treats.carrot = 0;
-    horse.treats.apple = 0;
-    horse.treats.sugar = 0;
-  }
-
-  const limits = { carrot: 5, apple: 2, sugar: 1 };
-  const used = horse.treats[kind] || 0;
-  const limit = limits[kind];
-
-  if (used >= limit) {
-    alert(`Daily ${kind} limit reached (${limit} per 24 hours).`);
+  const canAt = (horse.feedMeta?.lastFedRealMs || 0) + FEED_COOLDOWN_MS;
+  if (now < canAt){
+    const left = canAt - now;
+    const hrs = Math.ceil(left/3600000);
+    msg(`Too soon to feed again. Try in ~${hrs}h.`);
     return;
   }
 
-  // Apply treat
-  horse.treats[kind] = used + 1;
-  horse.happiness = Math.max(0, Math.min(100, (horse.happiness || 0) + percent));
-  horse.lastFedAt = now; // counts as feeding
-  saveHorse();
+  invEnsure();
+  const inv = userData.inventory.feed;
+  const have = Number(inv[packId] || 0);
+  if (have < FEED_SERVING_LBS) { msg('Not enough pounds of that feed.'); return; }
+
+  // age gate check
+  const pack = FEED_PACKS.find(p=>p.id===packId);
+  const months = monthsFromAge(horse);
+  if (!pack || months < pack.minM || months > pack.maxM) { msg('That feed isn’t appropriate for this age.'); return; }
+
+  // consume inventory + apply effects
+  inv[packId] = have - FEED_SERVING_LBS;
+
+  horse.feedMeta ||= {};
+  horse.feedMeta.lastFedRealMs = now;
+  horse.feedMeta.buffBonus = Number(pack.bonus || 0);
+  horse.feedMeta.buffExpires = now + FEED_BUFF_DUR_MS;
+
+  // small immediate happiness nudge from feed bonus
+  if (pack.bonus) horse.happiness = clamp(Number(horse.happiness||0) + pack.bonus, 0, 100);
+
+  await Promise.all([ saveHorse(), saveInventory() ]);
+  msg(`Fed ${pack.label} (−${FEED_SERVING_LBS} lbs).`);
+  renderAll();
 }
 
-function toggleResults() {
-  const el = byId('showResults');
-  el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+async function doGroom(){
+  const before = Number(horse.happiness || 0);
+  horse.happiness = clamp(before + 5, 0, 100);
+  await saveHorse();
+  msg('Groomed. Happiness +5%');
+  renderAll();
 }
 
-// ---------- Save ----------
-async function saveHorse() {
-  await saveHorseInternal(horse);
-  renderHorse();
-}
+function msg(s){ const el=$('horseMsg'); if (el) el.textContent = s; }
 
-// Write back horse regardless of array/object storage
-async function saveHorseInternal(h) {
-  const base = `users/${uid}/horses`;
-
-  if (Array.isArray(horsesContainer)) {
-    const idx = (horsesContainer || []).findIndex(x => x && x.id === h.id);
-    const path = idx === -1 ? `${base}/${(horsesContainer || []).length}` : `${base}/${idx}`;
-    await set(ref(db, path), h);
-    if (idx === -1) horsesContainer.push(h);
-    else horsesContainer[idx] = h;
-  } else {
-    let key = null;
-    for (const [k, v] of Object.entries(horsesContainer || {})) {
-      if (v && v.id === h.id) { key = k; break; }
-    }
-    if (!key) key = `k_${Date.now()}`;
-    await set(ref(db, `${base}/${key}`), h);
-    horsesContainer[key] = h;
-  }
-}
-
-// ---------- Utils ----------
-function formatAge(age) {
-  if (!age) return '—';
-  const y = age.years ?? 0, m = age.months ?? 0, d = age.days ?? 0;
-  if (y === 0 && m === 0) return `${d} day(s)`;
-  if (y === 0) return `${m} month(s)`;
-  return `${y} year(s) ${m} month(s)`;
-}
-
-function isFedProperly(lastFedAt) {
-  if (!lastFedAt) return false;
-  const fourDaysMs = 4 * 24 * 60 * 60 * 1000;
-  return (Date.now() - lastFedAt) <= fourDaysMs;
-}
-
-// In-game clock: 1 real minute = 1 in-game hour
-function currentGameDay() {
-  const start = new Date(Date.UTC(2025, 0, 1)).getTime();
-  const now = Date.now();
-  const hours = Math.floor((now - start) / (60 * 1000));
-  return Math.floor(hours / 24);
-}
-
-function isVetShotsCurrent(todayDay, h) {
-  const ageDays = ageToDays(h.age);
-  if (ageDays < monthsToDays(8)) return true; // not required yet
-  const last = h.lastVetShotsDay || 0;
-  return (todayDay - last) < yearsToDays(3);
-}
-
-function isVetCheckCurrent(todayDay, h) {
-  const ageDays = ageToDays(h.age);
-  if (ageDays < monthsToDays(6)) return true; // not required yet
-  const last = h.lastVetCheckDay || 0;
-  return (todayDay - last) < yearsToDays(1);
-}
-
-function isBreedingCheckCurrent(todayDay, h) {
-  const ageDays = ageToDays(h.age);
-  if (ageDays < yearsToDays(2) + monthsToDays(5)) return true; // not required yet
-  const last = h.lastBreedingCheckDay || 0;
-  return (todayDay - last) < yearsToDays(3);
-}
-
-function ageToDays(age) {
-  if (!age) return 0;
-  const y = age.years ?? 0, m = age.months ?? 0, d = age.days ?? 0;
-  return y * 365 + m * 30 + d;
-}
-function yearsToDays(y) { return y * 365; }
-function monthsToDays(m) { return m * 30; }
-
+// small helper for $
+function $(id){ return document.getElementById(id); }
