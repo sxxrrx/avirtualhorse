@@ -108,4 +108,3 @@ function formatAge(age) {
 function escapeHtml(str) {
   return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
 }
-
