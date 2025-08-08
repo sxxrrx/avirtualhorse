@@ -14,28 +14,21 @@
     .menu-row img { width:28px; height:28px; object-fit:cover; }
     .menu-row a { font-weight:600; text-decoration:underline; cursor:pointer; }
     .menu-desc { opacity:.85; margin-left:auto; }
-    .topline { display:flex; gap:12px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
     .backlink { margin-bottom:10px; display:inline-block; }
     .grid { display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
   </style>
 </head>
 <body>
+  <!-- Top bar gets injected here -->
+  <div id="topbar"></div>
+
   <div id="mainContainer">
-    <!-- Left Sidebar -->
-    <div class="sidebar left-sidebar">
-      <button class="tabButton" onclick="window.location.href='home.html'">🏙️<br>Town Square</button>
-      <button class="tabButton" onclick="window.location.href='ranch.html'">🌾<br>My Ranch</button>
-      <button class="tabButton active">💰<br>Market</button>
-      <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
-    </div>
+    <!-- Left/Right sidebars are rendered by app-chrome.js; keep empty containers -->
+    <div class="sidebar left-sidebar" id="leftSidebar"></div>
 
     <!-- Main Content -->
     <div class="main-content">
       <h1>Market</h1>
-
-      <div class="topline">
-        <div><strong>Coins:</strong> <span id="coinCounter">0</span></div>
-      </div>
 
       <div class="market-tabs">
         <button id="tabBuy"  class="tabButton active">🛒 Buy items</button>
@@ -48,7 +41,7 @@
           <div class="menu-row">
             <img src="horse-placeholder.png" alt="Store">
             <a id="linkStore">Store horses</a>
-            <div class="menu-desc">The store horses are 2 years old with no ancestry line.</div>
+            <div class="menu-desc">The store horses are 2 years old with no ancestry line. Rotates every 12 in-game hours.</div>
           </div>
           <div class="menu-row">
             <img src="horse-placeholder.png" alt="Rescue">
@@ -68,29 +61,65 @@
           <div class="menu-row">
             <img src="horse-placeholder.png" alt="Tack">
             <a id="linkTack">Buy tack</a>
-            <div class="menu-desc">Tack improves your horse’s show performance.</div>
+            <div class="menu-desc">Tack improves your horse’s show performance. (Coming soon)</div>
           </div>
         </div>
       </div>
 
-     <!-- BUY SUBVIEWS -->
-<div id="buyStore" class="content" style="display:none;">
-  <a class="backlink" href="#" id="backFromStore">← Back to Buy items</a>
-  <p style="opacity:.8;margin:6px 0;">Store horses rotate every <strong>12 in-game hours</strong>.</p>
-  <div id="storeGrid" class="grid"></div>
-</div>
+      <!-- BUY SUBVIEWS -->
+      <div id="buyStore" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromStore">← Back to Buy items</a>
+        <p style="opacity:.8;margin:6px 0;">Store horses rotate every <strong>12 in-game hours</strong>.</p>
+        <div id="storeGrid" class="grid"></div>
+      </div>
 
-<div id="buyFeed" class="content" style="display:none;">
-  <a class="backlink" href="#" id="backFromFeed">← Back to Buy items</a>
-  <p style="opacity:.8;margin:6px 0;">Feed is stored by <strong>pounds</strong>. Age ranges are enforced when feeding.</p>
-  <div id="feedGrid" class="grid"></div>
-</div>
+      <div id="buyRescue" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromRescue">← Back to Buy items</a>
+        <div id="rescueGrid" class="grid"></div>
+      </div>
 
-<div id="buyTreats" class="content" style="display:none;">
-  <a class="backlink" href="#" id="backFromTreats">← Back to Buy items</a>
-  <p style="opacity:.8;margin:6px 0;">Treats go to your inventory. Daily limits still apply when giving treats.</p>
-  <div id="treatGrid" class="grid"></div>
-</div>
+      <div id="buyFeed" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromFeed">← Back to Buy items</a>
+        <p style="opacity:.8;margin:6px 0;">Feed is stored by <strong>pounds</strong>. Age ranges are enforced when feeding.</p>
+        <div id="feedGrid" class="grid"></div>
+      </div>
+
+      <div id="buyTreats" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromTreats">← Back to Buy items</a>
+        <p style="opacity:.8;margin:6px 0;">Treats go to your inventory. Daily limits still apply when giving treats.</p>
+        <div id="treatGrid" class="grid"></div>
+      </div>
+
+      <div id="buyTack" class="content" style="display:none;">
+        <a class="backlink" href="#" id="backFromTack">← Back to Buy items</a>
+        <p>Coming soon.</p>
+      </div>
+
+      <!-- SELL MENU -->
+      <div id="sellMenu" class="content" style="display:none;">
+        <div class="menu-list">
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Sell horse">
+            <a id="linkSellHorses">List a horse to Rescue</a>
+            <div class="menu-desc">List one of your horses for 500 coins (fixed).</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Coming soon">
+            <a id="linkSellTack">Sell tack</a>
+            <div class="menu-desc">Coming soon</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Coming soon">
+            <a id="linkSellFeed">Sell feed</a>
+            <div class="menu-desc">Coming soon</div>
+          </div>
+          <div class="menu-row">
+            <img src="horse-placeholder.png" alt="Coming soon">
+            <a id="linkSellTreats">Sell treats</a>
+            <div class="menu-desc">Coming soon</div>
+          </div>
+        </div>
+      </div>
 
       <!-- SELL SUBVIEWS -->
       <div id="sellHorses" class="content" style="display:none;">
@@ -105,15 +134,12 @@
       </div>
     </div>
 
-    <!-- Right Sidebar -->
-    <div class="sidebar right-sidebar">
-      <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
-      <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
-      <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
-    </div>
+    <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
 
+  <!-- Shared chrome -->
+  <script type="module" src="app-chrome.js"></script>
+  <!-- Page logic -->
   <script type="module" src="market.js"></script>
 </body>
 </html>
-
