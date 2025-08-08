@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, get, set, update, push } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
 const $ = id => document.getElementById(id);
 
@@ -22,24 +22,24 @@ onAuthStateChanged(auth, async (user) => {
 
   const us = await get(ref(db, `users/${uid}`));
   userData = us.exists() ? us.val() : {};
-  const jobEl = $('currentJob');
-  if (jobEl) jobEl.textContent = userData.job || 'Stablehand';
+  setText('currentJob', userData.job || 'Stablehand');
 
-  // Wire job buttons + gating
-  if ($('btnJobStablehand')) $('btnJobStablehand').onclick = () => switchJob('Stablehand');
-  if ($('btnJobVet')) {
-    $('btnJobVet').onclick = () => {
+  // job buttons
+  const btnStable = $('btnJobStablehand');
+  const btnVet    = $('btnJobVet');
+
+  if (btnStable) btnStable.onclick = () => switchJob('Stablehand');
+
+  if (btnVet) {
+    btnVet.onclick = () => {
       if ((userData.level || 0) < 20) { alert('Vet Assistant requires Level 20.'); return; }
       switchJob('Vet Assistant');
     };
-    // Visually disable if under-level
-    if ((userData.level || 0) < 20) $('btnJobVet').disabled = true;
+    btnVet.disabled = (userData.level || 0) < 20;
   }
 
-  // Cooldown handling
   enforceCooldownUI();
 
-  // Show appropriate queues
   if ((userData.job || 'Stablehand') === 'Vet Assistant') {
     showVet(true);  showStable(false); loadVetQueue();
   } else {
@@ -52,13 +52,13 @@ function enforceCooldownUI(){
   const until = userData.jobSwitchUntilGameHour || 0;
   const nowH = currentGameHour();
   const inCooldown = nowH < until;
-  const msg = $('jobCooldownMsg');
-  if (msg) {
-    msg.textContent = inCooldown ? `Job switch on cooldown: ${until - nowH} in-game hours remaining.` : '';
-  }
-  // disable both switch buttons if cooling down
-  if ($('btnJobStablehand')) $('btnJobStablehand').disabled = inCooldown;
-  if ($('btnJobVet'))        $('btnJobVet').disabled        = inCooldown || (userData.level||0) < 20;
+
+  setText('jobCooldownMsg', inCooldown ? `Job switch on cooldown: ${until - nowH} in-game hours remaining.` : '');
+
+  const btnStable = $('btnJobStablehand');
+  const btnVet    = $('btnJobVet');
+  if (btnStable) btnStable.disabled = inCooldown;
+  if (btnVet)    btnVet.disabled    = inCooldown || (userData.level||0) < 20;
 }
 
 async function switchJob(nextJob){
@@ -73,21 +73,17 @@ async function switchJob(nextJob){
     jobSwitchUntilGameHour: userData.jobSwitchUntilGameHour
   });
 
-  if ($('currentJob')) $('currentJob').textContent = userData.job;
+  setText('currentJob', userData.job);
   enforceCooldownUI();
 
   if (nextJob === 'Vet Assistant') { showVet(true);  showStable(false); loadVetQueue(); }
   else                              { showVet(false); showStable(true);  loadStablehandQueue(); }
 }
 
-function showVet(on){
-  if ($('vetQueue')) $('vetQueue').style.display = on ? 'block' : 'none';
-}
-function showStable(on){
-  if ($('stablehandQueue')) $('stablehandQueue').style.display = on ? 'block' : 'none';
-}
+function showVet(on){ const el=$('vetQueue'); if (el) el.style.display = on ? 'block' : 'none'; }
+function showStable(on){ const el=$('stablehandQueue'); if (el) el.style.display = on ? 'block' : 'none'; }
 
-// ================== VET QUEUE (existing, with payouts) ==================
+// ================== VET QUEUE ==================
 async function loadVetQueue(){
   const list = $('requestList'); if (!list) return;
   list.innerHTML = 'Loading…';
@@ -98,11 +94,17 @@ async function loadVetQueue(){
                  .filter(r => r.role === 'vet' && r.status === 'pending');
 
   if (reqs.length === 0) { list.innerHTML = '<p>No pending vet requests.</p>'; return; }
+
+  // Fetch owner display names
+  const ownerUids = [...new Set(reqs.map(r => r.ownerUid))];
+  const nameMap = await getNamesMap(ownerUids);
+
   list.innerHTML = '';
   reqs.forEach(r=>{
+    const ownerName = nameMap[r.ownerUid] || shortUid(r.ownerUid);
+    const ownerLink = `<a href="ranch-public.html?uid=${encodeURIComponent(r.ownerUid)}">${escapeHtml(ownerName)}</a>`;
     const div = document.createElement('div');
     div.className = 'horse-card';
-    const ownerLink = `<a href="ranch-public.html?uid=${encodeURIComponent(r.ownerUid)}">${escapeHtml(r.ownerName || shortUid(r.ownerUid))}</a>`;
     div.innerHTML = `
       <p><strong>Type:</strong> ${escapeHtml(r.type)}</p>
       <p><strong>Horse:</strong> ${escapeHtml(r.horseName || r.horseId)}</p>
@@ -153,10 +155,7 @@ async function completeVetRequest(r){
   loadVetQueue();
 }
 
-function shortUid(u){ return (u||'').slice(0,6)+'…'; }
-function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-// ================== STABLEHAND QUEUE (new) ==================
+// ================== STABLEHAND QUEUE ==================
 async function loadStablehandQueue(){
   const list = $('stableList'); if (!list) return;
   list.innerHTML = 'Loading…';
@@ -164,16 +163,21 @@ async function loadStablehandQueue(){
   const s = await get(ref(db, 'serviceRequests'));
   const all = s.exists() ? s.val() : {};
   const nowH = currentGameHour();
-  // show pending feed/groom tasks
+
   const reqs = Object.entries(all).map(([id, r]) => ({ id, ...r }))
                  .filter(r => r.role === 'stablehand' && r.status === 'pending');
 
   if (reqs.length === 0) { list.innerHTML = '<p>No stablehand tasks at the moment.</p>'; return; }
+
+  const ownerUids = [...new Set(reqs.map(r => r.ownerUid))];
+  const nameMap = await getNamesMap(ownerUids);
+
   list.innerHTML = '';
   reqs.forEach(r=>{
+    const ownerName = nameMap[r.ownerUid] || shortUid(r.ownerUid);
+    const ownerLink = `<a href="ranch-public.html?uid=${encodeURIComponent(r.ownerUid)}">${escapeHtml(ownerName)}</a>`;
     const div = document.createElement('div');
     div.className = 'horse-card';
-    const ownerLink = `<a href="ranch-public.html?uid=${encodeURIComponent(r.ownerUid)}">${shortUid(r.ownerUid)}</a>`;
     div.innerHTML = `
       <p><strong>${r.type === 'feed_daily' ? 'Feed' : 'Groom'}</strong> — ${escapeHtml(r.horseName || r.horseId)}</p>
       <p><strong>Owner:</strong> ${ownerLink}</p>
@@ -231,7 +235,6 @@ async function completeStablehandTask(r){
     p.remainingDays = Math.max(0, (p.remainingDays || 0) - 1);
     p.nextDueGameHour = (p.nextDueGameHour || currentGameHour()) + 24;
 
-    // If still before expiry and days remain, queue another task
     if ((p.expiresAtGameHour || 0) > currentGameHour() && p.remainingDays > 0) {
       await set(pRef, p);
       await enqueueNextStablehandTask(r.type, p);
@@ -245,17 +248,38 @@ async function completeStablehandTask(r){
 }
 
 async function enqueueNextStablehandTask(kind, plan){
+  // Use existing planId if present; else reconstruct
+  const pid = plan.planId || `${plan.ownerUid}_${plan.horseId}_${plan.planType || (kind === 'feed_daily' ? 'feed' : 'groom')}`;
   const req = {
     role: 'stablehand',
     type: kind, // 'feed_daily' | 'groom_daily'
     ownerUid: plan.ownerUid,
     horseId: plan.horseId,
     horseName: plan.horseName,
-    planId: plan.planType ? planId(plan.planType) : plan.planId, // tolerate either
+    planId: pid,
     status: 'pending',
     postedAtGameHour: currentGameHour(),
     dueAtGameHour: plan.nextDueGameHour
   };
   const r = push(ref(db, 'serviceRequests'));
   await set(r, req);
+}
+
+// ---- helpers ----
+function setText(id, v){ const el=$(id); if (el) el.textContent = String(v); }
+function shortUid(u){ return (u||'').slice(0,6)+'…'; }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function getNamesMap(uids){
+  const out = {};
+  await Promise.all(uids.map(async id=>{
+    const s = await get(ref(db, `users/${id}`));
+    if (s.exists()){
+      const u = s.val();
+      out[id] = u.username || u.loginName || shortUid(id);
+    } else {
+      out[id] = shortUid(id);
+    }
+  }));
+  return out;
 }
