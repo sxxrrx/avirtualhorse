@@ -183,3 +183,7 @@ button:hover {
 .market-section.active {
   display: block;
 }
+/* allow the horse page to scroll */
+body { height: auto !important; overflow-y: auto !important; }
+/* make sure the main content can scroll if it needs to */
+.main-content { overflow-y: auto; max-height: none; }
