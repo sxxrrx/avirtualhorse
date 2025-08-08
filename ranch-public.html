@@ -2,32 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <title>A Virtual Horse — Ranch</title>
+  <title>A Virtual Horse — Ranch (Public)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
+  <!-- Left Sidebar -->
   <div class="sidebar left-sidebar">
     <button class="tabButton" onclick="window.location.href='home.html'">🏠<br>Town Square</button>
     <button class="tabButton" onclick="window.location.href='my-stable.html'">🐴<br>My Stables</button>
-  </div>
-
-  <div class="main-content">
-    <h1 id="ownerName">Ranch</h1>
-    <p><strong>Joined:</strong> <span id="joinDate">—</span></p>
-    <p><strong>Level:</strong> <span id="level">—</span></p>
-    <p><strong>EXP:</strong> <span id="exp">—</span></p>
-    <p><strong>Horses Owned:</strong> <span id="horseCount">0</span></p>
-
-    <h3 style="margin-top:10px;">Horses</h3>
-    <div id="publicStableGrid" class="grid"></div>
-  </div>
-
-  <div class="sidebar right-sidebar">
     <button class="tabButton" onclick="window.location.href='market.html'">💰<br>Market</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <h1 id="ranchTitle">Ranch</h1>
+
+    <div id="publicProfile" class="content" style="display:block;">
+      <p><strong>Username:</strong> <span id="profileUsername">—</span></p>
+      <p><strong>Join Date:</strong> <span id="profileJoinDate">—</span></p>
+      <p><strong>Last Seen:</strong> <span id="profileLastSeen">—</span></p>
+      <p><strong>Horses Owned:</strong> <span id="profileHorseCount">0</span></p>
+      <p><strong>Level:</strong> <span id="profileLevel">—</span></p>
+
+      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <!-- Mail goes to post-office with ?to=uid -->
+        <a id="btnMail" class="tabButton" style="width:auto; padding:8px 14px; text-decoration:none; display:inline-block;">📬 Mail</a>
+        <!-- Add Friend triggers JS -->
+        <button id="btnAddFriend">🤝 Add Friend</button>
+        <!-- View Stable goes to stable-public with ?uid= -->
+        <a id="btnViewStable" class="tabButton" style="width:auto; padding:8px 14px; text-decoration:none; display:inline-block;">🐴 View Stable</a>
+      </div>
+
+      <p id="statusMsg" style="margin-top:10px; color:#2e402d;"></p>
+    </div>
+  </div>
+
+  <!-- Right Sidebar -->
+  <div class="sidebar right-sidebar">
+    <button class="tabButton" onclick="window.location.href='shows.html'">🏆<br>Shows</button>
     <button class="tabButton" onclick="window.location.href='services.html'">🔧<br>Services</button>
+    <button class="tabButton" onclick="window.location.href='settings.html'">⚙️<br>Settings</button>
   </div>
 
   <script type="module" src="ranch-public.js"></script>
 </body>
 </html>
+
