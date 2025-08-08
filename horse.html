@@ -14,37 +14,66 @@
   </style>
 </head>
 <body>
-  <!-- Page content only; app-chrome will wrap it with topbar + sidebars -->
+  <!-- Content-only; shared chrome wraps this -->
   <div id="pageMain" class="main-content">
     <h1 id="horseNameHeading">Horse</h1>
 
-    <div class="tiny-buttons">
+    <!-- Top toolbar -->
+    <div class="tiny-buttons" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
       <button id="btnRename">Change Name</button>
       <button id="btnDescription">Add Description</button>
-      <button id="btnTreatCarrot">Give Carrot (+2%)</button>
-      <button id="btnTreatApple">Give Apple (+5%)</button>
-      <button id="btnTreatSugar">Give Sugar Cube (+10%)</button>
-      <button id="btnShowResults">Show Results</button>
-    </div>
 
-    <div class="horse-layout">
-      <div>
-        <img id="horseImage" src="horse-placeholder.png" alt="Horse" style="width:100%; max-width:600px; border-radius:8px;"/>
-        <p id="horseDescription" style="margin-top:8px; white-space:pre-wrap;">No description yet.</p>
-
-        <div style="margin-top:12px; display:flex; flex-wrap: wrap; gap:8px;">
-          <button onclick="window.location.href='pedigree.html'">View Pedigree</button>
-          <button onclick="window.location.href='children.html'">View Children</button>
-          <button onclick="window.location.href='history.html'">Horse History</button>
-          <button onclick="window.location.href='enter-shows.html'">Enter Shows</button>
-          <button id="btnChangeTack">Change Tack</button>
-          <button id="btnFeedHorse">Feed Horse</button>
-          <button id="btnBreedHorse">Breed Horse</button>
-        </div>
-
-        <div id="showResults" class="content" style="display:none; margin-top:12px;"></div>
+      <!-- Treats -->
+      <div style="display:flex;gap:6px;align-items:center;">
+        <select id="treatSelect">
+          <option value="">Select treat…</option>
+          <!-- options filled by JS with counts -->
+        </select>
+        <button id="btnGiveTreat">Give Treat</button>
       </div>
 
+      <!-- Feed -->
+      <div style="display:flex;gap:6px;align-items:center;">
+        <select id="feedSelect">
+          <option value="">Select feed…</option>
+          <!-- options filled by JS with inventory + age gates -->
+        </select>
+        <button id="btnFeed">Feed</button>
+      </div>
+
+      <button id="btnGroom">Groom (+5%)</button>
+    </div>
+
+    <div class="horse-layout" style="display:grid;grid-template-columns:1fr 320px;gap:16px;">
+      <div>
+        <img id="horseImage" src="horse-placeholder.png" alt="Horse"
+             style="width:100%; max-width:600px; border-radius:8px;"/>
+        
+        <!-- Under-image action row -->
+        <div id="underImageActions" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
+          <a id="linkPedigree" class="tabButton" style="width:auto;padding:8px 14px;">View Pedigree</a>
+          <a id="linkFoals" class="tabButton" style="width:auto;padding:8px 14px;">View Children</a>
+          <a id="linkHistory" class="tabButton" style="width:auto;padding:8px 14px;">Horse History</a>
+          <a id="linkTack" class="tabButton" style="width:auto;padding:8px 14px;">Change Tack</a>
+        </div>
+
+        <!-- Description lives *below* the buttons -->
+        <p id="horseDescription" style="margin-top:10px; white-space:pre-wrap;">No description yet.</p>
+
+        <!-- Shows row at the bottom -->
+        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
+          <a id="linkEnterShows" class="tabButton" style="width:auto;padding:8px 14px;">Enter Shows</a>
+          <a id="linkShowResults" class="tabButton" style="width:auto;padding:8px 14px;">View Show Results</a>
+        </div>
+
+        <!-- Optional results slab if you want to inline later -->
+        <div id="showResults" class="content" style="display:none; margin-top:12px;"></div>
+
+        <!-- status messages -->
+        <div id="horseMsg" class="muted" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- Right info panel kept as-is -->
       <div class="right-panel">
         <p><strong>Color:</strong> <span id="horseColor">—</span></p>
         <p><strong>Breed:</strong> <span id="horseBreed">—</span></p>
@@ -52,7 +81,9 @@
         <p><strong>Age:</strong> <span id="horseAge">—</span></p>
 
         <p><strong>XP:</strong></p>
-        <div class="bar-container"><div id="xpBar" class="bar-fill"></div></div>
+        <div class="bar-container" style="width:100%;background:#ddd;border-radius:6px;height:12px;">
+          <div id="xpBar" class="bar-fill" style="height:100%;width:0%;background:#4caf50;border-radius:6px;"></div>
+        </div>
         <p><strong>Level:</strong> <span id="horseLevel">1</span></p>
         <p><strong>Foals:</strong> <span id="horseFoals">0</span></p>
         <p><strong>Earnings:</strong> <span id="horseEarnings">0</span></p>
@@ -60,29 +91,22 @@
 
         <h3 style="margin-top:10px;">Health, Feeding & Happiness</h3>
         <p><strong>Happiness:</strong> <span id="happinessPct">0%</span></p>
-        <div class="bar-container"><div id="happinessBar" class="bar-fill"></div></div>
+        <div class="bar-container" style="width:100%;background:#ddd;border-radius:6px;height:12px;">
+          <div id="happinessBar" class="bar-fill" style="height:100%;width:0%;background:#4caf50;border-radius:6px;"></div>
+        </div>
+        <p id="feedBuffLine" class="muted" style="margin-top:6px;"></p>
 
-        <!-- clickable status rows (chrome/JS will populate links) -->
         <p><strong>Fed Properly:</strong>
-          <a id="fedStatusLink"><span id="fedStatus">❌</span></a>
+          <span id="fedStatus">❌</span>
         </p>
-        <p><strong>Vet shots:</strong>
-          <a id="vetShotsStatusLink"><span id="vetShotsStatus">❌</span></a>
-        </p>
-        <p><strong>Vet checks:</strong>
-          <a id="vetChecksStatusLink"><span id="vetChecksStatus">❌</span></a>
-        </p>
-        <p><strong>Breeding check:</strong>
-          <a id="breedCheckStatusLink"><span id="breedCheckStatus">❌</span></a>
-        </p>
+        <p class="muted" id="nextFeedLine"></p>
       </div>
     </div>
   </div>
 
-  <!-- Shared chrome (mount before page logic) -->
+  <!-- Mount shared chrome first -->
   <script type="module">
     import { mountChrome } from './app-chrome.js';
-    // Viewing a single horse is part of stables flow
     mountChrome({ leftActive: 'stables' });
   </script>
 
@@ -90,4 +114,3 @@
   <script type="module" src="horse.js"></script>
 </body>
 </html>
-
