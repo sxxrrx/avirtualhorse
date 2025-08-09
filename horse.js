@@ -5,7 +5,8 @@ import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1
 import { daysToYMD, ymdToDays, currentGameDay } from './time.js';
 
 const $ = id => document.getElementById(id);
-const escapeHtml = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}));
+// (fixed) no stray brace
+const escapeHtml = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
 
 // ---------- Tunables ----------
@@ -146,29 +147,29 @@ function renderAll(){
   buildTreatSelect();
   buildFeedSelect();
 
-  // links
+  // links (fixed: use $('id'), not $('#id'))
   const hid = encodeURIComponent(horse.id);
-  $('#linkPedigree').href     = `horse-pedigree.html?id=${hid}`;
-  $('#linkFoals').href        = `horse-foals.html?id=${hid}`;
-  $('#linkHistory').href      = `horse-history.html?id=${hid}`;
-  $('#linkEnterShows').href   = `horse-shows.html?id=${hid}`;
-  // results toggled inline; no href
+  $('linkPedigree').href     = `horse-pedigree.html?id=${hid}`;
+  $('linkFoals').href        = `horse-foals.html?id=${hid}`;
+  $('linkHistory').href      = `horse-history.html?id=${hid}`;
+  $('linkEnterShows').href   = `horse-shows.html?id=${hid}`;
+  // 'View Show Results' is toggled inline
 
   const svc = `horse-services.html?id=${hid}`;
-  $('#fedStatusLink').href        = svc;
-  $('#vetShotsStatusLink').href   = svc;
-  $('#vetChecksStatusLink').href  = svc;
-  $('#breedCheckStatusLink').href = svc;
+  $('fedStatusLink').href        = svc;
+  $('vetShotsStatusLink').href   = svc;
+  $('vetChecksStatusLink').href  = svc;
+  $('breedCheckStatusLink').href = svc;
 
-  // vet statuses (simple freshness windows)
+  // vet statuses
   const today = currentGameDay();
-  setFreshness('vetShotsStatus',   horse.lastVetShotsDay,   365, today); // 1y
-  setFreshness('vetChecksStatus',  horse.lastVetCheckDay,    30, today); // 1m
-  setFreshness('breedCheckStatus', horse.lastBreedingCheckDay, 30, today); // 1m
+  setFreshness('vetShotsStatus',   horse.lastVetShotsDay,      365, today); // 1y
+  setFreshness('vetChecksStatus',  horse.lastVetCheckDay,       30, today); // 1m
+  setFreshness('breedCheckStatus', horse.lastBreedingCheckDay,  30, today); // 1m
 }
 
 function setFreshness(spanId, lastDay, windowDays, today){
-  const el = $('#'+spanId); if (!el) return;
+  const el = $(spanId); if (!el) return;
   if (typeof lastDay === 'number' && today - lastDay <= windowDays) el.textContent = '✅';
   else el.textContent = '❌';
 }
@@ -191,7 +192,7 @@ function buildTreatSelect(){
     {key:'sugarCubes', label:'Sugar Cubes',have:Number(inv.sugarCubes||0), used:meta.sugarCubes, cap:TREAT_LIMITS_PER_DAY.sugarCubes, effect:TREAT_EFFECTS.sugarCubes},
   ];
 
-  const sel = $('#treatSelect');
+  const sel = $('treatSelect');
   sel.innerHTML = `<option value="">Select treat…</option>` +
     items.map(i=>{
       const left = Math.max(0, i.cap - i.used);
@@ -206,7 +207,7 @@ function buildFeedSelect(){
   invEnsure();
   const inv = userData.inventory.feed;
   const months = monthsFromAge(horse);
-  const sel = $('#feedSelect');
+  const sel = $('feedSelect');
   const opts = FEED_PACKS.map(p=>{
     const have = Number(inv[p.id]||0);
     const gated = (months < p.minM || months > p.maxM);
@@ -221,7 +222,7 @@ function buildFeedSelect(){
 
 // ---------- actions ----------
 function wireActions(){
-  $('#btnRename').onclick = async ()=>{
+  $('btnRename').onclick = async ()=>{
     const name = prompt('New name for your horse?', horse.name || '');
     if (!name) return;
     horse.name = name.slice(0,60);
@@ -229,7 +230,7 @@ function wireActions(){
     renderAll();
   };
 
-  $('#btnDescription').onclick = async ()=>{
+  $('btnDescription').onclick = async ()=>{
     const txt = prompt('Write a description for your horse (Markdown/plain OK):', horse.description || '');
     if (txt == null) return;
     horse.description = txt.slice(0, 5000);
@@ -237,16 +238,16 @@ function wireActions(){
     renderAll();
   };
 
-  $('#btnGiveTreat').onclick = doGiveTreat;
-  $('#btnFeed').onclick = doFeed;
-  $('#btnGroom').onclick = doGroom;
+  $('btnGiveTreat').onclick = doGiveTreat;
+  $('btnFeed').onclick = doFeed;
+  $('btnGroom').onclick = doGroom;
 
   // Inline show results (toggle + lazy load)
-  const link = $('#linkShowResults');
+  const link = $('linkShowResults');
   if (link) {
     link.onclick = async (e) => {
       e.preventDefault();
-      const panel = $('#showResults');
+      const panel = $('showResults');
       const show = panel.style.display !== 'block';
       panel.style.display = show ? 'block' : 'none';
       if (show) {
@@ -267,7 +268,7 @@ function wireActions(){
 }
 
 async function doGiveTreat(){
-  const kind = $('#treatSelect').value;
+  const kind = $('treatSelect').value;
   if (!kind) { msg('Pick a treat first.'); return; }
   invEnsure();
 
@@ -297,7 +298,7 @@ async function doGiveTreat(){
 }
 
 async function doFeed(){
-  const packId = $('#feedSelect').value;
+  const packId = $('feedSelect').value;
   if (!packId) { msg('Pick a feed first.'); return; }
 
   const now = Date.now();
@@ -333,8 +334,7 @@ async function doFeed(){
 }
 
 async function doGroom(){
-  const before = Number(horse.happiness || 0);
-  horse.happiness = clamp(before + 5, 0, 100);
+  horse.happiness = clamp(Number(horse.happiness || 0) + 5, 0, 100);
   await saveHorse();
   msg('Groomed. Happiness +5%');
   renderAll();
