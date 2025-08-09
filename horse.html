@@ -29,7 +29,6 @@
       <div style="display:flex;gap:6px;align-items:center;">
         <select id="treatSelect">
           <option value="">Select treat…</option>
-          <!-- options filled by JS with counts -->
         </select>
         <button id="btnGiveTreat">Give Treat</button>
       </div>
@@ -38,7 +37,6 @@
       <div style="display:flex;gap:6px;align-items:center;">
         <select id="feedSelect">
           <option value="">Select feed…</option>
-          <!-- options filled by JS with inventory + age gates -->
         </select>
         <button id="btnFeed">Feed</button>
       </div>
@@ -65,17 +63,17 @@
           <a id="linkShowResults" class="tabButton">View Show Results</a>
         </div>
 
-        <!-- NOW the description lives *under* the bottom buttons -->
+        <!-- Description BELOW the buttons -->
         <p id="horseDescription" style="margin-top:10px; white-space:pre-wrap;">No description yet.</p>
 
-        <!-- Inline results slab (hidden until clicked) -->
+        <!-- Inline results slab -->
         <div id="showResults" class="content" style="display:none; margin-top:12px;"></div>
 
         <!-- status messages -->
         <div id="horseMsg" class="muted" style="margin-top:8px;"></div>
       </div>
 
-      <!-- Right info panel kept as-is -->
+      <!-- Right info panel -->
       <div class="right-panel">
         <p><strong>Color:</strong> <span id="horseColor">—</span></p>
         <p><strong>Breed:</strong> <span id="horseBreed">—</span></p>
@@ -83,9 +81,7 @@
         <p><strong>Age:</strong> <span id="horseAge">—</span></p>
 
         <p><strong>XP:</strong></p>
-        <div class="bar-container">
-          <div id="xpBar" class="bar-fill"></div>
-        </div>
+        <div class="bar-container"><div id="xpBar" class="bar-fill"></div></div>
         <p><strong>Level:</strong> <span id="horseLevel">1</span></p>
         <p><strong>Foals:</strong> <span id="horseFoals">0</span></p>
         <p><strong>Earnings:</strong> <span id="horseEarnings">0</span></p>
@@ -93,15 +89,24 @@
 
         <h3 style="margin-top:10px;">Health, Feeding & Happiness</h3>
         <p><strong>Happiness:</strong> <span id="happinessPct">0%</span></p>
-        <div class="bar-container">
-          <div id="happinessBar" class="bar-fill"></div>
-        </div>
+        <div class="bar-container"><div id="happinessBar" class="bar-fill"></div></div>
         <p id="feedBuffLine" class="muted" style="margin-top:6px;"></p>
 
         <p><strong>Fed Properly:</strong>
-          <span id="fedStatus">❌</span>
+          <a id="fedStatusLink"><span id="fedStatus">❌</span></a>
         </p>
         <p class="muted" id="nextFeedLine"></p>
+
+        <!-- Vet status rows (clickable -> horse-services) -->
+        <p><strong>Vet shots:</strong>
+          <a id="vetShotsStatusLink"><span id="vetShotsStatus">❌</span></a>
+        </p>
+        <p><strong>Vet checks:</strong>
+          <a id="vetChecksStatusLink"><span id="vetChecksStatus">❌</span></a>
+        </p>
+        <p><strong>Breeding check:</strong>
+          <a id="breedCheckStatusLink"><span id="breedCheckStatus">❌</span></a>
+        </p>
       </div>
     </div>
   </div>
@@ -117,3 +122,4 @@
   <script type="module" src="horse-show-results.js"></script>
 </body>
 </html>
+
