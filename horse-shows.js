@@ -26,7 +26,7 @@ let currentSpec = 'English';
 let uid = null;
 let userData = null;
 let horse = null;
-let showsCache = {}; // live shows snapshot
+let showsCache = {}; // raw snapshot
 
 // ---------- boot ----------
 onAuthStateChanged(auth, async user => {
@@ -39,20 +39,17 @@ onAuthStateChanged(auth, async user => {
   if (!us.exists()) return fail('User not found.');
   userData = us.val();
 
-  // load the horse
   const horses = toArray(userData.horses);
   horse = horses.find(h => h?.id === horseId);
   if (!horse) return fail('Horse not found.');
 
   paintHeader();
 
-  // tabs
   $('#tabEnglish').onclick = () => switchSpec('English');
   $('#tabJumper').onclick  = () => switchSpec('Jumper');
   $('#tabRacing').onclick  = () => switchSpec('Racing');
   $('#tabWestern').onclick = () => switchSpec('Western');
 
-  // live shows
   onValue(ref(db, 'shows'), snap => {
     showsCache = snap.exists() ? snap.val() : {};
     renderShows();
@@ -84,23 +81,23 @@ function switchSpec(spec){
   renderShows();
 }
 
-// ---------- render shows (enter-only) ----------
+// ---------- render shows ----------
 function renderShows(){
   const grid = $('#showsGrid'); if (!grid) return;
   grid.innerHTML = '';
 
-  const arr = Object.values(showsCache || {}).filter(s => {
+  // Inflate to array with ids from keys
+  const showsArr = Object.entries(showsCache).map(([id, s]) => ({ id, ...s }));
+
+  const arr = showsArr.filter(s => {
     if (!s) return false;
     const spec = (s.specialty || s.discipline || '').toString();
     if (spec !== currentSpec) return false;
-    // open and not started
     const nowH = currentGameHour();
     if (s.status !== 'open') return false;
     if (typeof s.startsAtGameHour === 'number' && nowH >= s.startsAtGameHour) return false;
-    // capacity
     const count = s.entrants ? Object.keys(s.entrants).length : 0;
     if (s.maxEntrants && count >= s.maxEntrants) return false;
-    // hide shows this horse already entered
     if (s.entrants && s.entrants[horse.id]) return false;
     return true;
   });
@@ -118,7 +115,7 @@ function renderShows(){
     const card = document.createElement('div');
     card.className = 'card';
 
-    const entryFee = resolveEntryFee(show, horse); // fallback for game shows
+    const entryFee = resolveEntryFee(show, horse);
     const entrants = show.entrants ? Object.keys(show.entrants).length : 0;
 
     const reasons = [];
@@ -163,7 +160,6 @@ function meetsPlayerLevelForHighShows(user, show){
   if (minL < 50) return true;
   return Number(user.level || 1) >= 20;
 }
-// Level≥5: must create 2 shows per 1 entry (i.e., enters ≤ created*2).
 function meetsCreateQuota(user){
   const level = Number(user.level || 1);
   if (level < 5) return true;
@@ -176,19 +172,10 @@ function hasRequiredTack(h, specRaw){
   const spec = (specRaw || '').toString().toLowerCase();
   const t = h.tack || h.tackSet || h.equippedTack || (h.tack && h.tack.set);
   if (!t) return false;
-
-  // try to find a specialty string
-  const s = (
-    t.specialty ||
-    (t.set && t.set.specialty) ||
-    (t.items && t.items.specialty) ||
-    (typeof t === 'string' ? t : '')
-  ) || '';
-
-  const ss = s.toString().toLowerCase();
-  if (!ss) return false;
-  if (ss === 'standard') return true;
-  return ss === spec;
+  const s = (t.specialty || (t.set && t.set.specialty) || (t.items && t.items.specialty) || (typeof t === 'string' ? t : '') || '').toString().toLowerCase();
+  if (!s) return false;
+  if (s === 'standard') return true;
+  return s === spec;
 }
 
 function hasEarlyEntryToken(user, horseId){
@@ -203,11 +190,10 @@ function hasEarlyEntryToken(user, horseId){
   });
 }
 
-// ---------- entry fee fallback (for game-created shows without fee set) ----------
+// ---------- entry fee fallback ----------
 function resolveEntryFee(show, h){
   if (show.fee != null) return Number(show.fee);
   const l = Number(h.level || 1);
-  // brackets (you said “you get the point” up to 300) — tweak anytime
   if (l < 5)   return 5;
   if (l < 10)  return 10;
   if (l < 25)  return 15;
@@ -216,28 +202,24 @@ function resolveEntryFee(show, h){
   if (l < 150) return 40;
   if (l < 200) return 50;
   if (l < 250) return 60;
-  return 75; // 250–300
+  return 75;
 }
 
 // ---------- enter flow ----------
 async function enterShow(show, entryFee){
-  // refresh snapshot & re-check
   const sRef = ref(db, `shows/${show.id}`);
   const fresh = await get(sRef);
   if (!fresh.exists()) return alert('That show no longer exists.');
   const s = fresh.val();
 
-  // basic status
   const nowH = currentGameHour();
   if (s.status !== 'open') return alert('Show is not open.');
   if (typeof s.startsAtGameHour === 'number' && nowH >= s.startsAtGameHour) return alert('Show already started.');
 
-  // capacity & already entered
   const entrants = s.entrants ? Object.keys(s.entrants).length : 0;
   if (s.maxEntrants && entrants >= s.maxEntrants) return alert('Show is full.');
   if (s.entrants && s.entrants[horse.id]) return alert('This horse already entered here.');
 
-  // eligibility again
   if (!meetsAgeRule(horse, userData)) return alert('Horse is too young for this show.');
   if (!hasRequiredTack(horse, s.specialty || s.discipline)) return alert('This horse needs the right tack (or Standard).');
   if (!meetsLevelRule(horse, s)) return alert('Horse level does not meet the show bracket.');
@@ -246,38 +228,31 @@ async function enterShow(show, entryFee){
 
   const fee = Number(resolveEntryFee(s, horse) || 0);
 
-  // Atomically: deduct coins, increment enteredTotal, grant entry XP to player & horse
   const userRef = ref(db, `users/${uid}`);
   const horsePath = resolveHorsePath(userData, horse.id);
 
   const txn = await runTransaction(userRef, u => {
     if (!u) return u;
     const coins = Number(u.coins || 0);
-    if (coins < fee) return; // abort
+    if (coins < fee) return;
 
-    // creation quota (re-check inside txn)
     const level = Number(u.level || 1);
     if (level >= 5) {
       const created = Number(u.showStats?.createdTotal || 0);
       const entered = Number(u.showStats?.enteredTotal || 0);
-      if (entered >= created * 2) return; // abort
+      if (entered >= created * 2) return;
     }
 
-    // horse existence
     const [container, key] = horsePath;
-    if (!u[container] || !u[container][key]) return; // abort if missing
+    if (!u[container] || !u[container][key]) return;
 
-    // add entry XP to horse
     const h = { ...u[container][key] };
     h.exp = Number(h.exp || 0) + HORSE_EXP_ON_ENTRY;
 
-    // player XP
-    const newPlayerExp = Number(u.exp || 0) + PLAYER_EXP_ON_ENTRY;
-
     const next = {
       ...u,
-      coins: coins - fee,
-      exp: newPlayerExp,
+      coins: Number(u.coins || 0) - fee,
+      exp:   Number(u.exp   || 0) + PLAYER_EXP_ON_ENTRY,
       showStats: {
         createdTotal: Number(u.showStats?.createdTotal || 0),
         enteredTotal: Number(u.showStats?.enteredTotal || 0) + 1
@@ -293,7 +268,6 @@ async function enterShow(show, entryFee){
     return alert('Could not enter — check coins or entry limits.');
   }
 
-  // Write entrant record on the show
   const entrant = {
     ownerUid: uid,
     ownerName: userData.username || userData.loginName || 'Player',
@@ -304,9 +278,12 @@ async function enterShow(show, entryFee){
   };
   await update(sRef, { [`entrants/${horse.id}`]: entrant });
 
-  // Log history (horse)
+  // NEW: index this show for this horse so we can list results quickly
+  await update(ref(db, `horseShowsIndex/${horse.id}`), { [show.id]: true });
+
+  // history: entry
   await logHorseEvent(horse.id, 'show_entered', {
-    showId: s.id, showName: s.name || 'Show', fee
+    showId: show.id, showName: show.name || 'Show', fee
   });
 
   alert('Entered!');
@@ -316,15 +293,12 @@ async function enterShow(show, entryFee){
 function toArray(v){ return Array.isArray(v) ? v.filter(Boolean) : Object.values(v||{}); }
 
 function resolveHorsePath(user, id){
-  // supports array or object storage
   if (Array.isArray(user.horses)) {
     const idx = user.horses.findIndex(h => h?.id === id);
     return ['horses', String(idx)];
   }
-  // object map
   const entries = Object.entries(user.horses || {});
   for (const [k, h] of entries) if (h?.id === id) return ['horses', k];
-  // fallback container name to avoid hard crash
   return ['horses', '0'];
 }
 
@@ -342,4 +316,3 @@ function ymdToDays(age){
   return y*365 + m*30 + d;
 }
 function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
