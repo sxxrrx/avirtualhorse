@@ -2,7 +2,7 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
-import { daysToYMD, ymdToDays } from './time.js';
+import { daysToYMD, ymdToDays, currentGameDay } from './time.js';
 
 const $ = id => document.getElementById(id);
 const escapeHtml = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}));
@@ -11,11 +11,11 @@ const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
 // ---------- Tunables ----------
 const TREAT_LIMITS_PER_DAY = { carrots: 5, apples: 3, sugarCubes: 1 };
 const TREAT_EFFECTS = { carrots: 2, apples: 5, sugarCubes: 10 }; // happiness %
-const FEED_SERVING_LBS = 50;                                     // pounds consumed per feed
-const FEED_COOLDOWN_MS = 4 * 24 * 60 * 60 * 1000;                // 4 real days
-const FEED_BUFF_DUR_MS = 4 * 24 * 60 * 60 * 1000;                // show a “fed” buff for 4 real days
+const FEED_SERVING_LBS = 50;
+const FEED_COOLDOWN_MS = 4 * 24 * 60 * 60 * 1000; // 4 RL days
+const FEED_BUFF_DUR_MS = 4 * 24 * 60 * 60 * 1000;
 
-// Same catalogue as market.js (age gates + bonus)
+// feed catalog
 const FEED_PACKS = [
   {id:'ado_basic',   label:'Adolescent Basic (1000 lbs)',    lbs:1000, price: 50,  minM:12,  maxM:29,  bonus:0},
   {id:'ado_premium', label:'Adolescent Premium (1000 lbs)',  lbs:1000, price: 75,  minM:12,  maxM:29,  bonus:5},
@@ -35,8 +35,8 @@ function yyyymmddUTC(d = new Date()){
   const y=d.getUTCFullYear(), m=String(d.getUTCMonth()+1).padStart(2,'0'), day=String(d.getUTCDate()).padStart(2,'0');
   return `${y}${m}${day}`;
 }
-function monthsFromAge(age){
-  const days = typeof age.ageDays === 'number' ? age.ageDays : ymdToDays(age.age);
+function monthsFromAge(ageObj){
+  const days = typeof ageObj.ageDays === 'number' ? ageObj.ageDays : ymdToDays(ageObj.age);
   return Math.floor(days / 30);
 }
 function formatAge(h){
@@ -91,7 +91,6 @@ onAuthStateChanged(auth, async user => {
   horse = list.find(h => h?.id === horseId);
   if (!horse) { $('pageMain').innerHTML = '<p>Horse not found.</p>'; return; }
 
-  // ensure stable fields
   horse.happiness = Number(horse.happiness || 0);
   horse.treatsMeta ||= { dayKey:null, carrots:0, apples:0, sugarCubes:0 };
   horse.feedMeta ||= { lastFedRealMs:0, buffBonus:0, buffExpires:0 };
@@ -103,7 +102,6 @@ onAuthStateChanged(auth, async user => {
 // ---------- UI render ----------
 function renderAll(){
   $('horseNameHeading').textContent = horse.name || 'Horse';
-
   if (horse.image) $('horseImage').src = horse.image;
   $('horseDescription').textContent = horse.description || 'No description yet.';
 
@@ -123,37 +121,56 @@ function renderAll(){
   $('happinessPct').textContent = happy.toFixed(0) + '%';
   $('happinessBar').style.width = happy + '%';
 
+  // feed buff + fed status
   const now = Date.now();
-  if ((horse.feedMeta?.buffExpires || 0) > now && (horse.feedMeta?.buffBonus || 0) > 0) {
-    const leftMs = horse.feedMeta.buffExpires - now;
-    const hrs = Math.ceil(leftMs / 3600000);
-    $('feedBuffLine').textContent = `Feed bonus active: +${horse.feedMeta.buffBonus}% happiness (ends in ~${hrs}h)`;
+  const buffExpires = horse.feedMeta?.buffExpires || 0;
+  if (now < buffExpires) {
+    const hrs = Math.ceil((buffExpires - now) / 3600000);
+    $('feedBuffLine').textContent = `Feed bonus active: +${horse.feedMeta.buffBonus || 0}% happiness (ends in ~${hrs}h)`;
+    $('fedStatus').textContent = '✅';
+    $('nextFeedLine').textContent = `Good until bonus ends in ~${hrs}h.`;
   } else {
     $('feedBuffLine').textContent = '';
+    $('fedStatus').textContent = '❌';
+    const canAt = (horse.feedMeta?.lastFedRealMs || 0) + FEED_COOLDOWN_MS;
+    if (now >= canAt) $('nextFeedLine').textContent = 'Feeding available now.';
+    else {
+      const left = canAt - now;
+      const leftDays = Math.floor(left / (24*3600000));
+      const leftHrs  = Math.ceil((left % (24*3600000)) / 3600000);
+      $('nextFeedLine').textContent = `Next feed in ~${leftDays}d ${leftHrs}h.`;
+    }
   }
 
-  const canFeedAt = (horse.feedMeta?.lastFedRealMs || 0) + FEED_COOLDOWN_MS;
-  if (Date.now() >= canFeedAt) {
-    $('fedStatus').textContent = '✅';
-    $('nextFeedLine').textContent = 'Feeding available now.';
-  } else {
-    $('fedStatus').textContent = '⏳';
-    const left = canFeedAt - Date.now();
-    const leftDays = Math.floor(left / (24*3600000));
-    const leftHrs  = Math.ceil((left % (24*3600000)) / 3600000);
-    $('nextFeedLine').textContent = `Next feed in ~${leftDays}d ${leftHrs}h.`;
-  }
-
+  // build selects
   buildTreatSelect();
   buildFeedSelect();
 
+  // links
   const hid = encodeURIComponent(horse.id);
   $('#linkPedigree').href     = `horse-pedigree.html?id=${hid}`;
   $('#linkFoals').href        = `horse-foals.html?id=${hid}`;
   $('#linkHistory').href      = `horse-history.html?id=${hid}`;
   $('#linkEnterShows').href   = `horse-shows.html?id=${hid}`;
+  // results toggled inline; no href
 
-  // IMPORTANT: do NOT set linkShowResults.href — we toggle inline instead
+  const svc = `horse-services.html?id=${hid}`;
+  $('#fedStatusLink').href        = svc;
+  $('#vetShotsStatusLink').href   = svc;
+  $('#vetChecksStatusLink').href  = svc;
+  $('#breedCheckStatusLink').href = svc;
+
+  // vet statuses (simple freshness windows)
+  const today = currentGameDay();
+  setFreshness('vetShotsStatus',   horse.lastVetShotsDay,   365, today); // 1y
+  setFreshness('vetChecksStatus',  horse.lastVetCheckDay,    30, today); // 1m
+  setFreshness('breedCheckStatus', horse.lastBreedingCheckDay, 30, today); // 1m
+}
+
+function setFreshness(spanId, lastDay, windowDays, today){
+  const el = $('#'+spanId); if (!el) return;
+  if (typeof lastDay === 'number' && today - lastDay <= windowDays) el.textContent = '✅';
+  else el.textContent = '❌';
 }
 
 function buildTreatSelect(){
@@ -224,15 +241,15 @@ function wireActions(){
   $('#btnFeed').onclick = doFeed;
   $('#btnGroom').onclick = doGroom;
 
-  // Inline show results (toggle + lazy load renderer)
+  // Inline show results (toggle + lazy load)
   const link = $('#linkShowResults');
   if (link) {
     link.onclick = async (e) => {
       e.preventDefault();
       const panel = $('#showResults');
-      const nowVisible = panel.style.display !== 'block';
-      panel.style.display = nowVisible ? 'block' : 'none';
-      if (nowVisible) {
+      const show = panel.style.display !== 'block';
+      panel.style.display = show ? 'block' : 'none';
+      if (show) {
         try {
           const mod = await import('./horse-show-results.js');
           if (typeof mod.renderHorseShowResults === 'function') {
