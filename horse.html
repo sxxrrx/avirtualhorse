@@ -11,6 +11,8 @@
     .bar-fill { height:100%; width:0%; background:#4caf50; border-radius:6px; }
     .tiny-buttons button{ margin-right:6px; margin-bottom:6px; }
     .right-panel p{ margin:6px 0; }
+    .under-actions { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
+    .under-actions .tabButton { width:auto; padding:8px 14px; }
   </style>
 </head>
 <body>
@@ -44,29 +46,29 @@
       <button id="btnGroom">Groom (+5%)</button>
     </div>
 
-    <div class="horse-layout" style="display:grid;grid-template-columns:1fr 320px;gap:16px;">
+    <div class="horse-layout">
       <div>
         <img id="horseImage" src="horse-placeholder.png" alt="Horse"
              style="width:100%; max-width:600px; border-radius:8px;"/>
-        
+
         <!-- Under-image action row -->
-        <div id="underImageActions" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
-          <a id="linkPedigree" class="tabButton" style="width:auto;padding:8px 14px;">View Pedigree</a>
-          <a id="linkFoals" class="tabButton" style="width:auto;padding:8px 14px;">View Children</a>
-          <a id="linkHistory" class="tabButton" style="width:auto;padding:8px 14px;">Horse History</a>
-          <a id="linkTack" class="tabButton" style="width:auto;padding:8px 14px;">Change Tack</a>
+        <div id="underImageActions" class="under-actions">
+          <a id="linkPedigree" class="tabButton">View Pedigree</a>
+          <a id="linkFoals" class="tabButton">View Children</a>
+          <a id="linkHistory" class="tabButton">Horse History</a>
+          <a id="linkTack" class="tabButton">Change Tack</a>
         </div>
 
-        <!-- Description lives *below* the buttons -->
+        <!-- Shows row (bottom action buttons) -->
+        <div class="under-actions" style="margin-top:12px;">
+          <a id="linkEnterShows" class="tabButton">Enter Shows</a>
+          <a id="linkShowResults" class="tabButton">View Show Results</a>
+        </div>
+
+        <!-- NOW the description lives *under* the bottom buttons -->
         <p id="horseDescription" style="margin-top:10px; white-space:pre-wrap;">No description yet.</p>
 
-        <!-- Shows row at the bottom -->
-        <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
-          <a id="linkEnterShows" class="tabButton" style="width:auto;padding:8px 14px;">Enter Shows</a>
-          <a id="linkShowResults" class="tabButton" style="width:auto;padding:8px 14px;">View Show Results</a>
-        </div>
-
-        <!-- Optional results slab if you want to inline later -->
+        <!-- Inline results slab (hidden until clicked) -->
         <div id="showResults" class="content" style="display:none; margin-top:12px;"></div>
 
         <!-- status messages -->
@@ -81,8 +83,8 @@
         <p><strong>Age:</strong> <span id="horseAge">—</span></p>
 
         <p><strong>XP:</strong></p>
-        <div class="bar-container" style="width:100%;background:#ddd;border-radius:6px;height:12px;">
-          <div id="xpBar" class="bar-fill" style="height:100%;width:0%;background:#4caf50;border-radius:6px;"></div>
+        <div class="bar-container">
+          <div id="xpBar" class="bar-fill"></div>
         </div>
         <p><strong>Level:</strong> <span id="horseLevel">1</span></p>
         <p><strong>Foals:</strong> <span id="horseFoals">0</span></p>
@@ -91,8 +93,8 @@
 
         <h3 style="margin-top:10px;">Health, Feeding & Happiness</h3>
         <p><strong>Happiness:</strong> <span id="happinessPct">0%</span></p>
-        <div class="bar-container" style="width:100%;background:#ddd;border-radius:6px;height:12px;">
-          <div id="happinessBar" class="bar-fill" style="height:100%;width:0%;background:#4caf50;border-radius:6px;"></div>
+        <div class="bar-container">
+          <div id="happinessBar" class="bar-fill"></div>
         </div>
         <p id="feedBuffLine" class="muted" style="margin-top:6px;"></p>
 
@@ -112,6 +114,6 @@
 
   <!-- Page logic -->
   <script type="module" src="horse.js"></script>
-<script type="module" src="horse-show-results.js"></script>
+  <script type="module" src="horse-show-results.js"></script>
 </body>
 </html>
