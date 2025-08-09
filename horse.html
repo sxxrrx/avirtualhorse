@@ -12,20 +12,21 @@
     .tiny-buttons button{ margin-right:6px; margin-bottom:6px; }
     .right-panel p{ margin:6px 0; }
     .under-actions { margin-top:12px; display:flex; flex-wrap:wrap; gap:8px; }
-    .under-actions .tabButton { width:auto; padding:8px 14px; }
+    .under-actions .tabButton {
+      width:auto; padding:8px 14px;
+      background:#3b5d3b; color:#fff; border-radius:6px; text-decoration:none;
+    }
+    .under-actions .tabButton:hover { background:#567d46; }
   </style>
 </head>
 <body>
-  <!-- Content-only; shared chrome wraps this -->
   <div id="pageMain" class="main-content">
     <h1 id="horseNameHeading">Horse</h1>
 
-    <!-- Top toolbar -->
     <div class="tiny-buttons" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
       <button id="btnRename">Change Name</button>
       <button id="btnDescription">Add Description</button>
 
-      <!-- Treats -->
       <div style="display:flex;gap:6px;align-items:center;">
         <select id="treatSelect">
           <option value="">Select treat…</option>
@@ -33,7 +34,6 @@
         <button id="btnGiveTreat">Give Treat</button>
       </div>
 
-      <!-- Feed -->
       <div style="display:flex;gap:6px;align-items:center;">
         <select id="feedSelect">
           <option value="">Select feed…</option>
@@ -49,31 +49,25 @@
         <img id="horseImage" src="horse-placeholder.png" alt="Horse"
              style="width:100%; max-width:600px; border-radius:8px;"/>
 
-        <!-- Under-image action row -->
         <div id="underImageActions" class="under-actions">
-          <a id="linkPedigree" class="tabButton">View Pedigree</a>
-          <a id="linkFoals" class="tabButton">View Children</a>
-          <a id="linkHistory" class="tabButton">Horse History</a>
-          <a id="linkTack" class="tabButton">Change Tack</a>
+          <a id="linkPedigree" class="tabButton" href="#">View Pedigree</a>
+          <a id="linkFoals" class="tabButton" href="#">View Children</a>
+          <a id="linkHistory" class="tabButton" href="#">Horse History</a>
+          <a id="linkTack" class="tabButton" href="#">Change Tack</a>
         </div>
 
-        <!-- Shows row (bottom action buttons) -->
         <div class="under-actions" style="margin-top:12px;">
-          <a id="linkEnterShows" class="tabButton">Enter Shows</a>
-          <a id="linkShowResults" class="tabButton">View Show Results</a>
+          <a id="linkEnterShows" class="tabButton" href="#">Enter Shows</a>
+          <a id="linkShowResults" class="tabButton" href="#">View Show Results</a>
         </div>
 
-        <!-- Description BELOW the buttons -->
         <p id="horseDescription" style="margin-top:10px; white-space:pre-wrap;">No description yet.</p>
 
-        <!-- Inline results slab -->
         <div id="showResults" class="content" style="display:none; margin-top:12px;"></div>
 
-        <!-- status messages -->
         <div id="horseMsg" class="muted" style="margin-top:8px;"></div>
       </div>
 
-      <!-- Right info panel -->
       <div class="right-panel">
         <p><strong>Color:</strong> <span id="horseColor">—</span></p>
         <p><strong>Breed:</strong> <span id="horseBreed">—</span></p>
@@ -93,31 +87,28 @@
         <p id="feedBuffLine" class="muted" style="margin-top:6px;"></p>
 
         <p><strong>Fed Properly:</strong>
-          <a id="fedStatusLink"><span id="fedStatus">❌</span></a>
+          <a id="fedStatusLink" href="#"><span id="fedStatus">❌</span></a>
         </p>
         <p class="muted" id="nextFeedLine"></p>
 
-        <!-- Vet status rows (clickable -> horse-services) -->
         <p><strong>Vet shots:</strong>
-          <a id="vetShotsStatusLink"><span id="vetShotsStatus">❌</span></a>
+          <a id="vetShotsStatusLink" href="#"><span id="vetShotsStatus">❌</span></a>
         </p>
         <p><strong>Vet checks:</strong>
-          <a id="vetChecksStatusLink"><span id="vetChecksStatus">❌</span></a>
+          <a id="vetChecksStatusLink" href="#"><span id="vetChecksStatus">❌</span></a>
         </p>
         <p><strong>Breeding check:</strong>
-          <a id="breedCheckStatusLink"><span id="breedCheckStatus">❌</span></a>
+          <a id="breedCheckStatusLink" href="#"><span id="breedCheckStatus">❌</span></a>
         </p>
       </div>
     </div>
   </div>
 
-  <!-- Mount shared chrome first -->
   <script type="module">
     import { mountChrome } from './app-chrome.js';
     mountChrome({ leftActive: 'stables' });
   </script>
 
-  <!-- Page logic -->
   <script type="module" src="horse.js"></script>
   <script type="module" src="horse-show-results.js"></script>
 </body>
