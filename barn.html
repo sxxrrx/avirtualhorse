@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <!-- Your page content (will be wrapped by shared chrome) -->
+  <!-- Content-only; app-chrome wraps this -->
   <div id="pageMain" class="main-content">
     <h1>Barn</h1>
     <p class="hint">Craft tack in the Workshop and manage it in your Inventory.</p>
@@ -41,6 +41,7 @@
             <option value="horse_boots">Horse Boots</option>
             <option value="horse_shoes">Horse Shoes</option>
           </select>
+
           <label for="tackSpec"><strong>Specialty</strong></label>
           <select id="tackSpec">
             <option value="">Select specialty…</option>
@@ -50,6 +51,7 @@
             <option>Racing</option>
             <option>Western</option>
           </select>
+
           <button id="btnCraft">Craft</button>
         </div>
         <p id="chanceLine" class="hint">Your level affects quality chances. (Loaded…)</p>
@@ -73,3 +75,4 @@
   <script type="module" src="barn.js"></script>
 </body>
 </html>
+
