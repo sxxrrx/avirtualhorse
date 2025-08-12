@@ -29,7 +29,9 @@ onAuthStateChanged(auth, async (user) => {
   wireTabs();
   renderChances();
   renderInventory();
-  $('#btnCraft').onclick = craft;
+
+  const btn = $('#btnCraft');
+  if (btn) btn.onclick = craft;
 });
 
 // ---- Tabs ----
@@ -48,31 +50,14 @@ function setTab(name){
 const QUALITIES = ['Poor','Fair','Good','Very Good','Excellent','Divine'];
 
 function qualityProbabilities(level){
-  // returns array of {q, p} summing to 1 for available tiers
-  if (level < 5) {
-    return [{q:'Poor', p:1}];
-  } else if (level < 15) {
-    // Poor / Fair (85% Fair)
-    return [{q:'Fair', p:0.85},{q:'Poor', p:0.15}];
-  } else if (level < 30) {
-    // Poor / Fair / Good (75% Good, split rest)
-    return [{q:'Good', p:0.75},{q:'Fair', p:0.15},{q:'Poor', p:0.10}];
-  } else if (level < 60) {
-    // Fair / Good / Very Good (60% Very Good, rest split)
-    return [{q:'Very Good', p:0.60},{q:'Good', p:0.20},{q:'Fair', p:0.20}];
-  } else if (level < 100) {
-    // Good / Very Good (85% Very Good)
-    return [{q:'Very Good', p:0.85},{q:'Good', p:0.15}];
-  } else if (level < 200) {
-    // Very Good / Excellent (50% Excellent)
-    return [{q:'Excellent', p:0.50},{q:'Very Good', p:0.50}];
-  } else if (level < 250) {
-    // Excellent / Divine (45% Divine)
-    return [{q:'Divine', p:0.45},{q:'Excellent', p:0.55}];
-  } else {
-    // 250+ Divine only
-    return [{q:'Divine', p:1}];
-  }
+  if (level < 5) return [{q:'Poor', p:1}];
+  if (level < 15) return [{q:'Fair', p:0.85},{q:'Poor', p:0.15}];
+  if (level < 30) return [{q:'Good', p:0.75},{q:'Fair', p:0.15},{q:'Poor', p:0.10}];
+  if (level < 60) return [{q:'Very Good', p:0.60},{q:'Good', p:0.20},{q:'Fair', p:0.20}];
+  if (level < 100) return [{q:'Very Good', p:0.85},{q:'Good', p:0.15}];
+  if (level < 200) return [{q:'Excellent', p:0.50},{q:'Very Good', p:0.50}];
+  if (level < 250) return [{q:'Divine', p:0.45},{q:'Excellent', p:0.55}];
+  return [{q:'Divine', p:1}];
 }
 
 function durabilityFor(q){
@@ -86,7 +71,6 @@ function durabilityFor(q){
     default: return 10;
   }
 }
-
 function expFor(q){
   switch(q){
     case 'Poor': return 10;
@@ -100,9 +84,10 @@ function expFor(q){
 }
 
 function renderChances(){
-  const probs = qualityProbabilities(Number(userData.level || 1));
+  const lvl = Number(userData.level || 1);
+  const probs = qualityProbabilities(lvl);
   const line = probs.map(p => `${p.q} ${Math.round(p.p*100)}%`).join(' • ');
-  $('#chanceLine').textContent = `Quality chances at your level (${userData.level || 1}): ${line}`;
+  $('#chanceLine').textContent = `Quality chances at your level (${lvl}): ${line}`;
 }
 
 async function craft(){
@@ -120,28 +105,29 @@ async function craft(){
     id: `tack_${Date.now()}_${Math.floor(Math.random()*1000)}`,
     type,                       // 'bridle' | 'saddle' | 'horse_boots' | 'horse_shoes'
     specialty: spec,            // 'Standard' | 'English' | 'Jumper' | 'Racing' | 'Western'
-    quality: q,                 // 'Poor'...'Divine'
-    showsLeft: uses,            // durability
+    quality: q,
+    showsLeft: uses,
     createdAt: Date.now()
   };
 
   inventory.push(item);
-
-  // Save inventory
   await set(ref(db, `users/${uid}/inventory/tack`), inventory);
 
-  // Grant EXP (and auto level-up using your: threshold = level*100 rule)
+  // EXP + possible level ups (threshold = level*100)
   await grantExp(exp);
 
-  // UI feedback
+  // UI: feedback + switch to Inventory
   $('#craftResult').innerHTML = `
     <div class="horse-card">
-      Crafted <strong>${prettyType(type)}</strong> (${escapeHtml(spec)}) — 
+      Crafted <strong>${prettyType(type)}</strong> (${escapeHtml(spec)}) —
       <span class="pill">${q}</span> • Durability: ${uses} shows • +${exp} EXP
     </div>
   `;
   renderInventory();
-  renderChances(); // update if level changed
+  renderChances();
+  setTab('inventory');
+  // scroll newest into view
+  setTimeout(()=> document.querySelector('#invList .horse-card')?.scrollIntoView({behavior:'smooth'}), 50);
 }
 
 // ---- EXP / Leveling (exp threshold = current level * 100) ----
@@ -149,7 +135,6 @@ async function grantExp(amount){
   let lvl = Number(userData.level || 1);
   let xp  = Number(userData.exp || 0) + Number(amount || 0);
 
-  // loop level ups if needed
   let leveled = false;
   while (xp >= lvl * 100) {
     xp -= lvl * 100;
@@ -160,7 +145,9 @@ async function grantExp(amount){
   userData.exp   = xp;
   await update(ref(db, `users/${uid}`), { level: lvl, exp: xp });
 
-  // If topbar is present, update EXP/level elsewhere as needed (optional)
+  if (leveled) {
+    // (Optional) toast could go here later
+  }
 }
 
 // ---- Inventory UI ----
@@ -200,7 +187,7 @@ function pickQuality(probs){
     cum += p.p;
     if (r <= cum) return p.q;
   }
-  return probs[probs.length-1].q; // fallback
+  return probs[probs.length-1].q;
 }
 function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
 function prettyType(t){
