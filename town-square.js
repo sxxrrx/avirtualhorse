@@ -5,50 +5,60 @@ import { ref, get, update, push, set } from 'https://www.gstatic.com/firebasejs/
 import { grantPlayerXP } from './player-level.js';
 
 const $ = (id) => document.getElementById(id);
+const log = (...a) => console.log('[town]', ...a);
+const warn = (...a) => console.warn('[town]', ...a);
+const err = (...a) => console.error('[town]', ...a);
+
 const escapeHtml = (s) => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const q = new URLSearchParams(location.search);
-const devAdmin = q.get('admin') === '1'; // ?admin=1 forces admin tools (dev only)
+const devAdmin = q.get('admin') === '1'; // ?admin=1 shows tools (dev only)
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) return (location.href = 'login.html');
   const uid = user.uid;
+  log('auth ok', uid);
 
-  // mark last seen (chrome handles coins/clock/mail)
-  await update(ref(db, `users/${uid}`), { lastSeen: Date.now() });
+  // mark last seen
+  try { await update(ref(db, `users/${uid}`), { lastSeen: Date.now() }); } catch(e){ warn('lastSeen fail', e); }
 
   // check role
-  const meSnap = await get(ref(db, `users/${uid}`));
-  const me = meSnap.exists() ? meSnap.val() : {};
+  let me = {};
+  try {
+    const meSnap = await get(ref(db, `users/${uid}`));
+    me = meSnap.exists() ? meSnap.val() : {};
+  } catch(e){ err('load me failed', e); }
   const isAdmin = !!(me?.roles && me.roles.admin) || devAdmin;
+  log('isAdmin?', isAdmin);
 
   if (isAdmin) injectAdminTools(uid);
 
   // --- NEWS LIST ---
-  const snap = await get(ref(db, 'news'));
-  const items = snap.exists()
-    ? Object.entries(snap.val()).map(([id, n]) => ({ id, ...n }))
-    : [];
+  try {
+    const snap = await get(ref(db, 'news'));
+    const items = snap.exists()
+      ? Object.entries(snap.val()).map(([id, n]) => ({ id, ...n }))
+      : [];
 
-  items.sort((a,b)=> (b.postedAt||0) - (a.postedAt||0));
+    items.sort((a,b)=> (b.postedAt||0) - (a.postedAt||0));
 
-  const list = $('newsList');
-  if (!items.length){
-    list.innerHTML = '<p>No news yet.</p>';
-    return;
-  }
-
-  list.innerHTML = '';
-  items.forEach(n=>{
-    const card = document.createElement('div');
-    card.className = 'horse-card';
-    const when = n.postedAt ? new Date(n.postedAt).toLocaleString() : '';
-    card.innerHTML = `
-      <p style="font-weight:700">${escapeHtml(n.title || 'Update')}</p>
-      <p class="muted" style="margin:4px 0">${when}${n.author ? ` • ${escapeHtml(n.author)}` : ''}</p>
-      <p style="white-space:pre-wrap;">${escapeHtml(n.body || '')}</p>
-    `;
-    list.appendChild(card);
-  });
+    const list = $('newsList');
+    if (!items.length){
+      list.innerHTML = '<p>No news yet.</p>';
+    } else {
+      list.innerHTML = '';
+      items.forEach(n=>{
+        const card = document.createElement('div');
+        card.className = 'horse-card';
+        const when = n.postedAt ? new Date(n.postedAt).toLocaleString() : '';
+        card.innerHTML = `
+          <p style="font-weight:700">${escapeHtml(n.title || 'Update')}</p>
+          <p class="muted" style="margin:4px 0">${when}${n.author ? ` • ${escapeHtml(n.author)}` : ''}</p>
+          <p style="white-space:pre-wrap;">${escapeHtml(n.body || '')}</p>
+        `;
+        list.appendChild(card);
+      });
+    }
+  } catch(e){ err('news load failed', e); }
 });
 
 // ---------- Admin Tools ----------
@@ -73,28 +83,36 @@ function injectAdminTools(uid){
   const amtE = $('#xpAmount');
   const msgE = $('#xpMsg');
 
+  if (!btn || !amtE || !msgE) { warn('admin box missing elements'); return; }
+
+  // sanity ping that the module loaded
+  if (typeof grantPlayerXP !== 'function') {
+    msgE.textContent = 'player-level.js not loaded';
+    warn('grantPlayerXP is not a function — check import/path');
+  }
+
   btn.onclick = async () => {
     const amt = Math.max(1, parseInt(amtE.value,10) || 0);
+    log('GiveXP clicked', amt);
     btn.disabled = true;
     msgE.textContent = 'Giving XP…';
     try {
       const res = await grantPlayerXP(uid, amt, 'admin_give_xp');
-      const rewardsTxt = formatRewards(res.rewards || []);
+      log('grantPlayerXP result', res);
+      const rewardsTxt = formatRewards(res?.rewards || []);
       msgE.textContent =
         `Gave ${amt} XP → Level ${res.level} (${res.exp} toward next)` +
-        (res.leveled?.length ? ` • leveled to ${res.leveled.join(', ')}` : '') +
+        (res.leveled?.length ? ` • leveled: ${res.leveled.join(', ')}` : '') +
         (rewardsTxt ? ` • rewards: ${rewardsTxt}` : '');
-
-      // tiny audit log (optional)
+      // lightweight audit
       try {
-        const id = push(ref(db, `adminLogs/${uid}`)).key;
-        await set(ref(db, `adminLogs/${uid}/${id}`), {
-          at: Date.now(), kind: 'give_xp', amount: amt
-        });
-      } catch {}
+        const keyRef = push(ref(db, `adminLogs/${uid}`));
+        await set(keyRef, { at: Date.now(), kind: 'give_xp', amount: amt });
+      } catch (e) { warn('audit write failed', e); }
     } catch (e) {
-      console.error(e);
+      err('grantPlayerXP failed', e);
       msgE.textContent = 'Failed to grant XP (see console).';
+      alert('Grant XP failed — check console for error details.');
     } finally {
       btn.disabled = false;
     }
