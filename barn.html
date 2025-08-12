@@ -41,16 +41,18 @@
             <option value="horse_boots">Horse Boots</option>
             <option value="horse_shoes">Horse Shoes</option>
           </select>
+
           <label for="tackSpec"><strong>Specialty</strong></label>
           <select id="tackSpec">
             <option value="">Select specialty…</option>
-            <option>Standard</option>
-            <option>English</option>
-            <option>Jumper</option>
-            <option>Racing</option>
-            <option>Western</option>
+            <option value="Standard">Standard</option>
+            <option value="English">English</option>
+            <option value="Jumper">Jumper</option>
+            <option value="Racing">Racing</option>
+            <option value="Western">Western</option>
           </select>
-          <button id="btnCraft">Craft</button>
+
+          <button id="btnCraft" type="button">Craft</button>
         </div>
         <p id="chanceLine" class="hint">Your level affects quality chances. (Loading…)</p>
         <div id="craftResult" class="result"></div>
@@ -71,8 +73,7 @@
     mountChrome({ leftActive: 'barn' });
   </script>
 
-  <!-- Page logic -->
-  <script type="module" src="barn.js"></script>
+  <!-- Page logic (cache-busted) -->
+  <script type="module" src="barn.js?v=4"></script>
 </body>
 </html>
-
