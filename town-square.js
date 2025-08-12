@@ -1,30 +1,29 @@
 // town-square.js
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, get, update, push, set } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 import { grantPlayerXP } from './player-level.js';
 
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (s) => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const q = new URLSearchParams(location.search);
-const devAdmin = q.get('admin') === '1'; // ?admin=1 forces admin tools to show (dev only)
+const devAdmin = q.get('admin') === '1'; // ?admin=1 forces admin tools (dev only)
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) return (location.href = 'login.html');
   const uid = user.uid;
 
-  // mark last seen
+  // mark last seen (chrome handles coins/clock/mail)
   await update(ref(db, `users/${uid}`), { lastSeen: Date.now() });
 
-  // read my user doc (to check admin role)
+  // check role
   const meSnap = await get(ref(db, `users/${uid}`));
   const me = meSnap.exists() ? meSnap.val() : {};
   const isAdmin = !!(me?.roles && me.roles.admin) || devAdmin;
 
-  // inject admin tools if admin
   if (isAdmin) injectAdminTools(uid);
 
-  // Load ALL news
+  // --- NEWS LIST ---
   const snap = await get(ref(db, 'news'));
   const items = snap.exists()
     ? Object.entries(snap.val()).map(([id, n]) => ({ id, ...n }))
@@ -45,15 +44,15 @@ onAuthStateChanged(auth, async (user) => {
     const when = n.postedAt ? new Date(n.postedAt).toLocaleString() : '';
     card.innerHTML = `
       <p style="font-weight:700">${escapeHtml(n.title || 'Update')}</p>
-      <p class="muted" style="margin:4px 0">${when}</p>
+      <p class="muted" style="margin:4px 0">${when}${n.author ? ` • ${escapeHtml(n.author)}` : ''}</p>
       <p style="white-space:pre-wrap;">${escapeHtml(n.body || '')}</p>
     `;
     list.appendChild(card);
   });
 });
 
+// ---------- Admin Tools ----------
 function injectAdminTools(uid){
-  // put a small box above News list
   const host = document.querySelector('.main-content') || document.body;
   const anchor = host.querySelector('h2') || host.firstChild;
 
@@ -70,17 +69,43 @@ function injectAdminTools(uid){
   `;
   host.insertBefore(box, anchor);
 
-  $('#btnGiveXP').onclick = async () => {
-    const amtEl = $('#xpAmount');
-    const msgEl = $('#xpMsg');
-    const amt = Math.max(1, parseInt(amtEl.value,10) || 0);
-    msgEl.textContent = '…';
+  const btn  = $('#btnGiveXP');
+  const amtE = $('#xpAmount');
+  const msgE = $('#xpMsg');
+
+  btn.onclick = async () => {
+    const amt = Math.max(1, parseInt(amtE.value,10) || 0);
+    btn.disabled = true;
+    msgE.textContent = 'Giving XP…';
     try {
       const res = await grantPlayerXP(uid, amt, 'admin_give_xp');
-      msgEl.textContent = `Gave ${amt} XP. Now level ${res.level} (${res.exp} XP toward next).`;
+      const rewardsTxt = formatRewards(res.rewards || []);
+      msgE.textContent =
+        `Gave ${amt} XP → Level ${res.level} (${res.exp} toward next)` +
+        (res.leveled?.length ? ` • leveled to ${res.leveled.join(', ')}` : '') +
+        (rewardsTxt ? ` • rewards: ${rewardsTxt}` : '');
+
+      // tiny audit log (optional)
+      try {
+        const id = push(ref(db, `adminLogs/${uid}`)).key;
+        await set(ref(db, `adminLogs/${uid}/${id}`), {
+          at: Date.now(), kind: 'give_xp', amount: amt
+        });
+      } catch {}
     } catch (e) {
       console.error(e);
-      msgEl.textContent = 'Failed to grant XP (check console).';
+      msgE.textContent = 'Failed to grant XP (see console).';
+    } finally {
+      btn.disabled = false;
     }
   };
+}
+
+function formatRewards(list){
+  if (!Array.isArray(list) || !list.length) return '';
+  return list.map(r => {
+    const k = r.kind || r.type || r.item || 'reward';
+    const a = r.amount ? `×${r.amount}` : '';
+    return `${k}${a}`;
+  }).join(', ');
 }
