@@ -4,43 +4,41 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/fi
 import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
 const $ = (id) => document.getElementById(id);
-const log = (...a)=>console.log('[barn]', ...a);
-const err = (...a)=>console.error('[barn]', ...a);
 
 // ---- State ----
 let uid = null;
 let userData = null;
 let inventory = []; // array of tack items
 
-// ---- Safe UI init (works even if DOMContentLoaded already fired) ----
-function initUI(){
-  log('initUI');
-  wireTabs();
-  wireButtons();
-  // default tab
-  setTab('workshop');
-}
+// ---- Event delegation so buttons always work ----
+document.addEventListener('click', (e) => {
+  const t = e.target;
+
+  if (t.id === 'tabWorkshop') {
+    setTab('workshop');
+  } else if (t.id === 'tabInventory') {
+    setTab('inventory');
+  } else if (t.id === 'btnCraft') {
+    e.preventDefault();
+    craft();
+  }
+});
+
+// Default tab on first paint
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initUI, { once:true });
+  document.addEventListener('DOMContentLoaded', () => setTab('workshop'), { once: true });
 } else {
-  initUI();
+  setTab('workshop');
 }
 
 // ---- Auth/Data boot ----
 onAuthStateChanged(auth, async (user) => {
   try {
-    if (!user) {
-      location.href = 'login.html';
-      return;
-    }
+    if (!user) { location.href = 'login.html'; return; }
     uid = user.uid;
-    log('user', uid);
 
     const us = await get(ref(db, `users/${uid}`));
-    if (!us.exists()) {
-      alert('User not found.');
-      return;
-    }
+    if (!us.exists()) { alert('User not found.'); return; }
     userData = us.val();
 
     // Load inventory/tack (supports array or object)
@@ -55,26 +53,17 @@ onAuthStateChanged(auth, async (user) => {
     renderChances();     // needs userData.level
     renderInventory();   // list current tack
   } catch (e) {
-    err('boot failed', e);
-    alert('Failed to load Barn. Check console for details.');
+    console.error('[barn] boot failed', e);
+    alert('Failed to load Barn. Please try again.');
   }
 });
 
 // ---- Tabs ----
-function wireTabs(){
-  $('#tabWorkshop')?.addEventListener('click', () => setTab('workshop'));
-  $('#tabInventory')?.addEventListener('click', () => setTab('inventory'));
-}
 function setTab(name){
   $('#tabWorkshop')?.classList.toggle('primary', name==='workshop');
   $('#tabInventory')?.classList.toggle('primary', name==='inventory');
   $('#secWorkshop')?.classList.toggle('active', name==='workshop');
   $('#secInventory')?.classList.toggle('active', name==='inventory');
-}
-
-// ---- Buttons ----
-function wireButtons(){
-  $('#btnCraft')?.addEventListener('click', craft);
 }
 
 // ---- Crafting logic ----
@@ -112,13 +101,6 @@ function expFor(q){
     default: return 0;
   }
 }
-function renderChances(){
-  const lvl = Number(userData?.level || 1);
-  const probs = qualityProbabilities(lvl);
-  const line = probs.map(p => `${p.q} ${Math.round(p.p*100)}%`).join(' • ');
-  const el = $('#chanceLine');
-  if (el) el.textContent = `Quality chances at your level (${lvl}): ${line}`;
-}
 function pickQuality(probs){
   const r = Math.random();
   let cum = 0;
@@ -135,6 +117,14 @@ function prettyType(t){
 }
 function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+function renderChances(){
+  const lvl = Number(userData?.level || 1);
+  const probs = qualityProbabilities(lvl);
+  const line = probs.map(p => `${p.q} ${Math.round(p.p*100)}%`).join(' • ');
+  const el = $('#chanceLine');
+  if (el) el.textContent = `Quality chances at your level (${lvl}): ${line}`;
+}
+
 // The craft button handler
 async function craft(){
   try {
@@ -142,8 +132,8 @@ async function craft(){
 
     const type = $('#tackType')?.value || '';
     const spec = $('#tackSpec')?.value || '';
-    if (!type) return alert('Please select a tack type.');
-    if (!spec) return alert('Please select a specialty.');
+    if (!type) { alert('Please select a tack type.'); return; }
+    if (!spec) { alert('Please select a specialty.'); return; }
 
     const lvl = Number(userData?.level || 1);
     const q = pickQuality(qualityProbabilities(lvl));
@@ -177,10 +167,10 @@ async function craft(){
     }
     renderInventory();
     renderChances();
-    setTab('inventory'); // jump user to see their new item
+    setTab('inventory'); // jump to Inventory to show the new item
   } catch (e) {
-    err('craft failed', e);
-    alert('Crafting failed. Check console for details.');
+    console.error('[barn] craft failed', e);
+    alert('Crafting failed. Please try again.');
   }
 }
 
@@ -193,20 +183,16 @@ async function grantExp(amount){
     let lvl = lvl0;
     let xp  = xp0 + Number(amount || 0);
 
-    let leveled = false;
     while (xp >= lvl * 100) {
       xp -= lvl * 100;
       lvl += 1;
-      leveled = true;
     }
 
     userData.level = lvl;
     userData.exp   = xp;
     await update(ref(db, `users/${uid}`), { level: lvl, exp: xp });
-
-    log(`+${amount} EXP → level ${lvl}${leveled?' (level up!)':''}`);
   } catch (e) {
-    err('grantExp failed', e);
+    console.error('[barn] grantExp failed', e);
   }
 }
 
