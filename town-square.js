@@ -2,13 +2,15 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
-import { grantPlayerXP } from './player-level.js';  // ⬅️ use our XP helper
+import { grantPlayerXP } from './player-level.js';
 
-const $ = id => document.getElementById(id);
-const escapeHtml = s => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = (id) => document.getElementById(id);
+const escapeHtml = (s) => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const q = new URLSearchParams(location.search);
+const devAdmin = q.get('admin') === '1'; // ?admin=1 forces admin tools to show (dev only)
 
-onAuthStateChanged(auth, async user => {
-  if (!user) return location.href = 'login.html';
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return (location.href = 'login.html');
   const uid = user.uid;
 
   // mark last seen
@@ -17,12 +19,10 @@ onAuthStateChanged(auth, async user => {
   // read my user doc (to check admin role)
   const meSnap = await get(ref(db, `users/${uid}`));
   const me = meSnap.exists() ? meSnap.val() : {};
-  const isAdmin = !!me?.roles?.admin;
+  const isAdmin = !!(me?.roles && me.roles.admin) || devAdmin;
 
-  // inject admin tools (self-only) if admin
-  if (isAdmin) {
-    injectAdminTools(uid);
-  }
+  // inject admin tools if admin
+  if (isAdmin) injectAdminTools(uid);
 
   // Load ALL news
   const snap = await get(ref(db, 'news'));
@@ -55,6 +55,8 @@ onAuthStateChanged(auth, async user => {
 function injectAdminTools(uid){
   // put a small box above News list
   const host = document.querySelector('.main-content') || document.body;
+  const anchor = host.querySelector('h2') || host.firstChild;
+
   const box = document.createElement('div');
   box.className = 'horse-card';
   box.style.marginBottom = '12px';
@@ -66,29 +68,19 @@ function injectAdminTools(uid){
       <span id="xpMsg" class="muted"></span>
     </div>
   `;
-  host.insertBefore(box, host.querySelector('h2') || host.firstChild);
+  host.insertBefore(box, anchor);
 
   $('#btnGiveXP').onclick = async () => {
-    const amt = Math.max(1, parseInt($('#xpAmount').value,10) || 0);
-    $('#xpMsg').textContent = '…';
+    const amtEl = $('#xpAmount');
+    const msgEl = $('#xpMsg');
+    const amt = Math.max(1, parseInt(amtEl.value,10) || 0);
+    msgEl.textContent = '…';
     try {
       const res = await grantPlayerXP(uid, amt, 'admin_give_xp');
-      $('#xpMsg').textContent = `Gave ${amt} XP. Now level ${res.level} (${res.exp} XP toward next).`;
+      msgEl.textContent = `Gave ${amt} XP. Now level ${res.level} (${res.exp} XP toward next).`;
     } catch (e) {
       console.error(e);
-      $('#xpMsg').textContent = 'Failed to grant XP (check console).';
+      msgEl.textContent = 'Failed to grant XP (check console).';
     }
   };
 }
-  <!-- Shared chrome FIRST -->
-  <script type="module">
-    import { mountChrome } from './app-chrome.js';
-    // highlights Town Square on the left
-    mountChrome({ leftActive: 'town' });
-  </script>
-
-  <!-- Page logic SECOND -->
-  <script type="module" src="town-square.js"></script>
-</body>
-</html>
-
