@@ -7,43 +7,22 @@
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <!-- Shared top bar -->
-  <div id="topbar"></div>
+  <!-- Content-only; app-chrome will wrap this with top/side bars -->
+  <div id="pageMain" class="main-content">
+    <h1 style="margin-bottom:10px;">Town Square</h1>
+    <p class="muted" style="margin-bottom:14px;">Welcome! Catch up on weekly news below.</p>
 
-  <div id="mainContainer">
-    <!-- Sidebars are filled by app-chrome.js -->
-    <div id="leftSidebar" class="sidebar left-sidebar"></div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-      <h1 style="margin-bottom:10px;">Town Square</h1>
-      <p class="muted" style="margin-bottom:14px;">Welcome! Catch up on weekly news below.</p>
-
-      <h2 style="margin:10px 0;">News</h2>
-      <div id="newsList" class="grid"></div>
-    </div>
-
-    <div id="rightSidebar" class="sidebar right-sidebar"></div>
+    <h2 style="margin:10px 0;">News</h2>
+    <div id="newsList" class="grid"></div>
   </div>
 
-   <!-- Shared chrome -->
+  <!-- Mount the shared chrome -->
   <script type="module">
     import { mountChrome } from './app-chrome.js';
-    // highlight Town Square in the left nav
     mountChrome({ leftActive: 'town' });
   </script>
 
   <!-- Page logic -->
   <script type="module" src="town-square.js"></script>
-  <!-- Shared chrome -->
-  <script type="module">
-    import { mountChrome } from './app-chrome.js';
-    // highlight Town Square in the left nav
-    mountChrome({ leftActive: 'town' });
-  </script>
-
-  <!-- Page logic -->
-  <script type="module" src="town-square.js"></script>
-
 </body>
 </html>
