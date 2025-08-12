@@ -142,6 +142,16 @@ export async function mountChrome(opts = {}) {
   const left   = $('leftSidebar');
   const right  = $('rightSidebar');
 
+// inside mountChrome(), after your styles
+if (!document.querySelector('link[rel="icon"]')) {
+  const link = document.createElement('link');
+  link.rel = 'icon';
+  link.type = 'image/svg+xml';
+  link.href = 'favicon.svg';   // note: no leading slash
+  document.head.appendChild(link);
+}
+
+
   topbar.innerHTML = `
     <div class="topbar-inner">
       <div class="left-pack">
