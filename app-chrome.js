@@ -2,6 +2,8 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, onValue, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { mountAdminTools } from './admin-tools.js';
+
 
 // Game time + aging helpers
 import { gameDateParts, seasonForDate, updateHorsesAgesIfNeeded } from './time.js';
