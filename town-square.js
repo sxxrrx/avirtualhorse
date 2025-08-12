@@ -80,4 +80,15 @@ function injectAdminTools(uid){
     }
   };
 }
+  <!-- Shared chrome FIRST -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    // highlights Town Square on the left
+    mountChrome({ leftActive: 'town' });
+  </script>
+
+  <!-- Page logic SECOND -->
+  <script type="module" src="town-square.js"></script>
+</body>
+</html>
 
