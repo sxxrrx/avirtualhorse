@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <!-- Content-only; app-chrome wraps this -->
+  <!-- Content-only; shared chrome wraps this -->
   <div id="pageMain" class="main-content">
     <h1>Barn</h1>
     <p class="hint">Craft tack in the Workshop and manage it in your Inventory.</p>
@@ -41,7 +41,6 @@
             <option value="horse_boots">Horse Boots</option>
             <option value="horse_shoes">Horse Shoes</option>
           </select>
-
           <label for="tackSpec"><strong>Specialty</strong></label>
           <select id="tackSpec">
             <option value="">Select specialty…</option>
@@ -51,10 +50,9 @@
             <option>Racing</option>
             <option>Western</option>
           </select>
-
           <button id="btnCraft">Craft</button>
         </div>
-        <p id="chanceLine" class="hint">Your level affects quality chances. (Loaded…)</p>
+        <p id="chanceLine" class="hint">Your level affects quality chances. (Loading…)</p>
         <div id="craftResult" class="result"></div>
       </div>
     </div>
@@ -67,11 +65,13 @@
     </div>
   </div>
 
-  <!-- Mount shared chrome, then page script -->
+  <!-- Mount shared chrome first -->
   <script type="module">
     import { mountChrome } from './app-chrome.js';
     mountChrome({ leftActive: 'barn' });
   </script>
+
+  <!-- Page logic -->
   <script type="module" src="barn.js"></script>
 </body>
 </html>
