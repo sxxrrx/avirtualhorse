@@ -22,10 +22,13 @@ export async function ensurePlayerProgress(uid) {
   const patch = {};
   let changed = false;
 
-  if (!Number.isFinite(u.level)) { patch.level = 1; changed = true; }
-  if (!Number.isFinite(u.exp))   { patch.exp   = 0; changed = true; }
+  if (!Number.isFinite(Number(u.level))) { patch.level = 1; changed = true; }
+  if (!Number.isFinite(Number(u.exp)))   { patch.exp   = 0; changed = true; }
 
-  if (changed) await update(r, patch);
+  if (changed) {
+    await update(r, patch);
+    console.log('[level] normalized player progress', patch);
+  }
   return changed;
 }
 
@@ -38,6 +41,9 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
     return { level: 0, exp: 0, leveled: [] };
   }
 
+  // Make sure level/exp exist
+  await ensurePlayerProgress(uid);
+
   const userRef = ref(db, `users/${uid}`);
   const snap = await get(userRef);
   if (!snap.exists()) return { level: 0, exp: 0, leveled: [] };
@@ -45,9 +51,7 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
   // read & normalize
   const u0 = snap.val() || {};
   let level = Number(u0.level || 1);
-  let exp   = Number(u0.exp || 0);
-  if (!Number.isFinite(level)) level = 1;
-  if (!Number.isFinite(exp))   exp   = 0;
+  let exp   = Number(u0.exp   || 0);
 
   // apply XP and level-ups
   exp += delta;
@@ -59,41 +63,44 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
   }
   if (level >= PLAYER_MAX_LEVEL) { level = PLAYER_MAX_LEVEL; exp = 0; }
 
-  // persist new progress
+  // persist progress FIRST (so UI updates even if mail/rewards are slow)
   await update(userRef, {
     level, exp,
     lastXPSource: source,
     lastXPAt: Date.now()
   });
+  console.log('[level] XP granted', { delta, to: { level, exp }, leveled });
 
-  // rewards + mail per level gained
-  const rewards = [];
-  for (const lvl of leveled) {
-    // grant rewards (returns human-readable lines)
-    // eslint-disable-next-line no-await-in-loop
-    const lines = await grantPlayerLevelRewards(uid, lvl);
-    if (lines?.length) rewards.push(...lines);
+  // rewards + mail (fire-and-forget so we don't block the button)
+  if (leveled.length) {
+    (async () => {
+      try {
+        for (const lvl of leveled) {
+          // grant rewards (returns human-readable lines)
+          const lines = await grantPlayerLevelRewards(uid, lvl);
 
-    const subject = `Level Up! You reached Level ${lvl}`;
-    const body = lines?.length
-      ? `Congrats on Level ${lvl}!\n\nRewards:\n- ${lines.join('\n- ')}\n\nKeep it up!`
-      : `Congrats on Level ${lvl}!`;
+          const subject = `Level Up! You reached Level ${lvl}`;
+          const body = (lines?.length)
+            ? `Congrats on Level ${lvl}!\n\nRewards:\n- ${lines.join('\n- ')}\n\nKeep it up!`
+            : `Congrats on Level ${lvl}!`;
 
-    // notify by in-game mail
-    // eslint-disable-next-line no-await-in-loop
-    await sendSystemMail(uid, subject, body);
-
-    // small notification entry (optional)
-    // eslint-disable-next-line no-await-in-loop
-    await push(ref(db, `users/${uid}/notifications`), {
-      type: 'level_up',
-      at: Date.now(),
-      level: lvl,
-      message: `You reached player level ${lvl}!`
-    });
+          await Promise.allSettled([
+            sendSystemMail(uid, subject, body),
+            push(ref(db, `users/${uid}/notifications`), {
+              type: 'level_up',
+              at: Date.now(),
+              level: lvl,
+              message: `You reached player level ${lvl}!`
+            })
+          ]);
+        }
+      } catch (e) {
+        console.warn('[level] reward/mail side-effects failed:', e);
+      }
+    })();
   }
 
-  return { level, exp, leveled, rewards };
+  return { level, exp, leveled, rewards: [] };
 }
 
 /** Live-bind player level/xp to UI bars/text (optional helper). */
