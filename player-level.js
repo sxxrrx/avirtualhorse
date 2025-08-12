@@ -1,21 +1,17 @@
 // player-level.js
 import { db } from './firebase-init.js';
 import {
-  ref, runTransaction, update, onValue, push
+  ref, runTransaction, onValue, push
 } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 import { grantPlayerLevelRewards } from './player-rewards.js';
+import { sendSystemMail } from './mail-utils.js';
 
 export const PLAYER_MAX_LEVEL = 300;
 
-// XP needed for *current* level to advance to next.
 export function xpNeededForLevel(level) {
   return Math.max(50, Math.floor(level * 100));
 }
 
-/**
- * Safely add XP to player; auto-levels and grants rewards per level-up.
- * Returns { level, exp, leveled: number[], rewards: Array }
- */
 export async function grantPlayerXP(uid, delta, source = 'misc') {
   if (!uid || !Number.isFinite(delta) || delta <= 0) {
     return { level: 0, exp: 0, leveled: [] };
@@ -23,27 +19,25 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
 
   const userRef = ref(db, `users/${uid}`);
 
-  // We'll capture which levels were gained *inside* the transaction.
   let leveled = [];
   let after = { level: 1, exp: 0 };
 
   const tx = await runTransaction(userRef, cur => {
-    if (!cur) return cur; // don't create users
+    if (!cur) return cur;
     let level = Number(cur.level || 1);
     let exp   = Number(cur.exp   || 0);
 
     exp += delta;
 
-    // compute level-ups and record each new level reached
     while (level < PLAYER_MAX_LEVEL && exp >= xpNeededForLevel(level)) {
       exp -= xpNeededForLevel(level);
       level += 1;
-      leveled.push(level);           // <-- captured in outer scope
+      leveled.push(level);
     }
 
     if (level >= PLAYER_MAX_LEVEL) {
       level = PLAYER_MAX_LEVEL;
-      exp   = 0; // clamp at cap
+      exp   = 0;
     }
 
     return { ...cur, level, exp, lastXPSource: source };
@@ -56,31 +50,35 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
   const cur = tx.snapshot.val();
   after = { level: Number(cur.level || 1), exp: Number(cur.exp || 0) };
 
-  // 2) Grant rewards for each level gained (if any)
+  // grant rewards + mail per level
   let rewards = [];
   for (const lvl of leveled) {
-    // grant level rewards (idempotent inside grant function)
+    // grant loot
     // eslint-disable-next-line no-await-in-loop
-    const r = await grantPlayerLevelRewards(uid, lvl);
-    if (r?.length) rewards.push(...r);
+    const lines = await grantPlayerLevelRewards(uid, lvl);
+    if (lines?.length) rewards.push(...lines);
 
-    // optional toast/notification
+    // notify by mail
+    const subject = `Level Up! You reached Level ${lvl}`;
+    const body = lines?.length
+      ? `Congrats on Level ${lvl}!\n\nRewards:\n- ${lines.join('\n- ')}\n\nKeep it up!`
+      : `Congrats on Level ${lvl}!`;
+    // eslint-disable-next-line no-await-in-loop
+    await sendSystemMail(uid, subject, body);
+
+    // (Optional) also keep your existing notifications entry
     // eslint-disable-next-line no-await-in-loop
     await push(ref(db, `users/${uid}/notifications`), {
       type: 'level_up',
       at: Date.now(),
       level: lvl,
-      message: `You reached player level ${lvl}! Rewards added to your account.`,
+      message: `You reached player level ${lvl}!`,
     });
   }
 
   return { ...after, leveled, rewards };
 }
 
-/**
- * Live-bind player level/xp to UI.
- * opts: { levelEl?: string, xpBarEl?: string, xpTextEl?: string }
- */
 export function bindPlayerLevelUI(uid, opts = {}) {
   const { levelEl, xpBarEl, xpTextEl } = opts;
   const lEl = levelEl ? document.getElementById(levelEl) : null;
