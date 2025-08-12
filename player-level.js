@@ -3,57 +3,62 @@ import { db } from './firebase-init.js';
 import {
   ref, get, update, onValue, push
 } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
-import { grantPlayerLevelRewards } from './player-rewards.js';
-import { sendSystemMail } from './mail-utils.js';
 
 export const PLAYER_MAX_LEVEL = 300;
 
-// XP needed to go from current level -> next
+/* ---------- XP curve ---------- */
 export function xpNeededForLevel(level) {
   return Math.max(50, Math.floor(level * 100));
 }
 
-/** Ensure user doc has numeric level/exp so XP math is safe. */
+/* ---------- ensure fields exist ---------- */
 export async function ensurePlayerProgress(uid) {
   const r = ref(db, `users/${uid}`);
   const snap = await get(r);
-  if (!snap.exists()) return false;
+  if (!snap.exists()) {
+    console.warn('[level] user doc missing, cannot ensure progress');
+    return false;
+  }
   const u = snap.val() || {};
   const patch = {};
   let changed = false;
 
-  if (!Number.isFinite(Number(u.level))) { patch.level = 1; changed = true; }
-  if (!Number.isFinite(Number(u.exp)))   { patch.exp   = 0; changed = true; }
+  const levelNum = Number(u.level);
+  const expNum   = Number(u.exp);
+
+  if (!Number.isFinite(levelNum)) { patch.level = 1; changed = true; }
+  if (!Number.isFinite(expNum))   { patch.exp   = 0; changed = true; }
 
   if (changed) {
     await update(r, patch);
-    console.log('[level] normalized player progress', patch);
+    console.log('[level] normalized level/exp ->', patch);
   }
   return changed;
 }
 
-/**
- * Add XP, auto-level, grant rewards, and notify by mail.
- * Returns the new level/exp plus any levels crossed + reward lines.
- */
+/* ---------- grant XP (safe & non-blocking) ---------- */
 export async function grantPlayerXP(uid, delta, source = 'misc') {
   if (!uid || !Number.isFinite(delta) || delta <= 0) {
+    console.warn('[level] invalid XP grant', { uid, delta });
     return { level: 0, exp: 0, leveled: [] };
   }
 
-  // Make sure level/exp exist
+  // Make sure we have numeric fields
   await ensurePlayerProgress(uid);
 
   const userRef = ref(db, `users/${uid}`);
   const snap = await get(userRef);
-  if (!snap.exists()) return { level: 0, exp: 0, leveled: [] };
+  if (!snap.exists()) {
+    console.warn('[level] user not found for XP grant');
+    return { level: 0, exp: 0, leveled: [] };
+  }
 
-  // read & normalize
+  // Read current values
   const u0 = snap.val() || {};
   let level = Number(u0.level || 1);
   let exp   = Number(u0.exp   || 0);
 
-  // apply XP and level-ups
+  // Apply XP + compute level-ups
   exp += delta;
   const leveled = [];
   while (level < PLAYER_MAX_LEVEL && exp >= xpNeededForLevel(level)) {
@@ -63,29 +68,51 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
   }
   if (level >= PLAYER_MAX_LEVEL) { level = PLAYER_MAX_LEVEL; exp = 0; }
 
-  // persist progress FIRST (so UI updates even if mail/rewards are slow)
+  // Persist PROGRESS FIRST so UI moves even if rewards/mail are slow
   await update(userRef, {
     level, exp,
     lastXPSource: source,
     lastXPAt: Date.now()
   });
-  console.log('[level] XP granted', { delta, to: { level, exp }, leveled });
+  console.log('[level] XP granted:', { delta, to: { level, exp }, leveled });
 
-  // rewards + mail (fire-and-forget so we don't block the button)
+  // Fire-and-forget rewards + mail (won’t block the button)
   if (leveled.length) {
     (async () => {
       try {
-        for (const lvl of leveled) {
-          // grant rewards (returns human-readable lines)
-          const lines = await grantPlayerLevelRewards(uid, lvl);
+        // Dynamic imports so missing files don't break XP
+        let grantPlayerLevelRewards = null;
+        let sendSystemMail = null;
 
+        try {
+          ({ grantPlayerLevelRewards } = await import('./player-rewards.js'));
+        } catch { console.warn('[level] player-rewards.js not found; skipping rewards'); }
+
+        try {
+          ({ sendSystemMail } = await import('./mail-utils.js'));
+        } catch { console.warn('[level] mail-utils.js not found; skipping mail'); }
+
+        for (const lvl of leveled) {
+          let lines = [];
+          if (typeof grantPlayerLevelRewards === 'function') {
+            try {
+              lines = await grantPlayerLevelRewards(uid, lvl);
+              console.log('[level] rewards granted for level', lvl, lines);
+            } catch (e) {
+              console.warn('[level] reward grant failed for level', lvl, e);
+            }
+          }
+
+          // Mail + notification (best-effort)
           const subject = `Level Up! You reached Level ${lvl}`;
           const body = (lines?.length)
             ? `Congrats on Level ${lvl}!\n\nRewards:\n- ${lines.join('\n- ')}\n\nKeep it up!`
             : `Congrats on Level ${lvl}!`;
 
           await Promise.allSettled([
-            sendSystemMail(uid, subject, body),
+            (typeof sendSystemMail === 'function'
+              ? sendSystemMail(uid, subject, body)
+              : Promise.resolve()),
             push(ref(db, `users/${uid}/notifications`), {
               type: 'level_up',
               at: Date.now(),
@@ -95,7 +122,7 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
           ]);
         }
       } catch (e) {
-        console.warn('[level] reward/mail side-effects failed:', e);
+        console.warn('[level] side-effects failed:', e);
       }
     })();
   }
@@ -103,7 +130,7 @@ export async function grantPlayerXP(uid, delta, source = 'misc') {
   return { level, exp, leveled, rewards: [] };
 }
 
-/** Live-bind player level/xp to UI bars/text (optional helper). */
+/* ---------- live bind helper (optional) ---------- */
 export function bindPlayerLevelUI(uid, opts = {}) {
   const { levelEl, xpBarEl, xpTextEl } = opts;
   const lEl = levelEl ? document.getElementById(levelEl) : null;
