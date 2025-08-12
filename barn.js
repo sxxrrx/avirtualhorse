@@ -3,217 +3,241 @@ import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
-const $ = id => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
+const log = (...a)=>console.log('[barn]', ...a);
+const err = (...a)=>console.error('[barn]', ...a);
 
-/* ---------------- state ---------------- */
+// ---- State ----
 let uid = null;
 let userData = null;
-let inventoryMap = {}; // { [id]: item }
+let inventory = []; // array of tack items
 
-/* -------------- wire tabs ASAP -------------- */
-function wireStaticTabs(){
-  const tw = $('#tabWorkshop');
-  const ti = $('#tabInventory');
-  if (tw && !tw._wired) { tw._wired = true; tw.addEventListener('click', ()=> setTab('workshop')); }
-  if (ti && !ti._wired) { ti._wired = true; ti.addEventListener('click', ()=> setTab('inventory')); }
-  // ensure default
+// ---- Wire UI immediately (so tabs/craft button always work) ----
+document.addEventListener('DOMContentLoaded', () => {
+  log('DOM ready');
+  wireTabs();
+  wireButtons();
+  // default tab
   setTab('workshop');
-}
+});
 
-// run now (even if DOM is already ready)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', wireStaticTabs, { once: true });
-} else {
-  wireStaticTabs();
-}
-
-/* -------------- auth / boot -------------- */
+// ---- Auth/Data boot ----
 onAuthStateChanged(auth, async (user) => {
-  if (!user) return (location.href = 'login.html');
-  uid = user.uid;
-
   try {
+    if (!user) {
+      location.href = 'login.html';
+      return;
+    }
+    uid = user.uid;
+    log('user', uid);
+
     const us = await get(ref(db, `users/${uid}`));
-    if (!us.exists()) { alert('User not found.'); return; }
+    if (!us.exists()) {
+      alert('User not found.');
+      return;
+    }
     userData = us.val();
 
-    // inventory: accept old array or new object
+    // Load inventory/tack (supports array or object)
     const invSnap = await get(ref(db, `users/${uid}/inventory/tack`));
-    if (!invSnap.exists()) {
-      inventoryMap = {};
-    } else {
+    if (invSnap.exists()) {
       const v = invSnap.val();
-      inventoryMap = Array.isArray(v)
-        ? v.reduce((m, it, i) => { if (it) m[it.id || `legacy_${i}`] = it; return m; }, {})
-        : (v || {});
+      inventory = Array.isArray(v) ? v.filter(Boolean) : Object.values(v || {});
+    } else {
+      inventory = [];
     }
 
-    // render & bind craft
-    renderChances();
-    renderInventory();
-    const craftBtn = $('#btnCraft');
-    if (craftBtn && !craftBtn._wired) {
-      craftBtn._wired = true;
-      craftBtn.addEventListener('click', craft);
-    }
+    renderChances();     // needs userData.level
+    renderInventory();   // list current tack
   } catch (e) {
-    console.error('[barn] init failed', e);
-    alert('Failed to load Barn data. Check console.');
+    err('boot failed', e);
+    alert('Failed to load Barn. Check console for details.');
   }
 });
 
-/* -------------- tabs -------------- */
+// ---- Tabs ----
+function wireTabs(){
+  const w = $('#tabWorkshop');
+  const i = $('#tabInventory');
+  if (w) w.onclick = () => setTab('workshop');
+  if (i) i.onclick = () => setTab('inventory');
+}
 function setTab(name){
-  $('#tabWorkshop')?.classList.toggle('primary', name === 'workshop');
-  $('#tabInventory')?.classList.toggle('primary', name === 'inventory');
-  $('#secWorkshop')?.classList.toggle('active', name === 'workshop');
-  $('#secInventory')?.classList.toggle('active', name === 'inventory');
+  $('#tabWorkshop')?.classList.toggle('primary', name==='workshop');
+  $('#tabInventory')?.classList.toggle('primary', name==='inventory');
+  $('#secWorkshop')?.classList.toggle('active', name==='workshop');
+  $('#secInventory')?.classList.toggle('active', name==='inventory');
 }
 
-/* -------------- quality / durability -------------- */
-function qualityProbabilities(level){
-  if (level < 5)   return [{q:'Poor',       p:1}];
-  if (level < 15)  return [{q:'Fair',       p:0.85},{q:'Poor', p:0.15}];
-  if (level < 30)  return [{q:'Good',       p:0.75},{q:'Fair', p:0.15},{q:'Poor', p:0.10}];
-  if (level < 60)  return [{q:'Very Good',  p:0.60},{q:'Good', p:0.20},{q:'Fair', p:0.20}];
-  if (level < 100) return [{q:'Very Good',  p:0.85},{q:'Good', p:0.15}];
-  if (level < 200) return [{q:'Excellent',  p:0.50},{q:'Very Good', p:0.50}];
-  if (level < 250) return [{q:'Divine',     p:0.45},{q:'Excellent', p:0.55}];
-  return [{q:'Divine', p:1}];
+// ---- Buttons ----
+function wireButtons(){
+  const craftBtn = $('#btnCraft');
+  if (craftBtn) craftBtn.onclick = craft;
 }
-function pickQuality(probs){
-  const r = Math.random(); let cum = 0;
-  for (const p of probs){ cum += p.p; if (r <= cum) return p.q; }
-  return probs[probs.length-1].q;
+
+// ---- Crafting logic ----
+const QUALITIES = ['Poor','Fair','Good','Very Good','Excellent','Divine'];
+
+function qualityProbabilities(level){
+  // mirrors your earlier curve
+  if (level < 5)      return [{q:'Poor',       p:1.00}];
+  if (level < 15)     return [{q:'Fair',       p:0.85},{q:'Poor',       p:0.15}];
+  if (level < 30)     return [{q:'Good',       p:0.75},{q:'Fair',       p:0.15},{q:'Poor',       p:0.10}];
+  if (level < 60)     return [{q:'Very Good',  p:0.60},{q:'Good',       p:0.20},{q:'Fair',       p:0.20}];
+  if (level < 100)    return [{q:'Very Good',  p:0.85},{q:'Good',       p:0.15}];
+  if (level < 200)    return [{q:'Excellent',  p:0.50},{q:'Very Good',  p:0.50}];
+  if (level < 250)    return [{q:'Divine',     p:0.45},{q:'Excellent',  p:0.55}];
+  return                    [{q:'Divine',     p:1.00}];
 }
 function durabilityFor(q){
   switch(q){
-    case 'Poor':       return 20;
-    case 'Fair':       return 50;
-    case 'Good':       return 80;
-    case 'Very Good':  return 120;
-    case 'Excellent':  return 250;
-    case 'Divine':     return 500;
-    default:           return 10;
+    case 'Poor': return 20;
+    case 'Fair': return 50;
+    case 'Good': return 80;
+    case 'Very Good': return 120;
+    case 'Excellent': return 250;
+    case 'Divine': return 500;
+    default: return 10;
   }
 }
 function expFor(q){
   switch(q){
-    case 'Poor':       return 10;
-    case 'Fair':       return 15;
-    case 'Good':       return 20;
-    case 'Very Good':  return randInt(25,30);
-    case 'Excellent':  return randInt(50,75);
-    case 'Divine':     return randInt(100,150);
-    default:           return 0;
+    case 'Poor': return 10;
+    case 'Fair': return 15;
+    case 'Good': return 20;
+    case 'Very Good': return randInt(25,30);
+    case 'Excellent': return randInt(50,75);
+    case 'Divine': return randInt(100,150);
+    default: return 0;
   }
 }
+function renderChances(){
+  const lvl = Number(userData?.level || 1);
+  const probs = qualityProbabilities(lvl);
+  const line = probs.map(p => `${p.q} ${Math.round(p.p*100)}%`).join(' • ');
+  const el = $('#chanceLine');
+  if (el) el.textContent = `Quality chances at your level (${lvl}): ${line}`;
+}
+function pickQuality(probs){
+  const r = Math.random();
+  let cum = 0;
+  for (const p of probs) {
+    cum += p.p;
+    if (r <= cum) return p.q;
+  }
+  return probs[probs.length-1].q;
+}
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function prettyType(t){
+  switch(t){
+    case 'horse_boots': return 'Horse Boots';
+    case 'horse_shoes': return 'Horse Shoes';
+    default: return t.charAt(0).toUpperCase()+t.slice(1);
+  }
+}
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-/* -------------- craft -------------- */
+// The craft button handler
 async function craft(){
-  if (!uid || !userData) { alert('Still loading your profile… try again in a sec.'); return; }
-
-  const type = $('#tackType')?.value || '';
-  const spec = $('#tackSpec')?.value || '';
-  if (!type) return alert('Please select a tack type.');
-  if (!spec) return alert('Please select a specialty.');
-
-  const lvl  = Number(userData.level || 1);
-  const q    = pickQuality(qualityProbabilities(lvl));
-  const uses = durabilityFor(q);
-  const exp  = expFor(q);
-
-  const id = `tack_${Date.now()}_${Math.floor(Math.random()*1000)}`;
-  const item = {
-    id,
-    type,                 // 'bridle' | 'saddle' | 'horse_boots' | 'horse_shoes'
-    specialty: spec,      // 'Standard' | 'English' | 'Jumper' | 'Racing' | 'Western'
-    quality: q,
-    showsLeft: uses,
-    createdAt: Date.now()
-  };
-
   try {
-    // write as an object entry (no clobbering)
-    await set(ref(db, `users/${uid}/inventory/tack/${id}`), item);
-    inventoryMap[id] = item;
+    if (!uid) { alert('Please wait, loading your profile…'); return; }
 
+    const type = $('#tackType')?.value || '';
+    const spec = $('#tackSpec')?.value || '';
+    if (!type) return alert('Please select a tack type.');
+    if (!spec) return alert('Please select a specialty.');
+
+    const lvl = Number(userData?.level || 1);
+    const q = pickQuality(qualityProbabilities(lvl));
+    const uses = durabilityFor(q);
+    const exp  = expFor(q);
+
+    const item = {
+      id: `tack_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+      type,               // 'bridle' | 'saddle' | 'horse_boots' | 'horse_shoes'
+      specialty: spec,    // 'Standard' | 'English' | 'Jumper' | 'Racing' | 'Western'
+      quality: q,         // quality tier
+      showsLeft: uses,    // durability
+      createdAt: Date.now()
+    };
+
+    // append to inventory and persist
+    inventory.push(item);
+    await set(ref(db, `users/${uid}/inventory/tack`), inventory);
+
+    // grant EXP (level threshold = level * 100)
     await grantExp(exp);
 
-    $('#craftResult').innerHTML = `
-      <div class="horse-card">
-        Crafted <strong>${prettyType(type)}</strong> (${escapeHtml(spec)}) —
-        <span class="pill">${q}</span> • Durability: ${uses} shows • +${exp} EXP
-      </div>
-    `;
+    // feedback + refresh
+    const r = $('#craftResult');
+    if (r) {
+      r.innerHTML = `
+        <div class="horse-card">
+          Crafted <strong>${prettyType(type)}</strong> (${escapeHtml(spec)}) —
+          <span class="pill">${q}</span> • Durability: ${uses} shows • +${exp} EXP
+        </div>`;
+    }
     renderInventory();
     renderChances();
-    setTab('inventory');
-    setTimeout(()=> document.querySelector('#invList .horse-card')?.scrollIntoView({behavior:'smooth'}), 30);
+    setTab('inventory'); // jump user to see their new item
   } catch (e) {
-    console.error('[barn] craft failed', e);
-    alert('Craft failed. Check console for details.');
+    err('craft failed', e);
+    alert('Crafting failed. Check console for details.');
   }
 }
 
-/* -------------- EXP / leveling -------------- */
+// ---- EXP / Leveling (exp threshold = current level * 100) ----
 async function grantExp(amount){
-  let lvl = Number(userData.level || 1);
-  let xp  = Number(userData.exp || 0) + Number(amount || 0);
-  let leveled = false;
+  try {
+    const lvl0 = Number(userData?.level || 1);
+    const xp0  = Number(userData?.exp || 0);
 
-  while (xp >= lvl * 100) { xp -= lvl * 100; lvl += 1; leveled = true; }
-  userData.level = lvl; userData.exp = xp;
-  await update(ref(db, `users/${uid}`), { level: lvl, exp: xp });
+    let lvl = lvl0;
+    let xp  = xp0 + Number(amount || 0);
+
+    let leveled = false;
+    while (xp >= lvl * 100) {
+      xp -= lvl * 100;
+      lvl += 1;
+      leveled = true;
+    }
+
+    userData.level = lvl;
+    userData.exp   = xp;
+    await update(ref(db, `users/${uid}`), { level: lvl, exp: xp });
+
+    log(`+${amount} EXP → level ${lvl}${leveled?' (level up!)':''}`);
+  } catch (e) {
+    err('grantExp failed', e);
+  }
 }
 
-/* -------------- inventory render -------------- */
+// ---- Inventory UI ----
 function renderInventory(){
   const list = $('#invList');
   const empty = $('#invEmpty');
   if (!list || !empty) return;
 
-  const items = Object.values(inventoryMap || {});
-  if (!items.length) {
+  if (!inventory.length) {
     list.innerHTML = '';
     empty.style.display = '';
     return;
   }
   empty.style.display = 'none';
-  items.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0));
 
   list.innerHTML = '';
-  for (const it of items){
+  inventory.slice().reverse().forEach(item => {
     const card = document.createElement('div');
     card.className = 'horse-card';
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
         <div>
-          <div><strong>${prettyType(it.type)}</strong> <span class="pill">${escapeHtml(it.specialty)}</span></div>
-          <div class="hint">Quality: <strong>${it.quality}</strong> • Durability: ${it.showsLeft} shows</div>
+          <div><strong>${prettyType(item.type)}</strong> <span class="pill">${escapeHtml(item.specialty)}</span></div>
+          <div class="hint">Quality: <strong>${item.quality}</strong> • Durability: ${item.showsLeft} shows</div>
         </div>
-        <div class="pill">#${String(it.id||'').slice(-6)}</div>
+        <div class="pill">#${String(item.id || '').slice(-6)}</div>
       </div>
     `;
     list.appendChild(card);
-  }
-}
-
-/* -------------- helpers -------------- */
-function prettyType(t){
-  switch(t){
-    case 'horse_boots': return 'Horse Boots';
-    case 'horse_shoes': return 'Horse Shoes';
-    default: return t ? t.charAt(0).toUpperCase()+t.slice(1) : '';
-  }
-}
-function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-/* -------------- chances line -------------- */
-function renderChances(){
-  const lvl = Number(userData?.level || 1);
-  const probs = qualityProbabilities(lvl);
-  const line = probs.map(p => `${p.q} ${Math.round(p.p*100)}%`).join(' • ');
-  $('#chanceLine')?.textContent = `Quality chances at your level (${lvl}): ${line}`;
+  });
 }
