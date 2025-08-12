@@ -1,17 +1,36 @@
 // player-rewards.js
 import { db } from './firebase-init.js';
-import {
-  ref, get, set, update, runTransaction, push
-} from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, get, set, update, push } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 import { currentGameHour, yearsToHours } from './time.js';
 
-// ---------- helpers ----------
-function nowGh(){ return currentGameHour(); }
-function randId(prefix){ return `${prefix}_${Date.now()}_${Math.floor(Math.random()*1000)}`; }
+// --- helpers ---
+function ensure(obj, path, initVal) {
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const k = parts[i];
+    cur[k] = cur[k] ?? {};
+    cur = cur[k];
+  }
+  const leaf = parts[parts.length - 1];
+  cur[leaf] = cur[leaf] ?? initVal;
+  return cur[leaf];
+}
 
-// durability to match your barn.js
-function durabilityForQuality(q){
-  switch(q){
+function add(obj, path, inc) {
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const k = parts[i];
+    cur[k] = cur[k] ?? {};
+    cur = cur[k];
+  }
+  const leaf = parts[parts.length - 1];
+  cur[leaf] = Number(cur[leaf] || 0) + Number(inc || 0);
+}
+
+function qualityDurability(q) {
+  switch (q) {
     case 'Poor': return 20;
     case 'Fair': return 50;
     case 'Good': return 80;
@@ -22,331 +41,242 @@ function durabilityForQuality(q){
   }
 }
 
-// push a magic item in the same shape as store purchases (so your magic UI “just works”)
-async function grantMagic(uid, { key, kind }) {
-  // kind: 'duration'|'duration_one_horse'|'consumable_one_horse'|'permanent_one_horse'
-  // durations per your magic catalog
-  const durations = {
-    magical_show_crop: yearsToHours(3),
-    chronos_hourglass: yearsToHours(4),
-    dolos_staff: yearsToHours(3),
-    hebe_horseshoe: yearsToHours(1),
-  };
+function makeTackSet(quality = 'Good', specialty = 'Standard') {
+  const showsLeft = qualityDurability(quality);
+  const ts = Date.now();
+  const suffix = () => `${ts}_${Math.floor(Math.random()*1000)}`;
+  return [
+    { id: `tack_${suffix()}`, type:'bridle',      specialty, quality, showsLeft, createdAt: ts },
+    { id: `tack_${suffix()}`, type:'saddle',      specialty, quality, showsLeft, createdAt: ts },
+    { id: `tack_${suffix()}`, type:'horse_shoes', specialty, quality, showsLeft, createdAt: ts },
+    { id: `tack_${suffix()}`, type:'horse_boots', specialty, quality, showsLeft, createdAt: ts },
+  ];
+}
 
-  const invRef = ref(db, `users/${uid}/magicInventory`);
-  const rec = {
-    id: randId('magic'),
+// map magic keys to type/duration so they render correctly in magic.js
+const MAGIC_META = {
+  'magical_show_crop':   { type: 'duration',          years: 3 },
+  'chronos_hourglass':   { type: 'duration',          years: 4 },
+  'dolos_staff':         { type: 'duration_one_horse', years: 3 },
+  'ceres_easy_breeding': { type: 'consumable_one_horse', years: 0 },
+  'leucippus_shift':     { type: 'consumable_one_horse', years: 0 },
+  'hebe_horseshoe':      { type: 'duration_one_horse', years: 1 },
+};
+
+// award one magic item by key (matches magic.js CATALOG keys)
+async function awardMagicItem(uid, key) {
+  const meta = MAGIC_META[key] || { type: 'consumable_one_horse', years: 0 };
+  const invRef = push(ref(db, `users/${uid}/magicInventory`));
+  const payload = {
+    id: invRef.key,
     key,
     purchasedAt: Date.now(),
-    type: kind,
-    data: {},
+    type: meta.type,
+    boundHorseId: null
   };
-
-  if (kind === 'duration' || kind === 'duration_one_horse') {
-    rec.expiresAtGameHour = nowGh() + (durations[key] || 0);
-    rec.boundHorseId = null;
+  if (meta.type === 'duration' || meta.type === 'duration_one_horse') {
+    payload.expiresAtGameHour = currentGameHour() + yearsToHours(meta.years || 0);
   }
-  if (kind === 'consumable_one_horse') {
-    rec.usesRemaining = 1;
-    rec.boundHorseId = null;
+  if (meta.type === 'consumable_one_horse' || meta.type === 'permanent_one_horse') {
+    payload.usesRemaining = 1;
   }
-  if (key === 'pouch_of_gold') {
-    rec.lastClaimRealMs = 0; // not used here, but consistent
+  await set(invRef, payload);
+}
+
+// idempotency flag path
+function rewardFlagPath(level) {
+  return `rewardFlags/level_${level}`;
+}
+
+/**
+ * Grants level rewards exactly once and returns an array of human-readable lines
+ * describing what the player got at that level.
+ */
+export async function grantPlayerLevelRewards(uid, level) {
+  if (!uid || level < 2) return [];
+
+  // read user once
+  const us = await get(ref(db, `users/${uid}`));
+  if (!us.exists()) return [];
+  const user = us.val();
+
+  // skip if already granted
+  if (user.rewardFlags && user.rewardFlags[`level_${level}`]) return [];
+
+  // we’ll accumulate a patch and then one update()
+  const patch = {};
+  const rewardsLines = [];
+
+  // ensure structures in a local copy we’ll merge back
+  const inventory = user.inventory || {};
+  inventory.treats = inventory.treats || {};
+  inventory.feed   = inventory.feed   || {};
+  let tackArray    = Array.isArray(inventory.tack) ? inventory.tack.slice() : [];
+
+  // ---- global “every level 2–30 gets 1000 coins” rule ----
+  if (level >= 2 && level <= 30) {
+    add(patch, 'coins', 1000);
+    rewardsLines.push('+1,000 coins');
+  }
+  // extra coins at 19 and 24
+  if (level === 19 || level === 24) {
+    add(patch, 'coins', 1000);
+    rewardsLines.push('+1,000 bonus coins');
   }
 
-  // append to array-like collection
-  const snap = await get(invRef);
-  let arr = snap.exists()
-    ? (Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val()))
-    : [];
-  arr.push(rec);
-  await set(invRef, arr);
-  return rec;
-}
-
-async function addTreats(uid, add){
-  const tRef = ref(db, `users/${uid}/inventory/treats`);
-  const snap = await get(tRef);
-  const cur = snap.exists() ? snap.val() : {};
-  const next = {
-    carrots:    Number(cur.carrots||0)    + Number(add.carrots||0),
-    apples:     Number(cur.apples||0)     + Number(add.apples||0),
-    sugarCubes: Number(cur.sugarCubes||0) + Number(add.sugarCubes||0),
-  };
-  await set(tRef, next);
-  return next;
-}
-
-async function addFeed(uid, feedMap){
-  const fRef = ref(db, `users/${uid}/inventory/feed`);
-  const snap = await get(fRef);
-  const cur = snap.exists() ? snap.val() : {};
-  const next = { ...cur };
-  for (const [packId, lbs] of Object.entries(feedMap||{})) {
-    next[packId] = Number(next[packId] || 0) + Number(lbs || 0);
+  // ---- horse slot unlock (level => slots up to 30) ----
+  if (level >= 2 && level <= 30) {
+    const currentSlots = Number(user.maxHorses || 1);
+    const targetSlots = Math.max(currentSlots, Math.min(level, 30));
+    patch.maxHorses = targetSlots;
+    rewardsLines.push(`Stable capacity increased to ${targetSlots} horse(s)`);
   }
-  await set(fRef, next);
-  return next;
-}
 
-async function addTackSet(uid, { specialty='Standard', quality='Good' }){
-  const tRef = ref(db, `users/${uid}/inventory/tack`);
-  const snap = await get(tRef);
-  let arr = snap.exists()
-    ? (Array.isArray(snap.val()) ? snap.val() : Object.values(snap.val()))
-    : [];
-
-  const types = ['bridle','saddle','horse_shoes','horse_boots'];
-  const showsLeft = durabilityForQuality(quality);
-  const items = types.map(type => ({
-    id: randId('tack'),
-    type,
-    specialty,
-    quality,
-    showsLeft,
-    createdAt: Date.now()
-  }));
-  arr.push(...items);
-  await set(tRef, arr);
-  return items;
-}
-
-// stable slots: set to at least desiredSlots (idempotent & monotonic)
-async function ensureStableSlots(uid, desiredSlots){
-  const refSlots = ref(db, `users/${uid}/limits/stableSlots`);
-  await runTransaction(refSlots, cur => {
-    const curN = Number(cur || 1);
-    return Math.max(curN, desiredSlots);
-  });
-}
-
-// feature unlock flags (safe to call multiple times)
-async function unlock(uid, flags){
-  await update(ref(db, `users/${uid}/unlocks`), flags);
-}
-
-// coins / passes helpers (atomic)
-async function addCoins(uid, n){
-  await runTransaction(ref(db, `users/${uid}/coins`), cur => Number(cur||0) + Number(n||0));
-}
-async function addPasses(uid, n){
-  await runTransaction(ref(db, `users/${uid}/passes`), cur => Number(cur||0) + Number(n||0));
-}
-
-// ---------- reward plan (levels 2–25) ----------
-function planForLevel(level){
-  const out = { coins: 0, passes: 0, treats: null, feed: null, tackSet: null, magic: [], unlocks: {}, stableSlots: null };
-
-  // Base: +1000 coins per level up to 30
-  if (level <= 30) out.coins += 1000;
-  // Extra coins on 19 and 24 (+1000 more)
-  if (level === 19 || level === 24) out.coins += 1000;
-
-  // Stable-slot growth: from L2 onward, slots >= level (cap 30)
-  if (level >= 2) out.stableSlots = Math.min(level, 30);
-
-  switch(level){
-    case 2:
-      // unlock: second horse (via stableSlots=2) + 1000 coins (already added)
-      break;
-
+  // ---- per-level specifics ----
+  switch (level) {
     case 3:
-      // third horse (slots=3) + coins + treats bundle
-      out.treats = { carrots:100, apples:100, sugarCubes:50 };
+      // treats
+      add(inventory, 'treats.carrots',    100);
+      add(inventory, 'treats.apples',     100);
+      add(inventory, 'treats.sugarCubes', 50);
+      rewardsLines.push('Treats: +100 Carrots, +100 Apples, +50 Sugar Cubes');
       break;
 
     case 4:
-      out.feed   = { adult_elite: 2500 };
+      add(inventory, 'feed.adult_elite', 2500);
+      rewardsLines.push('Feed: +2,500 lbs Adult Elite');
       break;
 
     case 5:
-      out.unlocks = { marketSell: true, createShows: true };
-      out.passes  = 10;
+      // unlocks + passes
+      patch.unlocks = { ...(user.unlocks||{}), canSell:true, canCreateShows:true };
+      add(patch, 'passes', 10);
+      rewardsLines.push('Unlocked: Sell in Market, Create Shows', '+10 passes');
       break;
 
     case 6:
-      out.unlocks = { magicShop: true };
-      out.feed    = { adult_elite: 1000 };
+      patch.unlocks = { ...(user.unlocks||{}), magicShop:true };
+      add(inventory, 'feed.adult_elite', 1000);
+      rewardsLines.push('Unlocked: Magic Shop', 'Feed: +1,000 lbs Adult Elite');
       break;
 
     case 7:
-      out.unlocks = { breeding: true };
-      out.magic.push({ key: 'magical_show_crop', kind: 'duration' });
+      patch.unlocks = { ...(user.unlocks||{}), canBreed:true };
+      await awardMagicItem(uid, 'magical_show_crop');
+      rewardsLines.push('Unlocked: Breeding', 'Magic: Magical Show Crop');
       break;
 
     case 8:
-      out.unlocks = { conversion: true }; // coin→pass converter
+      patch.unlocks = { ...(user.unlocks||{}), converter:true };
+      rewardsLines.push('Unlocked: Coin → Pass conversion');
       break;
 
-    case 9:
-      out.tackSet = { specialty:'Standard', quality:'Good' };
+    case 9: {
+      const set = makeTackSet('Good', 'Standard');
+      tackArray = tackArray.concat(set);
+      rewardsLines.push('Tack: Full Good Standard set');
       break;
+    }
 
     case 10:
-      out.unlocks = { mail: true };
+      patch.unlocks = { ...(user.unlocks||{}), canSendMail:true };
+      rewardsLines.push('Unlocked: Send Mail');
       break;
 
     case 11:
-      out.passes  = 10;
+      add(patch, 'passes', 10);
+      rewardsLines.push('+10 passes');
       break;
 
     case 12:
-      out.magic.push({ key: 'dolos_staff', kind: 'duration_one_horse' });
+      await awardMagicItem(uid, 'dolos_staff');
+      rewardsLines.push('Magic: Dolos’ Staff');
       break;
 
     case 13:
-      out.feed = { adult_elite: 2500 };
+      add(inventory, 'feed.adult_elite', 2500);
+      rewardsLines.push('Feed: +2,500 lbs Adult Elite');
       break;
 
     case 14:
-      out.magic.push({ key: 'ceres_easy_breeding', kind: 'consumable_one_horse' });
-      out.feed = { ado_premium: 2500 };
+      await awardMagicItem(uid, 'ceres_easy_breeding');
+      add(inventory, 'feed.ado_premium', 2500);
+      rewardsLines.push('Magic: Ceres’ Easy Breeding Token', 'Feed: +2,500 lbs Adolescent Premium');
       break;
 
     case 15:
-      out.unlocks = { clubhouse: true }; // hiring rider still locked
-      out.magic.push({ key: 'chronos_hourglass', kind: 'duration' });
+      patch.unlocks = { ...(user.unlocks||{}), clubhouse:true };
+      await awardMagicItem(uid, 'chronos_hourglass');
+      rewardsLines.push('Unlocked: Clubhouse', 'Magic: Chronos Rider Hourglass');
       break;
 
     case 16:
-      out.treats = { carrots:200, apples:100, sugarCubes:50 };
+      add(inventory, 'treats.carrots',    200);
+      add(inventory, 'treats.apples',     100);
+      add(inventory, 'treats.sugarCubes', 50);
+      rewardsLines.push('Treats: +200 Carrots, +100 Apples, +50 Sugar Cubes');
       break;
 
-    case 17:
-      out.tackSet = { specialty:'Standard', quality:'Good' };
+    case 17: {
+      const set = makeTackSet('Good', 'Standard');
+      tackArray = tackArray.concat(set);
+      rewardsLines.push('Tack: Full Good Standard set');
       break;
+    }
 
     case 18:
-      out.magic.push({ key: 'leucippus_shift', kind: 'consumable_one_horse' });
-      break;
-
-    case 19:
-      // coins handled by base+extra
+      await awardMagicItem(uid, 'leucippus_shift');
+      rewardsLines.push('Magic: Leucippus’ Gender Shift');
       break;
 
     case 20:
-      out.unlocks = { vetAssistantJob: true };
-      out.passes  = 30;
+      patch.unlocks = { ...(user.unlocks||{}), canBeVetAssistant:true };
+      add(patch, 'passes', 30);
+      rewardsLines.push('Unlocked: Vet Assistant job', '+30 passes');
       break;
 
     case 21:
-      out.magic.push({ key: 'hebe_horseshoe', kind: 'duration_one_horse' });
+      await awardMagicItem(uid, 'hebe_horseshoe');
+      rewardsLines.push('Magic: Hebe’s Horseshoe');
       break;
 
     case 22:
-      out.feed = { ado_premium: 500, adult_elite: 1000 };
+      add(inventory, 'feed.ado_premium',  500);
+      add(inventory, 'feed.adult_elite', 1000);
+      rewardsLines.push('Feed: +500 lbs Adolescent Premium, +1,000 lbs Adult Elite');
       break;
 
-    case 23:
-      out.tackSet = { specialty:'Standard', quality:'Very Good' };
+    case 23: {
+      const set = makeTackSet('Very Good', 'Standard');
+      tackArray = tackArray.concat(set);
+      rewardsLines.push('Tack: Full Very Good Standard set');
       break;
-
-    case 24:
-      // coins handled by base+extra
-      break;
+    }
 
     case 25:
-      out.unlocks = { hireRider: true };
-      out.magic.push({ key: 'magical_show_crop', kind: 'duration' });
+      patch.unlocks = { ...(user.unlocks||{}), canHireRider:true };
+      await awardMagicItem(uid, 'magical_show_crop');
+      rewardsLines.push('Unlocked: Hire Rider', 'Magic: Magical Show Crop');
       break;
+
     default:
-      // no extra specifics
+      // nothing extra for other levels (besides coins + slots)
       break;
   }
-  return out;
-}
 
-// ---------- public: idempotent level-reward grant ----------
-export async function grantPlayerLevelRewards(uid, level){
-  if (!uid || !Number.isFinite(level) || level < 1) return [];
+  // write inventory/tack changes
+  patch.inventory = {
+    ...(user.inventory || {}),
+    treats: { ...(user.inventory?.treats || {}), ...(inventory.treats || {}) },
+    feed:   { ...(user.inventory?.feed   || {}), ...(inventory.feed   || {}) },
+    tack:   tackArray
+  };
 
-  // idempotency flag
-  const flagRef = ref(db, `users/${uid}/rewardGrants/levels/${level}`);
-  const took = await runTransaction(flagRef, cur => (cur ? cur : true));
-  if (!took.committed || took.snapshot.val() !== true) {
-    return []; // already granted
-  }
+  // set idempotency flag
+  patch[rewardFlagPath(level)] = true;
 
-  const plan = planForLevel(level);
-  const summary = [];
+  // persist
+  await update(ref(db, `users/${uid}`), patch);
 
-  // coins / passes
-  if (plan.coins) {
-    await addCoins(uid, plan.coins);
-    summary.push({ type:'coins', amount: plan.coins });
-  }
-  if (plan.passes) {
-    await addPasses(uid, plan.passes);
-    summary.push({ type:'passes', amount: plan.passes });
-  }
-
-  // treats / feed
-  if (plan.treats) {
-    await addTreats(uid, plan.treats);
-    summary.push({ type:'treats', ...plan.treats });
-  }
-  if (plan.feed) {
-    await addFeed(uid, plan.feed);
-    summary.push({ type:'feed', ...plan.feed });
-  }
-
-  // tack sets
-  if (plan.tackSet) {
-    const items = await addTackSet(uid, plan.tackSet);
-    summary.push({ type:'tackSet', quality: plan.tackSet.quality, specialty: plan.tackSet.specialty, count: items.length });
-  }
-
-  // magic items
-  for (const m of plan.magic) {
-    const rec = await grantMagic(uid, m);
-    summary.push({ type:'magic', key: rec.key, id: rec.id });
-  }
-
-  // stable slots
-  if (plan.stableSlots) {
-    await ensureStableSlots(uid, plan.stableSlots);
-    summary.push({ type:'stableSlots', to: plan.stableSlots });
-  }
-
-  // unlock flags
-  if (plan.unlocks && Object.keys(plan.unlocks).length) {
-    await unlock(uid, plan.unlocks);
-    summary.push({ type:'unlocks', ...plan.unlocks });
-  }
-
-  // notify
-  await push(ref(db, `users/${uid}/notifications`), {
-    type: 'level_rewards',
-    at: Date.now(),
-    level,
-    details: summary
-  });
-
-  return summary;
-}
-
-// ---------- optional: grant arbitrary pack (daily/event) ----------
-export async function grantOneOffReward(uid, reward, reason='one_off'){
-  const summary = [];
-  if (reward.coins) { await addCoins(uid, reward.coins); summary.push({type:'coins', amount:reward.coins}); }
-  if (reward.passes){ await addPasses(uid, reward.passes); summary.push({type:'passes', amount:reward.passes}); }
-  if (reward.treats){ await addTreats(uid, reward.treats); summary.push({type:'treats', ...reward.treats}); }
-  if (reward.feed)  { await addFeed(uid, reward.feed);     summary.push({type:'feed', ...reward.feed}); }
-  if (reward.tackSet){ const items = await addTackSet(uid, reward.tackSet); summary.push({type:'tackSet', count:items.length}); }
-  if (reward.magic){
-    for (const m of reward.magic) {
-      const rec = await grantMagic(uid, m);
-      summary.push({type:'magic', key: rec.key});
-    }
-  }
-  if (reward.unlocks){ await unlock(uid, reward.unlocks); summary.push({type:'unlocks', ...reward.unlocks}); }
-  if (reward.stableSlots){ await ensureStableSlots(uid, reward.stableSlots); summary.push({type:'stableSlots', to: reward.stableSlots}); }
-
-  await push(ref(db, `users/${uid}/notifications`), {
-    type:'reward',
-    at: Date.now(),
-    reason,
-    details: summary
-  });
-  return summary;
+  return rewardsLines;
 }
