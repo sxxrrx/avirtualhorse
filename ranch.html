@@ -16,16 +16,17 @@
     }
     .ctaButton:hover { background:#567d46; }
     .ctaButton:active { transform:translateY(1px); }
-    .expRow { margin-top:8px; }
-    .expRow small { opacity:.85; }
+
+    /* XP bar styling (same look as horse page) */
+    #profileExpBarContainer { width:100%; background:#ddd; border-radius:6px; height:12px; }
+    #profileExpBar { height:100%; width:0%; background:#4caf50; border-radius:6px; transition:width .25s ease; }
   </style>
 </head>
 <body>
-  <!-- Top bar injected by app-chrome -->
+  <!-- Top bar is mounted by app-chrome -->
   <div id="topbar"></div>
 
   <div id="mainContainer">
-    <!-- Sidebars injected by app-chrome -->
     <div class="sidebar left-sidebar" id="leftSidebar"></div>
 
     <!-- Main Content -->
@@ -38,8 +39,8 @@
         <p><strong>Horses Owned:</strong> <span id="profileHorseCount">0</span></p>
         <p><strong>Level:</strong> <span id="profileLevel">1</span></p>
 
-        <div class="expRow">
-          <p><strong>EXP:</strong> <span id="profileExp">0</span> <small>(to next level)</small></p>
+        <div class="expRow" style="margin-top:8px;">
+          <p><strong>EXP:</strong> <span id="profileExp">0 / 100</span> <small>(to next level)</small></p>
           <div id="profileExpBarContainer">
             <div id="profileExpBar"></div>
           </div>
@@ -55,8 +56,11 @@
     <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
 
-  <!-- Shared chrome then page logic -->
-  <script type="module" src="app-chrome.js"></script>
+  <!-- Mount shared chrome, then page logic -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ leftActive: 'ranch' });
+  </script>
   <script type="module" src="ranch.js"></script>
 </body>
 </html>
