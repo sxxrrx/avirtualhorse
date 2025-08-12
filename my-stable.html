@@ -30,8 +30,13 @@
     <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
 
-  <!-- Shared chrome + page script -->
-  <script type="module" src="app-chrome.js"></script>
-  <script type="module" src="my-stable.js"></script>
+<!-- Shared chrome + page script -->
+<script type="module">
+  import { mountChrome } from './app-chrome.js';
+  // highlights “Stables” in the left sidebar
+  mountChrome({ leftActive: 'stables' });
+</script>
+<script type="module" src="my-stable.js"></script>
+
 </body>
 </html>
