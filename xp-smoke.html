@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>XP Smoke Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    .card { background:#fff; border:1px solid #c0e8c0; border-radius:8px; padding:12px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0; }
+    .pill { background:#e7f7e7; border:1px solid #c0e8c0; border-radius:999px; padding:2px 8px; }
+  </style>
+</head>
+<body>
+  <div id="pageMain" class="main-content">
+    <h1>XP Smoke Test</h1>
+    <div id="box" class="card">
+      <div class="row">
+        <div><strong>UID:</strong> <span id="uid">…</span></div>
+        <div><strong>Level:</strong> <span id="lvl">—</span></div>
+        <div><strong>EXP:</strong> <span id="xp">—</span></div>
+        <div class="pill" id="need">need: —</div>
+      </div>
+      <div class="row">
+        <button id="btnPlus5">+5 XP (direct)</button>
+        <button id="btnPlus50">+50 XP (direct)</button>
+        <button id="btnGrant50">+50 XP via grantPlayerXP()</button>
+        <button id="btnReset">Reset to L1 / 0 XP</button>
+      </div>
+      <div id="msg" class="muted"></div>
+    </div>
+  </div>
+
+  <!-- chrome -->
+  <script type="module">
+    import { mountChrome } from './app-chrome.js';
+    mountChrome({ leftActive: 'town' });
+  </script>
+
+  <!-- page logic -->
+  <script type="module" src="xp-smoke.js"></script>
+</body>
+</html>
