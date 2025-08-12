@@ -12,14 +12,19 @@ let uid = null;
 let userData = null;
 let inventory = []; // array of tack items
 
-// ---- Wire UI immediately (so tabs/craft button always work) ----
-document.addEventListener('DOMContentLoaded', () => {
-  log('DOM ready');
+// ---- Safe UI init (works even if DOMContentLoaded already fired) ----
+function initUI(){
+  log('initUI');
   wireTabs();
   wireButtons();
   // default tab
   setTab('workshop');
-});
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initUI, { once:true });
+} else {
+  initUI();
+}
 
 // ---- Auth/Data boot ----
 onAuthStateChanged(auth, async (user) => {
@@ -57,10 +62,8 @@ onAuthStateChanged(auth, async (user) => {
 
 // ---- Tabs ----
 function wireTabs(){
-  const w = $('#tabWorkshop');
-  const i = $('#tabInventory');
-  if (w) w.onclick = () => setTab('workshop');
-  if (i) i.onclick = () => setTab('inventory');
+  $('#tabWorkshop')?.addEventListener('click', () => setTab('workshop'));
+  $('#tabInventory')?.addEventListener('click', () => setTab('inventory'));
 }
 function setTab(name){
   $('#tabWorkshop')?.classList.toggle('primary', name==='workshop');
@@ -71,15 +74,13 @@ function setTab(name){
 
 // ---- Buttons ----
 function wireButtons(){
-  const craftBtn = $('#btnCraft');
-  if (craftBtn) craftBtn.onclick = craft;
+  $('#btnCraft')?.addEventListener('click', craft);
 }
 
 // ---- Crafting logic ----
 const QUALITIES = ['Poor','Fair','Good','Very Good','Excellent','Divine'];
 
 function qualityProbabilities(level){
-  // mirrors your earlier curve
   if (level < 5)      return [{q:'Poor',       p:1.00}];
   if (level < 15)     return [{q:'Fair',       p:0.85},{q:'Poor',       p:0.15}];
   if (level < 30)     return [{q:'Good',       p:0.75},{q:'Fair',       p:0.15},{q:'Poor',       p:0.10}];
@@ -121,10 +122,7 @@ function renderChances(){
 function pickQuality(probs){
   const r = Math.random();
   let cum = 0;
-  for (const p of probs) {
-    cum += p.p;
-    if (r <= cum) return p.q;
-  }
+  for (const p of probs) { cum += p.p; if (r <= cum) return p.q; }
   return probs[probs.length-1].q;
 }
 function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
@@ -241,3 +239,4 @@ function renderInventory(){
     list.appendChild(card);
   });
 }
+
