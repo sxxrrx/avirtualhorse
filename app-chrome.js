@@ -232,4 +232,5 @@ if (!document.querySelector('link[rel="icon"]')) {
   updateClockUI();
   setInterval(updateClockUI, 60000); // refresh once a minute is plenty
 }
+mountAdminTools();
 
