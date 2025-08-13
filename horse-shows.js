@@ -4,6 +4,8 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/fi
 import { ref, get, set, update, runTransaction, onValue } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 import { currentGameHour } from './time.js';
 import { logHorseEvent } from './horse-history-log.js';
+import { rateLimitAllow } from './rate-limit.js';
+
 
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -207,6 +209,9 @@ function resolveEntryFee(show, h){
 
 // ---------- enter flow ----------
 async function enterShow(show, entryFee){
+// 10-second cooldown per horse enter
+const ok = await rateLimitAllow(uid, `enter_show_${horse.id}`, 10_000);
+if (!ok) return alert('Slow down! Try again in a few seconds.');
   const sRef = ref(db, `shows/${show.id}`);
   const fresh = await get(sRef);
   if (!fresh.exists()) return alert('That show no longer exists.');
