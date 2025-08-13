@@ -216,3 +216,10 @@ a.btn:active, .ctaButton:active{ transform:translateY(1px); }
 .topbar a, .topbar button, .topbar span {
   color: #fff !important;
 }
+button.disabled, .guard-disabled {
+  opacity: .6;
+  pointer-events: none;
+}
+.guard-note {
+  font-size: 0.9em; color:#666; margin-left:8px;
+}
