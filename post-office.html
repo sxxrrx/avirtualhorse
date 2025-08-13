@@ -44,28 +44,31 @@
         <div id="sentList"></div>
       </div>
 
-      <!-- Compose -->
-      <div id="viewCompose" class="content" style="display:none;">
-        <div class="compose">
-          <div class="row">
-            <div>
-              <label><strong>To (username or UID)</strong></label>
-              <input id="toInput" placeholder="e.g. StarRider or 7B2hK..."/>
-            </div>
-            <div>
-              <label><strong>Resolved recipient</strong></label>
-              <input id="resolvedTo" disabled placeholder="(will resolve when sending)"/>
-            </div>
-          </div>
-          <label><strong>Subject</strong></label>
-          <input id="subjectInput" placeholder="Subject"/>
-          <label><strong>Message</strong></label>
-          <textarea id="bodyInput" rows="6" placeholder="Write your message…"></textarea>
-          <button id="sendBtn">Send</button>
-          <div id="composeStatus" style="margin-top:8px;"></div>
-        </div>
+     <!-- Compose -->
+<div id="viewCompose" class="content" style="display:none;">
+  <div class="compose">
+    <div class="row">
+      <div>
+        <label for="toInput"><strong>To (username or UID)</strong></label>
+        <input id="toInput" placeholder="e.g. StarRider or 7B2hK..." />
+      </div>
+      <div>
+        <label for="resolvedTo"><strong>Resolved recipient</strong></label>
+        <input id="resolvedTo" disabled placeholder="(will resolve when sending)" />
       </div>
     </div>
+
+    <label for="subjectInput"><strong>Subject</strong></label>
+    <input id="subjectInput" placeholder="Subject" />
+
+    <label for="bodyInput"><strong>Message</strong></label>
+    <textarea id="bodyInput" rows="6" placeholder="Write your message…"></textarea>
+
+    <button id="sendBtn">Send</button>
+    <div id="composeStatus" style="margin-top:8px;" aria-live="polite"></div>
+  </div>
+</div>
+
 
     <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
