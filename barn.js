@@ -1,20 +1,19 @@
 // barn.js
-import { auth } from './firebase-init.js';
+import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
 import { loadTack, addTackItem } from './inventory.js';
 import { craftTackItem, qualityProbabilities, prettyType } from './craft-tack.js';
-import { grantPlayerXP, ensurePlayerProgress } from './player-level.js';
+import { ensurePlayerProgress, grantPlayerXP } from './player-level.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (...a)=>console.log('[barn]', ...a);
 const err = (...a)=>console.error('[barn]', ...a);
 
-// ---- State ----
 let uid = null;
-let userData = null;
-let inventory = []; // array of tack items
+let userData = { level:1, exp:0 };
+let inventory = [];
 
 // ---- Ready helper ----
 function onReady(fn){
@@ -41,10 +40,10 @@ onAuthStateChanged(auth, async (user) => {
     uid = user.uid;
 
     // load minimal user (level used for chances)
-    const us = await get(ref(window.db, `users/${uid}`)).catch(()=>null);
-    if (us?.exists()) userData = us.val();
-    else userData = { level: 1, exp: 0 };
+    const us = await get(ref(db, `users/${uid}`));
+    if (us.exists()) userData = us.val() || userData;
 
+    // load inventory
     inventory = await loadTack(uid);
 
     renderChances();
@@ -84,7 +83,7 @@ function renderChances(){
   if (el) el.textContent = `Quality chances at your level (${lvl}): ${line}`;
 }
 
-// ---- Craft handler (now grants XP via player-level.js for rewards/mail) ----
+// ---- Craft handler (grants XP via unified flow) ----
 async function craft(){
   try {
     if (!uid) { alert('Please wait, loading your profile…'); return; }
@@ -100,10 +99,10 @@ async function craft(){
     const lvl = Number(userData?.level || 1);
     const { item, exp, quality, uses } = craftTackItem(lvl, type, spec);
 
-    // Save to inventory (array shape, as before)
+    // Save to inventory (array shape)
     inventory = await addTackItem(uid, inventory, item);
 
-    // IMPORTANT: Grant XP via shared player-level flow (rewards + mail)
+    // Ensure numeric level/exp then grant XP (rewards + mail handled inside)
     await ensurePlayerProgress(uid);
     await grantPlayerXP(uid, exp, 'craft_tack');
 
