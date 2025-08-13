@@ -1,7 +1,11 @@
 // barn.js
-import { auth, db } from './firebase-init.js';
+import { auth } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, get, set, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+
+import { loadTack, addTackItem } from './inventory.js';
+import { craftTackItem, qualityProbabilities, prettyType } from './craft-tack.js';
+import { grantPlayerXP, ensurePlayerProgress } from './player-level.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (...a)=>console.log('[barn]', ...a);
@@ -12,7 +16,7 @@ let uid = null;
 let userData = null;
 let inventory = []; // array of tack items
 
-// ---- Ready helper: run init immediately if DOM already parsed ----
+// ---- Ready helper ----
 function onReady(fn){
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fn, { once:true });
@@ -33,31 +37,18 @@ onReady(initUI);
 // ---- Auth/Data boot ----
 onAuthStateChanged(auth, async (user) => {
   try {
-    if (!user) {
-      location.href = 'login.html';
-      return;
-    }
+    if (!user) { location.href = 'login.html'; return; }
     uid = user.uid;
-    log('user', uid);
 
-    const us = await get(ref(db, `users/${uid}`));
-    if (!us.exists()) {
-      alert('User not found.');
-      return;
-    }
-    userData = us.val();
+    // load minimal user (level used for chances)
+    const us = await get(ref(window.db, `users/${uid}`)).catch(()=>null);
+    if (us?.exists()) userData = us.val();
+    else userData = { level: 1, exp: 0 };
 
-    // Load inventory/tack (supports array or object)
-    const invSnap = await get(ref(db, `users/${uid}/inventory/tack`));
-    if (invSnap.exists()) {
-      const v = invSnap.val();
-      inventory = Array.isArray(v) ? v.filter(Boolean) : Object.values(v || {});
-    } else {
-      inventory = [];
-    }
+    inventory = await loadTack(uid);
 
-    renderChances();     // needs userData.level
-    renderInventory();   // list current tack
+    renderChances();
+    renderInventory();
   } catch (e) {
     err('boot failed', e);
     alert('Failed to load Barn. Check console for details.');
@@ -69,7 +60,7 @@ function wireTabs(){
   $('#tabWorkshop')?.addEventListener('click', () => setTab('workshop'));
   $('#tabInventory')?.addEventListener('click', () => {
     setTab('inventory');
-    renderInventory(); // make sure it's fresh
+    renderInventory(); // refresh
   });
 }
 function setTab(name){
@@ -84,41 +75,7 @@ function wireButtons(){
   $('#btnCraft')?.addEventListener('click', craft);
 }
 
-// ---- Crafting logic ----
-const QUALITIES = ['Poor','Fair','Good','Very Good','Excellent','Divine'];
-
-function qualityProbabilities(level){
-  if (level < 5)      return [{q:'Poor',       p:1.00}];
-  if (level < 15)     return [{q:'Fair',       p:0.85},{q:'Poor',       p:0.15}];
-  if (level < 30)     return [{q:'Good',       p:0.75},{q:'Fair',       p:0.15},{q:'Poor',       p:0.10}];
-  if (level < 60)     return [{q:'Very Good',  p:0.60},{q:'Good',       p:0.20},{q:'Fair',       p:0.20}];
-  if (level < 100)    return [{q:'Very Good',  p:0.85},{q:'Good',       p:0.15}];
-  if (level < 200)    return [{q:'Excellent',  p:0.50},{q:'Very Good',  p:0.50}];
-  if (level < 250)    return [{q:'Divine',     p:0.45},{q:'Excellent',  p:0.55}];
-  return                    [{q:'Divine',     p:1.00}];
-}
-function durabilityFor(q){
-  switch(q){
-    case 'Poor': return 20;
-    case 'Fair': return 50;
-    case 'Good': return 80;
-    case 'Very Good': return 120;
-    case 'Excellent': return 250;
-    case 'Divine': return 500;
-    default: return 10;
-  }
-}
-function expFor(q){
-  switch(q){
-    case 'Poor': return 10;
-    case 'Fair': return 15;
-    case 'Good': return 20;
-    case 'Very Good': return randInt(25,30);
-    case 'Excellent': return randInt(50,75);
-    case 'Divine': return randInt(100,150);
-    default: return 0;
-  }
-}
+// ---- Chances line ----
 function renderChances(){
   const lvl = Number(userData?.level || 1);
   const probs = qualityProbabilities(lvl);
@@ -126,26 +83,8 @@ function renderChances(){
   const el = $('#chanceLine');
   if (el) el.textContent = `Quality chances at your level (${lvl}): ${line}`;
 }
-function pickQuality(probs){
-  const r = Math.random();
-  let cum = 0;
-  for (const p of probs) {
-    cum += p.p;
-    if (r <= cum) return p.q;
-  }
-  return probs[probs.length-1].q;
-}
-function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-function prettyType(t){
-  switch(t){
-    case 'horse_boots': return 'Horse Boots';
-    case 'horse_shoes': return 'Horse Shoes';
-    default: return t.charAt(0).toUpperCase()+t.slice(1);
-  }
-}
-function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-// The craft button handler
+// ---- Craft handler (now grants XP via player-level.js for rewards/mail) ----
 async function craft(){
   try {
     if (!uid) { alert('Please wait, loading your profile…'); return; }
@@ -159,65 +98,30 @@ async function craft(){
     if (!spec) { alert('Please select a specialty.'); specSel?.focus(); return; }
 
     const lvl = Number(userData?.level || 1);
-    const q = pickQuality(qualityProbabilities(lvl));
-    const uses = durabilityFor(q);
-    const exp  = expFor(q);
+    const { item, exp, quality, uses } = craftTackItem(lvl, type, spec);
 
-    const item = {
-      id: `tack_${Date.now()}_${Math.floor(Math.random()*1000)}`,
-      type,               // 'bridle' | 'saddle' | 'horse_boots' | 'horse_shoes'
-      specialty: spec,    // 'Standard' | 'English' | 'Jumper' | 'Racing' | 'Western'
-      quality: q,         // quality tier
-      showsLeft: uses,    // durability
-      createdAt: Date.now()
-    };
+    // Save to inventory (array shape, as before)
+    inventory = await addTackItem(uid, inventory, item);
 
-    // append to inventory and persist
-    inventory.push(item);
-    await set(ref(db, `users/${uid}/inventory/tack`), inventory);
+    // IMPORTANT: Grant XP via shared player-level flow (rewards + mail)
+    await ensurePlayerProgress(uid);
+    await grantPlayerXP(uid, exp, 'craft_tack');
 
-    // grant EXP (level threshold = level * 100)
-    await grantExp(exp);
-
-    // feedback + refresh
+    // UI feedback + refresh
     const r = $('#craftResult');
     if (r) {
       r.innerHTML = `
         <div class="horse-card">
           Crafted <strong>${prettyType(type)}</strong> (${escapeHtml(spec)}) —
-          <span class="pill">${q}</span> • Durability: ${uses} shows • +${exp} EXP
+          <span class="pill">${quality}</span> • Durability: ${uses} shows • +${exp} XP
         </div>`;
     }
     renderInventory();
     renderChances();
-    setTab('inventory'); // jump user to see their new item
+    setTab('inventory');
   } catch (e) {
     err('craft failed', e);
     alert('Crafting failed. Check console for details.');
-  }
-}
-
-// ---- EXP / Leveling (exp threshold = current level * 100) ----
-async function grantExp(amount){
-  try {
-    const lvl0 = Number(userData?.level || 1);
-    const xp0  = Number(userData?.exp || 0);
-
-    let lvl = lvl0;
-    let xp  = xp0 + Number(amount || 0);
-
-    while (xp >= lvl * 100) {
-      xp -= lvl * 100;
-      lvl += 1;
-    }
-
-    userData.level = lvl;
-    userData.exp   = xp;
-    await update(ref(db, `users/${uid}`), { level: lvl, exp: xp });
-
-    log(`+${amount} EXP → level ${lvl}`);
-  } catch (e) {
-    err('grantExp failed', e);
   }
 }
 
@@ -242,7 +146,7 @@ function renderInventory(){
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
         <div>
           <div><strong>${prettyType(item.type)}</strong> <span class="pill">${escapeHtml(item.specialty)}</span></div>
-          <div class="hint">Quality: <strong>${item.quality}</strong> • Durability: ${item.showsLeft} shows</div>
+          <div class="hint">Quality: <strong>${escapeHtml(item.quality)}</strong> • Durability: ${Number(item.showsLeft||0)} shows</div>
         </div>
         <div class="pill">#${String(item.id || '').slice(-6)}</div>
       </div>
@@ -250,3 +154,6 @@ function renderInventory(){
     list.appendChild(card);
   });
 }
+
+// ---- utils ----
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
