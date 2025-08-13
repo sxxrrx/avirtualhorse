@@ -1,8 +1,11 @@
 // app-chrome.js
+// app-chrome.js
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, onValue, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
-import { mountAdminTools } from './admin-tools.js';
+import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+
+// NEW: centralized game-time helpers
+import { gameDateParts, seasonForDate } from './time.js';
 
 
 // Game time + aging helpers
