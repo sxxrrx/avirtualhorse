@@ -1,4 +1,8 @@
 // magic.js
+import { guardMagicPage } from './feature-guards.js';
+
+// after you load user (uid/me) and before rendering store/inventory:
+guardMagicPage(user);   // 'user' is your loaded user object
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, set, update, onValue, push } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
