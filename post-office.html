@@ -70,8 +70,7 @@
     <div class="sidebar right-sidebar" id="rightSidebar"></div>
   </div>
 
-  <!-- Shared chrome, then page script -->
-  <script type="module" src="app-chrome.js"></script>
-  <script type="module" src="post-office.js"></script>
+ <!-- Only this one; it imports app-chrome and mounts inside -->
+<script type="module" src="post-office.js"></script>
 </body>
 </html>
