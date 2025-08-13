@@ -1,15 +1,22 @@
 // gating.js
 export const FEATURE_LEVELS = {
   buy_second_horse: 2,
-  buy_third_horse: 3,           // and so on, your UI can enforce continuing pattern
+  buy_third_horse: 3,
+  buy_fourth_horse: 4,
+  buy_fifth_horse: 5, 
   market_sell: 5,
   create_shows: 5,
   magic_shop: 6,
+  buy_sixth_horse: 6,
   breeding: 7,                  // horses still must be lvl 10+ (your rule) + any age checks
+  buy_seventh_horse: 7,
   coin_to_pass: 8,
+  buy_eigth_horse: 8,
   send_mail: 10,
   clubhouse: 15,
+  buy_fifthteenth_horse: 15,
   vet_job: 20,
+  buy_twenteth_horse: 20,
   hire_rider: 25
 };
 
