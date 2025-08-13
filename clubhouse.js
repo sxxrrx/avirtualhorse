@@ -1,4 +1,8 @@
 // clubhouse.js
+import { guardClubhouse } from './feature-guards.js';
+
+// after loadAll() when user is set:
+guardClubhouse(user);
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, set, update, push } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
