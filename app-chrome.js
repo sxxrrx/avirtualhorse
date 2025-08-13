@@ -1,17 +1,15 @@
 // app-chrome.js
-// app-chrome.js
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
-import { ref, onValue, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, onValue, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 
-// NEW: centralized game-time helpers
-import { gameDateParts, seasonForDate } from './time.js';
-
-
-// Game time + aging helpers
+// Centralized game-time + aging helpers
 import { gameDateParts, seasonForDate, updateHorsesAgesIfNeeded } from './time.js';
 
 const $ = (id) => document.getElementById(id);
+
+// idempotent guard so we can safely call mountChrome more than once
+let __chromeMounted = false;
 
 // ---------- internal helpers ----------
 function injectOnce(id, css){
@@ -40,7 +38,7 @@ function updateClockUI(){
 
 // Build/normalize layout without fighting existing markup
 function ensureChromeContainers() {
-  // Ensure #topbar exists and is the FIRST child of <body> so it never sits under content
+  // Ensure #topbar exists and is the FIRST child of <body>
   let top = document.getElementById('topbar');
   if (!top) {
     top = document.createElement('div');
@@ -110,15 +108,15 @@ async function syncAgesOnce(uid){
     if (before === after) return; // nothing changed
 
     // Write back while preserving array/object shape
-    const updates = {};
+    const updatesObj = {};
     if (Array.isArray(user.horses)) {
-      user.horses.forEach((h, i) => { updates[`users/${uid}/horses/${i}`] = h ?? null; });
+      user.horses.forEach((h, i) => { updatesObj[`users/${uid}/horses/${i}`] = h ?? null; });
     } else {
       const obj = user.horses || {};
-      Object.keys(obj).forEach(k => { updates[`users/${uid}/horses/${k}`] = obj[k]; });
+      Object.keys(obj).forEach(k => { updatesObj[`users/${uid}/horses/${k}`] = obj[k]; });
     }
-    if (Object.keys(updates).length) {
-      await update(ref(db), updates);
+    if (Object.keys(updatesObj).length) {
+      await update(ref(db), updatesObj);
     }
   } catch (e) {
     console.warn('[chrome] syncAgesOnce failed:', e);
@@ -127,6 +125,16 @@ async function syncAgesOnce(uid){
 
 // ---------- PUBLIC API ----------
 export async function mountChrome(opts = {}) {
+  // idempotent mount: if already mounted, just adjust highlights and exit
+  if (__chromeMounted) {
+    const left  = document.getElementById('leftSidebar');
+    const right = document.getElementById('rightSidebar');
+    if (opts.leftActive)  left?.querySelector(`[data-key="${opts.leftActive}"]`)?.classList.add('active');
+    if (opts.rightActive) right?.querySelector(`[data-key="${opts.rightActive}"]`)?.classList.add('active');
+    return;
+  }
+  __chromeMounted = true;
+
   // 1) Make sure the structural containers exist in the right order
   ensureChromeContainers();
 
@@ -147,15 +155,14 @@ export async function mountChrome(opts = {}) {
   const left   = $('leftSidebar');
   const right  = $('rightSidebar');
 
-// inside mountChrome(), after your styles
-if (!document.querySelector('link[rel="icon"]')) {
-  const link = document.createElement('link');
-  link.rel = 'icon';
-  link.type = 'image/svg+xml';
-  link.href = 'favicon.svg';   // note: no leading slash
-  document.head.appendChild(link);
-}
-
+  // favicon (once)
+  if (!document.querySelector('link[rel="icon"]')) {
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = 'favicon.svg'; // relative path
+    document.head.appendChild(link);
+  }
 
   topbar.innerHTML = `
     <div class="topbar-inner">
@@ -192,7 +199,7 @@ if (!document.querySelector('link[rel="icon"]')) {
 
   // 5) Live data wiring (coins, mail badge, logout) + one-time age sync
   onAuthStateChanged(auth, async (user) => {
-    if (!user) return; // page-level auth guards can redirect
+    if (!user) return;
 
     // One-time age reconciliation on mount
     await syncAgesOnce(user.uid);
@@ -233,7 +240,16 @@ if (!document.querySelector('link[rel="icon"]')) {
 
   // 6) In-game clock (driven by time.js)
   updateClockUI();
-  setInterval(updateClockUI, 60000); // refresh once a minute is plenty
+  setInterval(updateClockUI, 60000);
 }
-mountAdminTools();
 
+// ---- Auto-mount when included via <script type="module" src="app-chrome.js"> ----
+if (typeof window !== 'undefined' && !window.__HG_CHROME_AUTO_MOUNTED) {
+  window.__HG_CHROME_AUTO_MOUNTED = true;
+  const run = () => mountChrome({});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once:true });
+  } else {
+    run();
+  }
+}
