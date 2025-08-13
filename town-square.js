@@ -2,6 +2,9 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ensureUpcomingShows } from './shows-auto.js';
+ensureUpcomingShows({ minPerSpec: 6, horizonHours: 48 }).catch(()=>{});
+
 
 const $ = (id) => document.getElementById(id);
 const escapeHtml = (s) => String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
