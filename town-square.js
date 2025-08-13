@@ -22,8 +22,13 @@ onAuthStateChanged(auth, async (user) => {
   // admin?
   const meSnap = await get(ref(db, `users/${uid}`));
   const me = meSnap.exists() ? meSnap.val() : {};
-  const isAdmin = !!(me?.roles && me.roles.admin) || devAdmin;
-  if (isAdmin) injectAdminTools(uid);
+const isAdmin = !!(me?.roles && me.roles.admin) || devAdmin;
+
+if (isAdmin) {
+  const { mountTownAdminTools } = await import('./admin-tools.js');
+  mountTownAdminTools(); // grabs auth.currentUser.uid at click time
+}
+
 
   // NEWS
   const snap = await get(ref(db, 'news'));
