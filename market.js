@@ -4,6 +4,10 @@ import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/fi
 import { ref, get, set, update, push, runTransaction } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
 import { currentGameHour } from './time.js'; // centralized clock
 import { logHorseEvent, logTransfer, logStoreBirthIfMissing } from './horse-history-log.js';
+import { guardButton } from './gating.js';
+// after loading user
+guardButton(document.getElementById('tabSell'), userData, 'market_sell');
+
 
 const $ = (id) => document.getElementById(id);
 
