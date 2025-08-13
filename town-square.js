@@ -24,7 +24,7 @@ onAuthStateChanged(auth, async (user) => {
   if (isAdmin) {
     try {
       const { mountTownAdminTools } = await import('./admin-tools.js');
-      mountTownAdminTools(); // reads auth.currentUser at click time
+      mountTownAdminTools();
     } catch (e) {
       console.error('[town-square] failed to load admin-tools', e);
     }
