@@ -1,6 +1,10 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, get, set, push, update } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+if (!guardButton(document.getElementById('btnSendMail'), me, 'send_mail')) {
+  // optionally hide the compose UI
+}
+
 
 let me = null;
 let meUid = null;
