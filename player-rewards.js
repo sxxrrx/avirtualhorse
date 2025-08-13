@@ -1,274 +1,211 @@
 // player-rewards.js
 import { db } from './firebase-init.js';
-import {
-  ref, get, set, update, runTransaction
-} from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { ref, get, update, push, set } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
+import { sendSystemMail } from './mail-utils.js';
 
-// --- small helpers -------------------------------------------------
-
-async function addCoins(uid, amount) {
-  if (!amount) return null;
-  await runTransaction(ref(db, `users/${uid}/coins`), cur => (Number(cur)||0) + amount);
-  return `${amount.toLocaleString()} coins`;
+// Helper: add coins / passes safely
+async function addWallet(uid, deltaCoins = 0, deltaPasses = 0){
+  const uref = ref(db, `users/${uid}`);
+  const snap = await get(uref);
+  if (!snap.exists()) return { coins:0, passes:0 };
+  const u = snap.val() || {};
+  const coins = Number(u.coins || 0) + Number(deltaCoins || 0);
+  const passes = Number(u.passes || 0) + Number(deltaPasses || 0);
+  await update(uref, { coins, passes });
+  return { coins, passes };
 }
 
-async function addPasses(uid, amount) {
-  if (!amount) return null;
-  await runTransaction(ref(db, `users/${uid}/passes`), cur => (Number(cur)||0) + amount);
-  return `${amount} passes`;
+// Helper: add items to inventory
+async function addInventory(uid, patch){
+  // patch like: { treats: {carrots: +100}, feed: {adult_elite: +2500}, tackSets: [ {...}, ... ] }
+  const invRef = ref(db, `users/${uid}/inventory`);
+  const snap = await get(invRef);
+  const inv = snap.exists() ? (snap.val() || {}) : {};
+
+  // treats/feed/tack arrays tolerated whether existing or not
+  inv.treats ||= {};
+  inv.feed   ||= {};
+  inv.tack   ||= []; // individual items list
+  inv.tackSets ||= []; // optional: grouped “sets” list
+
+  // treats
+  if (patch?.treats){
+    for (const [k, v] of Object.entries(patch.treats)) {
+      inv.treats[k] = Number(inv.treats[k] || 0) + Number(v || 0);
+    }
+  }
+  // feed (use your ids)
+  if (patch?.feed){
+    for (const [k, v] of Object.entries(patch.feed)) {
+      inv.feed[k] = Number(inv.feed[k] || 0) + Number(v || 0);
+    }
+  }
+  // tack items
+  if (Array.isArray(patch?.tackItems) && patch.tackItems.length){
+    inv.tack.push(...patch.tackItems);
+  }
+  // tack sets (if you want to group)
+  if (Array.isArray(patch?.tackSets) && patch.tackSets.length){
+    inv.tackSets.push(...patch.tackSets);
+  }
+
+  await set(invRef, inv);
 }
 
-async function addTreats(uid, { carrots=0, apples=0, sugarCubes=0 } = {}) {
-  const p = {};
-  if (carrots)    p['inventory/treats/carrots']    = (cur) => (Number(cur)||0) + carrots;
-  if (apples)     p['inventory/treats/apples']     = (cur) => (Number(cur)||0) + apples;
-  if (sugarCubes) p['inventory/treats/sugarCubes'] = (cur) => (Number(cur)||0) + sugarCubes;
-
-  const updates = {};
-  // do individual transactions so we don't clobber other fields
-  const txs = Object.entries(p).map(([path, fn]) =>
-    runTransaction(ref(db, `users/${uid}/${path}`), cur => fn(cur))
+// One helper to build a “Good/Very Good” full set
+function fullTackSet(quality = 'Good', specialty = 'Standard'){
+  const id = () => `tack_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+  const showsFor = q => (
+    q === 'Very Good' ? 120 :
+    q === 'Excellent' ? 250 :
+    q === 'Divine' ? 500 :
+    q === 'Good' ? 80 :
+    q === 'Fair' ? 50 : 20
   );
-  await Promise.all(txs);
 
-  const lines = [];
-  if (carrots)    lines.push(`${carrots} carrots`);
-  if (apples)     lines.push(`${apples} apples`);
-  if (sugarCubes) lines.push(`${sugarCubes} sugar cubes`);
-  return lines.join(', ');
+  const s = (specialty || 'Standard');
+  const q = (quality || 'Good');
+
+  return [
+    { id:id(), type:'bridle',      specialty:s, quality:q, showsLeft:showsFor(q), createdAt:Date.now() },
+    { id:id(), type:'saddle',      specialty:s, quality:q, showsLeft:showsFor(q), createdAt:Date.now() },
+    { id:id(), type:'horse_shoes', specialty:s, quality:q, showsLeft:showsFor(q), createdAt:Date.now() },
+    { id:id(), type:'horse_boots', specialty:s, quality:q, showsLeft:showsFor(q), createdAt:Date.now() },
+  ];
 }
 
-async function addFeedLbs(uid, packId, lbs) {
-  if (!packId || !lbs) return null;
-  // your inventory feed shape is pounds keyed by feed pack id
-  await runTransaction(ref(db, `users/${uid}/inventory/feed/${packId}`), cur => (Number(cur)||0) + lbs);
-  // human label (keep in sync with your FEED_PACKS)
-  const LABELS = {
-    ado_premium: 'Adolescent Premium',
-    adult_elite: 'Adult Elite'
-  };
-  const name = LABELS[packId] || packId;
-  return `${lbs} lbs ${name} feed`;
-}
-
-function durabilityFor(q){
-  switch(q){
-    case 'Poor': return 20;
-    case 'Fair': return 50;
-    case 'Good': return 80;
-    case 'Very Good': return 120;
-    case 'Excellent': return 250;
-    case 'Divine': return 500;
-    default: return 10;
+// ------- Rewards table (2..25) -------
+function rewardsForLevel(level){
+  switch(level){
+    case 2:  return { coins:1000, unlock:['buy_second_horse'] };
+    case 3:  return { coins:1000, treats:{carrots:100, apples:100, sugarCubes:50}, unlock:['buy_third_horse'] };
+    case 4:  return { coins:1000, feed:{ adult_elite:2500 } };
+    case 5:  return { passes:10,   unlock:['market_sell','create_shows'] };
+    case 6:  return { feed:{ adult_elite:1000 }, unlock:['magic_shop'] };
+    case 7:  return { magic:['magical_show_crop'], unlock:['breeding'] };
+    case 8:  return { unlock:['coin_to_pass'] };
+    case 9:  return { tackItems: fullTackSet('Good','Standard') };
+    case 10: return { unlock:['send_mail'] };
+    case 11: return { passes:10 };
+    case 12: return { magic:['dolos_staff'] };
+    case 13: return { feed:{ adult_elite:2500 } };
+    case 14: return { magic:['ceres_easy_breeding'], feed:{ ado_premium:2500 } };
+    case 15: return { magic:['chronos_hourglass'], unlock:['clubhouse'] };
+    case 16: return { treats:{carrots:200, apples:100, sugarCubes:50} };
+    case 17: return { tackItems: fullTackSet('Good','Standard') };
+    case 18: return { magic:['leucippus_shift'] };
+    case 19: return { coins:2000 }; // (1000 base + 1000 additional)
+    case 20: return { passes:30, unlock:['vet_job'] };
+    case 21: return { magic:['hebe_horseshoe'] };
+    case 22: return { feed:{ ado_premium:500, adult_elite:1000 } };
+    case 23: return { tackItems: fullTackSet('Very Good','Standard') };
+    case 24: return { coins:2000 }; // (1000 base + 1000 additional)
+    case 25: return { magic:['magical_show_crop'], unlock:['hire_rider'] };
+    default:
+      // Level 4..30: add 1000 coins baseline if that rule should apply every level
+      if (level >= 4 && level <= 30) return { coins:1000 };
+      return null;
   }
 }
-
-/** Append 4 tack pieces (bridle, saddle, horse_shoes, horse_boots), Standard specialty. */
-async function addTackSet(uid, quality='Good') {
-  const items = ['bridle','saddle','horse_shoes','horse_boots'].map(type => ({
-    id: `tack_${Date.now()}_${Math.floor(Math.random()*100000)}`,
-    type,
-    specialty: 'Standard',
-    quality,
-    showsLeft: durabilityFor(quality),
-    createdAt: Date.now()
-  }));
-
-  const tackRef = ref(db, `users/${uid}/inventory/tack`);
-  const snap = await get(tackRef);
-
-  if (!snap.exists()) {
-    await set(tackRef, items);
-  } else {
-    const cur = snap.val();
-    const arr = Array.isArray(cur) ? cur.filter(Boolean) : Object.values(cur || {});
-    arr.push(...items);
-    await set(tackRef, arr);
-  }
-
-  return `1 full set of ${quality.toLowerCase()} Standard tack`;
-}
-
-async function addMagic(uid, key, amount=1) {
-  await runTransaction(ref(db, `users/${uid}/inventory/magic/${key}`), cur => (Number(cur)||0) + amount);
-  const LABELS = {
-    magical_show_crop: "Magical Show Crop",
-    dolos_staff: "Dolo's Staff",
-    ceres_easy_breeding_charm: "Ceres’ Easy Breeding Charm",
-    chronos_hourglass: "Chronos’ Hourglass",
-    leucippus_gender_shift_token: "Leucippus’ Gender Shift Token",
-    hebes_horseshoe: "Hebe’s Horseshoe"
-  };
-  return `${amount} × ${LABELS[key] || key}`;
-}
-
-async function addHorseSlot(uid) {
-  await runTransaction(ref(db, `users/${uid}/horseSlots`), cur => (Number(cur)||1) + 1);
-  return `+1 horse slot (you can own one more horse)`;
-}
-
-async function setUnlock(uid, path, value=true) {
-  // path like "market.sell" or "shows.create"
-  const parts = path.split('.');
-  let obj = value;
-  for (let i=parts.length-1;i>=0;i--) {
-    obj = { [parts[i]]: obj };
-  }
-  await update(ref(db, `users/${uid}/unlocks`), obj);
-  return `Unlocked: ${path.replace(/\./g,' › ')}`;
-}
-
-// --- main rewards switch -------------------------------------------
 
 /**
- * Grants rewards for a given player level. Returns an array of human-readable lines.
- * This function only adds; it does not remove anything.
+ * Grant rewards for a specific level and mail the player. Returns an array of text lines describing rewards.
  */
-export async function grantPlayerLevelRewards(uid, level) {
+export async function grantPlayerLevelRewards(uid, level){
+  const pack = rewardsForLevel(level);
+  if (!pack) return [];
+
   const lines = [];
 
-  // 1000 coins every level from 2..30 (inclusive)
-  if (level >= 2 && level <= 30) {
-    const l = await addCoins(uid, 1000);
-    if (l) lines.push(l);
+  // coins/passes
+  if (pack.coins || pack.passes){
+    const res = await addWallet(uid, pack.coins||0, pack.passes||0);
+    if (pack.coins)  lines.push(`Coins +${Number(pack.coins).toLocaleString()}`);
+    if (pack.passes) lines.push(`Passes +${Number(pack.passes).toLocaleString()}`);
   }
 
-  // +1 horse slot at each level 2..30 (inclusive)
-  if (level >= 2 && level <= 30) {
-    const l = await addHorseSlot(uid);
-    if (l) lines.push(l);
+  // inventory (treats / feed / tack)
+  if (pack.treats || pack.feed || pack.tackItems){
+    await addInventory(uid, { treats:pack.treats, feed:pack.feed, tackItems:pack.tackItems });
+    if (pack.treats){
+      const t = pack.treats;
+      if (t.carrots)     lines.push(`Carrots ×${t.carrots}`);
+      if (t.apples)      lines.push(`Apples ×${t.apples}`);
+      if (t.sugarCubes)  lines.push(`Sugar Cubes ×${t.sugarCubes}`);
+    }
+    if (pack.feed){
+      for (const [k,v] of Object.entries(pack.feed)) lines.push(`${prettyFeed(k)} +${v} lbs`);
+    }
+    if (pack.tackItems)  lines.push(`Full set of ${guessQuality(pack.tackItems)} ${guessSpec(pack.tackItems)} tack`);
   }
 
-  // Level-specific extras
-  switch (level) {
-    case 3: {
-      const l = await addTreats(uid, { carrots:100, apples:100, sugarCubes:50 });
-      if (l) lines.push(l);
-      break;
+  // magic items (as entries in magicInventory)
+  if (Array.isArray(pack.magic) && pack.magic.length){
+    for (const key of pack.magic){
+      const idRef = push(ref(db, `users/${uid}/magicInventory`));
+      await set(idRef, {
+        id: idRef.key, key, type: 'reward', purchasedAt: Date.now(), fromLevel: level
+      });
+      lines.push(prettyMagic(key));
     }
-    case 4: {
-      const l = await addFeedLbs(uid, 'adult_elite', 2500);
-      if (l) lines.push(l);
-      break;
-    }
-    case 5: {
-      const l1 = await setUnlock(uid, 'market.sell', true);
-      const l2 = await setUnlock(uid, 'shows.create', true);
-      const l3 = await addPasses(uid, 10);
-      lines.push(l1, l2, l3);
-      break;
-    }
-    case 6: {
-      const u = await setUnlock(uid, 'magic_shop', true);
-      const f = await addFeedLbs(uid, 'adult_elite', 1000);
-      lines.push(u, f);
-      break;
-    }
-    case 7: {
-      const u = await setUnlock(uid, 'breeding', true);
-      const m = await addMagic(uid, 'magical_show_crop', 1);
-      lines.push(u, m);
-      break;
-    }
-    case 8: {
-      const u = await setUnlock(uid, 'coin_to_pass', true);
-      lines.push(u);
-      break;
-    }
-    case 9: {
-      const t = await addTackSet(uid, 'Good');
-      lines.push(t);
-      break;
-    }
-    case 10: {
-      const u = await setUnlock(uid, 'mail.send', true);
-      lines.push(u);
-      break;
-    }
-    case 11: {
-      const p = await addPasses(uid, 10);
-      lines.push(p);
-      break;
-    }
-    case 12: {
-      const m = await addMagic(uid, 'dolos_staff', 1);
-      lines.push(m);
-      break;
-    }
-    case 13: {
-      const f = await addFeedLbs(uid, 'adult_elite', 2500);
-      lines.push(f);
-      break;
-    }
-    case 14: {
-      const m = await addMagic(uid, 'ceres_easy_breeding_charm', 1);
-      const f = await addFeedLbs(uid, 'ado_premium', 2500);
-      lines.push(m, f);
-      break;
-    }
-    case 15: {
-      const u = await setUnlock(uid, 'clubhouse', true);
-      const m = await addMagic(uid, 'chronos_hourglass', 1);
-      lines.push(u, m);
-      break;
-    }
-    case 16: {
-      const l = await addTreats(uid, { carrots:200, apples:100, sugarCubes:50 });
-      if (l) lines.push(l);
-      break;
-    }
-    case 17: {
-      const t = await addTackSet(uid, 'Good');
-      lines.push(t);
-      break;
-    }
-    case 18: {
-      const m = await addMagic(uid, 'leucippus_gender_shift_token', 1);
-      lines.push(m);
-      break;
-    }
-    case 19: {
-      const extra = await addCoins(uid, 1000); // +1000 more (so total 2000 that level)
-      lines.push(extra);
-      break;
-    }
-    case 20: {
-      const u = await setUnlock(uid, 'jobs.vet_assistant', true);
-      const p = await addPasses(uid, 30);
-      lines.push(u, p);
-      break;
-    }
-    case 21: {
-      const m = await addMagic(uid, 'hebes_horseshoe', 1);
-      lines.push(m);
-      break;
-    }
-    case 22: {
-      const a = await addFeedLbs(uid, 'ado_premium', 500);
-      const b = await addFeedLbs(uid, 'adult_elite', 1000);
-      lines.push(a, b);
-      break;
-    }
-    case 23: {
-      const t = await addTackSet(uid, 'Very Good');
-      lines.push(t);
-      break;
-    }
-    case 24: {
-      const extra = await addCoins(uid, 1000); // +1000 more (so total 2000 that level)
-      lines.push(extra);
-      break;
-    }
-    case 25: {
-      const u = await setUnlock(uid, 'clubhouse.hire_rider', true);
-      const m = await addMagic(uid, 'magical_show_crop', 1);
-      lines.push(u, m);
-      break;
-    }
-    default:
-      break;
   }
 
-  // tidy null/undefined, flatten
-  return (lines || []).filter(Boolean);
+  // unlock flags
+  if (Array.isArray(pack.unlock) && pack.unlock.length){
+    const flags = {};
+    pack.unlock.forEach(k => flags[k] = true);
+    await update(ref(db, `users/${uid}/unlocks`), flags);
+    lines.push(...pack.unlock.map(k => `Unlocked: ${prettyUnlock(k)}`));
+  }
+
+  // mail the player
+  const subject = `Level Up! You reached Level ${level}`;
+  const body = lines.length
+    ? `Congrats on reaching Level ${level}!\n\nRewards:\n- ${lines.join('\n- ')}\n\nEnjoy!`
+    : `Congrats on reaching Level ${level}!`;
+  await sendSystemMail(uid, subject, body);
+
+  return lines;
+}
+
+/* ---------- tiny formatters ---------- */
+function prettyFeed(k){
+  return {
+    ado_basic:'Adolescent Basic', ado_premium:'Adolescent Premium',
+    adult_basic:'Adult Basic', adult_prem:'Adult Premium',
+    adult_elite:'Adult Elite', senior:'Senior'
+  }[k] || k;
+}
+function prettyMagic(k){
+  return {
+    magical_show_crop:'Magical Show Crop',
+    chronos_hourglass:"Chronos Rider Hourglass",
+    ceres_easy_breeding:"Ceres’ Easy Breeding Token",
+    leucippus_shift:"Leucippus’ Gender Shift",
+    hebe_horseshoe:"Hebe’s Horseshoe",
+    dolos_staff:"Dolos’ Staff"
+  }[k] || k;
+}
+function prettyUnlock(k){
+  return {
+    buy_second_horse:'Buy a 2nd horse',
+    buy_third_horse:'Buy a 3rd horse',
+    market_sell:'Market (sell tab)',
+    create_shows:'Create Shows',
+    magic_shop:'Magic Shop',
+    breeding:'Breeding',
+    coin_to_pass:'Coin→Pass Converter',
+    send_mail:'Mail (send)',
+    clubhouse:'Clubhouse',
+    vet_job:'Vet Assistant job',
+    hire_rider:'Hire a rider'
+  }[k] || k;
+}
+function guessQuality(items){
+  const q = items?.[0]?.quality || 'Good';
+  return q;
+}
+function guessSpec(items){
+  const s = items?.[0]?.specialty || 'Standard';
+  return s;
 }
