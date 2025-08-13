@@ -2,7 +2,7 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js';
 import { ref, push, set, update, get } from 'https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js';
-import { guardButton } from './gating.js';
+import { guardCreateShow } from './feature-guards.js';
 import { rateLimitAllow } from './rate-limit.js';
 import { currentGameHour } from './time.js';
 
@@ -28,6 +28,8 @@ onAuthStateChanged(auth, async user => {
 
   // gate the create button visually
   guardButton($('#btnCreate'), me, 'create_shows');
+// after me is loaded:
+guardCreateShow(me);
 
   // wire
   $('#btnCreate').onclick = doCreate;
